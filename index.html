@@ -252,6 +252,16 @@ button:active{background:#eee}
 .retrieve-row button{white-space:nowrap;padding:8px 16px;background:#185FA5;color:#fff;border-color:#185FA5;font-weight:700}
 .backend-notice{background:#f8f7f5;border-left:3px solid #185FA5;padding:10px 14px;border-radius:0 8px 8px 0;font-size:12px;color:#555;line-height:1.6;margin-top:1rem}
 
+/* ── Plan tab step layout ──────────────────────────────────────── */
+.step-hd{display:flex;align-items:center;gap:10px;margin-bottom:1rem}
+.step-num{width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;color:#fff;flex-shrink:0}
+.step-hd-text{}
+.step-hd-text .step-label{font-size:9px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;opacity:.7;margin-bottom:1px}
+.step-hd-text h3{font-size:17px;font-weight:800;letter-spacing:-.01em;margin:0}
+.step-divider{display:flex;align-items:center;gap:10px;margin:0 -1rem;padding:.6rem 1rem;background:#e8e5de}
+.step-divider .step-div-num{width:22px;height:22px;border-radius:50%;background:#888;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:800;color:#fff;flex-shrink:0}
+.step-divider span{font-size:10px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:#888}
+
 @keyframes spin{to{transform:rotate(360deg)}}
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
@@ -788,65 +798,36 @@ function renderHome(){
 function renderPlanTab(){
   const pb=document.getElementById('page-body-wrap');
   if(pb){pb.style.padding='0';}
-  const ps=S.plans;
   let h='';
 
-  // RETRIEVE BOX
-  h+='<div class="section-panel" style="padding-top:1.25rem">';
-  h+='<div class="sechd sechd-first">Return to an existing plan</div>';
-  h+='<div class="retrieve-box"><h4>Have a Plan ID?</h4>';
-  h+='<p>Enter your Plan ID below to reload your plan. Your Plan ID was shown when you saved and is in the header of your XLS export.</p>';
-  h+='<div class="retrieve-row"><input type="text" id="retrieve-input" placeholder="AO27-XXXX-XXXX" maxlength="14" oninput="this.value=this.value.toUpperCase().replace(/[^A-Z0-9-]/g,\'\');" onkeydown="if(event.keyCode===13)retrievePlan()"><button onclick="retrievePlan()">Load plan</button></div>';
-  h+='<div class="retrieve-note" id="retrieve-msg" style="margin-top:.5rem;font-size:11px;color:#aaa"></div>';
-  h+='</div>';
-  const dbStatus=SUPABASE_READY
-    ?'<span style="color:#0F6E56;font-weight:700">Cloud storage active.</span> Plans save to Supabase and can be retrieved on any device using your Plan ID.'
-    :'<span style="color:#854F0B;font-weight:700">Cloud storage not configured.</span> Plans save to this browser only. To enable cross-device retrieval, add your Supabase credentials to the HTML file. To use your plan on another device in the meantime, import your XLS export.';
-  h+='<div class="backend-notice"><strong>Plan storage: </strong>'+dbStatus+'</div>';
-  h+='</div>';
-
-  // CTA SECTION
-  h+='<div class="cta-section">';
-  h+='<h3>Create a materials plan</h3>';
-  h+='<p>This tool will allow you to capture assets and materials, record expected waste and track circularity across your AO27 scope.</p>';
+  // ── STEP 1: CREATE ──────────────────────────────────────────────
+  h+='<div class="cta-section" style="text-align:left;padding-top:1.5rem">';
+  h+='<div class="sechd sechd-first">Step one — Create a materials management plan</div>';
+  h+='<p style="font-size:13px;color:#555;line-height:1.6;margin-bottom:1.25rem;max-width:480px">Complete this plan before the event to document assets and materials, set circularity targets, and share with TA. You\'ll need your AO27 scope and the Target Materials List.</p>';
   h+='<div class="how-steps-h">';
   h+='<div class="how-step-card"><div class="step-n">1</div><h4>About you</h4><p>Business details, your role, and your AO27 waste and reuse targets.</p></div>';
   h+='<div class="how-step-card"><div class="step-n">2</div><h4>Assets &amp; Materials</h4><p>Add each asset in your scope with its materials, volumes and expected end-of-event status.</p></div>';
   h+='<div class="how-step-card"><div class="step-n">3</div><h4>Review &amp; Save</h4><p>See your circularity score, flag any non-recommended materials, and save or print your plan.</p></div>';
-  h+='<div class="how-step-card" style="border-color:#1D9E75;background:#EEF9F4"><div class="step-n" style="background:#1D9E75">4</div><h4>Post event asset manifest</h4><p>Track materials and assets at the end of the event and complete your actual outcomes.</p></div>';
+  h+='<div class="how-step-card" style="border-color:#1D9E75;background:#EEF9F4"><div class="step-n" style="background:#1D9E75">4</div><h4>Post event manifest</h4><p>Return at bump-out to record actual outcomes and complete your circularity report.</p></div>';
   h+='</div>';
   h+='<button class="btn-cta" onclick="createNewPlan()">+ Create new materials plan</button>';
-  h+='<div style="margin-top:14px">';
-  h+='<div class="import-zone" onclick="triggerImport()">';
-  h+='<svg viewBox="0 0 24 24" style="width:28px;height:28px;stroke:#185FA5;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;margin:0 auto;display:block"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>';
-  h+='<p><strong>Import an existing plan</strong><br>Upload a previously exported .xls file to continue editing</p>';
-  h+='<input type="file" id="import-xls-input" accept=".xls,.xlsx,.tsv,.txt" style="display:none" onchange="importPlanXLS(this)">';
-  h+='</div>';
-  h+='</div>';
   h+='</div>';
 
-  if(ps.length){
-    h+='<div class="plans-section">';
-    h+='<div class="sechd sechd-first">Your saved plans</div>';
-    for(const p of ps){
-      const assets=p.assets||[];const sc=calcScore(assets);const cl=fillClr(sc.pct);
-      const ini=(p.profile.businessName||'?').split(/\s+/).map(w=>w[0]).join('').slice(0,2).toUpperCase();
-      h+='<div class="pitem" onclick="goPlan(\''+p.id+'\')">';
-      h+='<div class="pav">'+ini+'</div>';
-      h+='<div style="flex:1;min-width:0">';
-      h+='<div style="font-size:14px;font-weight:700;color:#0A2240">'+(esc(p.profile.businessName)||'Unnamed plan')+'</div>';
-      h+='<div style="font-size:12px;color:#888;margin-top:2px">'+(esc(p.profile.role)||'Role not set')+' &middot; '+assets.length+' asset'+(assets.length!==1?'s':'')+' &middot; Saved '+fmtDate(p.savedAt)+'</div>';
-      h+='</div>';
-      if(sc.total>0)h+='<div style="text-align:right;flex-shrink:0;margin-right:6px"><div style="font-size:17px;font-weight:800;color:'+cl+'">'+sc.pct+'%</div><div style="font-size:10px;color:#aaa;font-weight:600;text-transform:uppercase;letter-spacing:.04em">circular</div></div>';
-      h+='<button onclick="event.stopPropagation();deletePlan(\''+p.id+'\')" style="background:none;border:none;cursor:pointer;color:#ccc;padding:4px 8px;font-size:18px;flex-shrink:0">&times;</button>';
-      h+='</div>';
-    }
-    h+='</div>';
-  }
+  // ── STEP 2: VIEW / EDIT ─────────────────────────────────────────
+  h+='<div class="section-panel" style="padding-top:1.25rem">';
+  h+='<div class="sechd sechd-first">Step two — View / edit an existing plan</div>';
+  h+='<p style="font-size:13px;color:#555;line-height:1.6;margin-bottom:1rem">Enter your Plan ID to reload a saved plan. Your Plan ID was shown when you first saved and appears in the header of any exported file.</p>';
+  const dbStatus=SUPABASE_READY
+    ?'<span style="color:#0F6E56;font-weight:700">Cloud storage active.</span> Plans save to Supabase and can be retrieved on any device using your Plan ID.'
+    :'<span style="color:#854F0B;font-weight:700">Cloud storage not configured.</span> Plans save to this browser only. To enable cross-device retrieval, add your Supabase credentials to the HTML file.';
+  h+='<div class="retrieve-box" style="margin-bottom:.75rem">';
+  h+='<div class="retrieve-row"><input type="text" id="retrieve-input" placeholder="AO27-XXXX-XXXX" maxlength="14" oninput="this.value=this.value.toUpperCase().replace(/[^A-Z0-9-]/g,\'\');" onkeydown="if(event.keyCode===13)retrievePlan()"><button onclick="retrievePlan()">Load plan</button></div>';
+  h+='<div id="retrieve-msg" style="margin-top:.5rem;font-size:11px;color:#aaa"></div>';
+  h+='</div>';
+  h+='<div class="backend-notice"><strong>Plan storage: </strong>'+dbStatus+'</div>';
+  h+='</div>';
 
-  // ════════════════════════════════════════════════════════════════
-  // EXAMPLE PLAN - condensed, last
-  // ════════════════════════════════════════════════════════════════
+  // ── EXAMPLE PLAN ───────────────────────────────────────────────
   const eg=examplePlan();
   const egAssets=eg.assets;
   const egSc=calcScore(egAssets);
@@ -868,6 +849,7 @@ function renderPlanTab(){
   h+='</div>';
 
   document.getElementById('main').innerHTML=h;
+}
 
 
 
@@ -998,9 +980,6 @@ function renderAdminDashboard(allPlans){
   h+='</div>';
 
   document.getElementById('main').innerHTML=h;
-}
-
- document.getElementById('main').innerHTML=h;
 }
 
 function adminSignOut(){sessionStorage.removeItem('adminAuth');renderAdmin();}
