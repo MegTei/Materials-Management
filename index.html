@@ -251,6 +251,8 @@ button:active{background:#eee}
 .retrieve-row input{flex:1;font-family:monospace;font-size:14px;letter-spacing:.05em}
 .retrieve-row button{white-space:nowrap;padding:8px 16px;background:#185FA5;color:#fff;border-color:#185FA5;font-weight:700}
 .backend-notice{background:#f8f7f5;border-left:3px solid #185FA5;padding:10px 14px;border-radius:0 8px 8px 0;font-size:12px;color:#555;line-height:1.6;margin-top:1rem}
+
+@keyframes spin{to{transform:rotate(360deg)}}
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -407,7 +409,7 @@ function copyCode(el){
 // 3. Replace the two placeholder values below with your project credentials
 //    (Project Settings > API in the Supabase dashboard)
 const SUPABASE_URL = 'https://ybmlqersxibnsnjzrqsv.supabase.co';    // e.g. https://xxxx.supabase.co
-const SUPABASE_KEY = 'sb_publishable_EKNWTkhoLB5Odnxgd8JBvA_2MTDh'; // starts with eyJ...
+const SUPABASE_KEY = 'sb_publishable_EKNWTkhoLB5Odnxgd8JBvA_2MTDh...'; // starts with eyJ...
 
 // Detect whether Supabase credentials have been configured
 const SUPABASE_READY = (
@@ -867,9 +869,6 @@ function renderPlanTab(){
 
   document.getElementById('main').innerHTML=h;
 
-  document.getElementById('main').innerHTML=h;
-}
-
 
 
 function renderAdmin(){
@@ -877,8 +876,7 @@ function renderAdmin(){
   const pb=document.getElementById('page-body-wrap');
   if(pb)pb.style.padding='1.25rem 1rem 2rem';
 
-  // Simple PIN gate -- stored in sessionStorage to reset on close
-  const PIN='AO2027';
+  // PIN gate
   if(!sessionStorage.getItem('adminAuth')){
     let h='<div class="admin-login">';
     h+='<h3>Admin Dashboard</h3>';
@@ -890,17 +888,56 @@ function renderAdmin(){
     return;
   }
 
-  const allPlans=storageLoadAll();
+  // Show loading state immediately
+  document.getElementById('main').innerHTML=
+    '<div style="text-align:center;padding:3rem 1rem;color:#888">'
+    +'<div style="font-size:13px;margin-bottom:.5rem">'+(SUPABASE_READY?'Loading plans from cloud...':'Loading local plans...')+'</div>'
+    +'<div style="width:32px;height:32px;border:3px solid #e0ddd6;border-top-color:#185FA5;border-radius:50%;animation:spin .8s linear infinite;margin:0 auto"></div>'
+    +'</div>';
+
+  // Load plans from Supabase or localStorage
+  loadAdminPlans().then(renderAdminDashboard);
+}
+
+async function loadAdminPlans(){
+  if(sb){
+    try{
+      const{data,error}=await sb.from('plans').select('data,updated_at').order('updated_at',{ascending:false});
+      if(error)throw error;
+      if(data&&data.length){
+        return data.map(row=>row.data).filter(Boolean);
+      }
+    }catch(err){
+      console.warn('Supabase admin load failed, falling back to local:',err.message);
+    }
+  }
+  return storageLoadAll();
+}
+
+function renderAdminDashboard(allPlans){
   let h='';
-  h+='<div class="sechd sechd-first" style="margin-top:0">All submitted plans ('+allPlans.length+')</div>';
+
+  // Source indicator
+  const sourceNote=SUPABASE_READY
+    ?'<span style="color:#0F6E56;font-weight:600">Live from Supabase cloud</span>'
+    :'<span style="color:#854F0B;font-weight:600">Local browser only (Supabase not configured)</span>';
+  h+='<div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:1rem">';
+  h+='<div class="sechd sechd-first" style="margin:0">All submitted plans ('+allPlans.length+')</div>';
+  h+='<div style="font-size:11px;color:#888">'+sourceNote+'</div>';
+  h+='</div>';
 
   if(!allPlans.length){
-    h+='<div style="text-align:center;padding:2rem;color:#888;font-size:13px">No plans saved yet.</div>';
+    h+='<div style="background:#fff;border:1px solid #e8e5de;border-radius:10px;padding:2rem;text-align:center;color:#888;font-size:13px">';
+    h+=SUPABASE_READY
+      ?'No plans in the database yet. Plans will appear here once someone saves a plan on the live site.'
+      :'No plans saved in this browser yet.';
+    h+='</div>';
+    h+='<button onclick="adminSignOut()" style="font-size:12px;padding:8px 16px;margin-top:1rem;color:#888">Sign out</button>';
     document.getElementById('main').innerHTML=h;
     return;
   }
 
-  // Summary stats
+  // Summary metrics
   const totalAssets=allPlans.reduce((n,p)=>n+(p.assets||[]).length,0);
   const allMats=allPlans.flatMap(p=>(p.assets||[]).flatMap(a=>a.materials||[]));
   const withStat=allMats.filter(m=>m.stat);
@@ -913,50 +950,57 @@ function renderAdmin(){
   h+='<div class="met"><div class="mval" style="color:'+fillClr(pct)+'">'+pct+'%</div><div class="mlbl">Overall circularity</div></div>';
   h+='</div>';
 
-  // Table of plans
+  // Plans table
   h+='<div style="overflow-x:auto;margin-bottom:1.5rem"><table class="admin-table">';
-  h+='<thead><tr><th>Business</th><th>Role</th><th>Assets</th><th>Materials</th><th>Circularity</th><th>Saved</th></tr></thead>';
+  h+='<thead><tr><th>Business</th><th>Contact</th><th>Role</th><th>Plan ID</th><th>Assets</th><th>Circularity</th><th>Last saved</th></tr></thead>';
   h+='<tbody>';
   for(const p of allPlans){
     const assets=p.assets||[];
     const mats=assets.flatMap(a=>a.materials||[]);
     const sc=calcScore(assets);
-    const cl=fillClr(sc.pct);
     const statBg=sc.pct>=80?'#EEF9F4':sc.pct>=50?'#FFF8EE':'#FCEBEB';
     const statCol=sc.pct>=80?'#0F6E56':sc.pct>=50?'#854F0B':'#A32D2D';
+    const code=planCode(p.id);
     h+='<tr>';
-    h+='<td><strong>'+esc(p.profile.businessName||'Unnamed')+'</strong><br><span style="color:#888;font-size:11px">'+esc(p.profile.ownerName||'')+'</span></td>';
+    h+='<td><strong>'+esc(p.profile.businessName||'Unnamed')+'</strong></td>';
+    h+='<td><div>'+esc(p.profile.ownerName||'-')+'</div><div style="color:#888;font-size:10px">'+esc(p.profile.email||'')+'</div></td>';
     h+='<td>'+esc(p.profile.role||'-')+'</td>';
-    h+='<td>'+assets.length+'</td>';
-    h+='<td>'+mats.length+'</td>';
+    h+='<td><span style="font-family:monospace;font-size:11px;color:#185FA5;font-weight:700">'+code+'</span></td>';
+    h+='<td>'+assets.length+' assets<br><span style="color:#aaa;font-size:10px">'+mats.length+' mats</span></td>';
     h+='<td><span class="admin-stat" style="background:'+statBg+';color:'+statCol+'">'+sc.pct+'%</span></td>';
-    h+='<td style="white-space:nowrap">'+fmtDate(p.savedAt)+'</td>';
+    h+='<td style="white-space:nowrap;font-size:11px">'+fmtDate(p.lastEditedAt||p.savedAt)+'<br><span style="color:#aaa">'+esc(p.lastEditedBy||'')+'</span></td>';
     h+='</tr>';
   }
   h+='</tbody></table></div>';
 
-  // Material breakdown
+  // Materials by status breakdown
   h+='<div class="sechd">Materials by expected status</div>';
   const stCts={};
   for(const m of allMats)if(m.stat)stCts[m.stat]=(stCts[m.stat]||0)+1;
   h+='<div style="background:#fff;border:1px solid #e8e5de;border-radius:10px;overflow:hidden;margin-bottom:1.25rem">';
-  for(const [s,n] of Object.entries(stCts).sort((a,b)=>b[1]-a[1])){
+  for(const[s,n]of Object.entries(stCts).sort((a,b)=>b[1]-a[1])){
     const pct2=allMats.length?Math.round(n/allMats.length*100):0;
     const col={'Reuse - Next AO':'#16a34a','Reuse - Other Event / Client':'#22c55e','Recycle':'#0891b2','Repurpose':'#7c3aed','Landfill':'#dc2626','TBC - decide later':'#9ca3af'}[s]||'#9ca3af';
     h+='<div style="display:flex;align-items:center;gap:10px;padding:9px 14px;border-bottom:1px solid #f0ede8">';
     h+='<div style="width:10px;height:10px;border-radius:50%;background:'+col+';flex-shrink:0"></div>';
     h+='<div style="flex:1;font-size:13px">'+esc(s)+'</div>';
-    h+='<div style="font-size:12px;color:#888">'+n+' materials</div>';
-    h+='<div style="width:80px;height:6px;background:#e8e5de;border-radius:3px;overflow:hidden"><div style="height:100%;background:'+col+';width:'+pct2+'%"></div></div>';
+    h+='<div style="font-size:12px;color:#888">'+n+' materials ('+pct2+'%)</div>';
+    h+='<div style="width:100px;height:6px;background:#e8e5de;border-radius:3px;overflow:hidden"><div style="height:100%;background:'+col+';width:'+pct2+'%"></div></div>';
     h+='</div>';
   }
   h+='</div>';
 
-  // Export CSV button
-  h+='<button onclick="exportCSV()" style="font-size:12px;padding:8px 16px;border:1px solid #185FA5;color:#185FA5;background:#EEF5FF;border-radius:7px">Export all plans as CSV</button>';
-  h+='<button onclick="adminSignOut()" style="font-size:12px;padding:8px 16px;margin-left:8px;color:#888">Sign out</button>';
+  // Actions
+  h+='<div style="display:flex;gap:8px;flex-wrap:wrap">';
+  h+='<button onclick="exportAdminCSV()" style="font-size:12px;padding:8px 16px;border:1px solid #185FA5;color:#185FA5;background:#EEF5FF;border-radius:7px;cursor:pointer">Export all plans as CSV</button>';
+  if(SUPABASE_READY)h+='<button onclick="loadAdminPlans().then(renderAdminDashboard)" style="font-size:12px;padding:8px 16px;border:1px solid #ddd;color:#555;background:#fff;border-radius:7px;cursor:pointer">Refresh</button>';
+  h+='<button onclick="adminSignOut()" style="font-size:12px;padding:8px 16px;color:#888;border:1px solid #e0ddd6;border-radius:7px;cursor:pointer">Sign out</button>';
+  h+='</div>';
 
   document.getElementById('main').innerHTML=h;
+}
+
+ document.getElementById('main').innerHTML=h;
 }
 
 function adminSignOut(){sessionStorage.removeItem('adminAuth');renderAdmin();}
@@ -964,12 +1008,13 @@ function adminSignOut(){sessionStorage.removeItem('adminAuth');renderAdmin();}
 function checkAdminPin(){
   const val=document.getElementById('admin-pin');
   if(!val)return;
-  if(val.value==='AO2027'){sessionStorage.setItem('adminAuth','1');renderAdmin();}
+  if(val.value==='CircularAO2027'){sessionStorage.setItem('adminAuth','1');renderAdmin();}
   else{val.style.borderColor='#dc2626';val.placeholder='Incorrect PIN';}
 }
 
-function exportCSV(){
-  const plans=storageLoadAll();
+function exportAdminCSV(){
+  loadAdminPlans().then(plans=>{
+    if(!plans.length){showToast('No plans to export');return;}
   const rows=[['Business','Owner','Role','Email','Date Saved','Asset','Precinct','Material','TML Ref','Volume','Unit','Status','Outcome']];
   for(const p of plans){
     for(const a of (p.assets||[])){
@@ -989,6 +1034,7 @@ function exportCSV(){
   const url=URL.createObjectURL(blob);
   const a=document.createElement('a');a.href=url;a.download='AO27_Materials_Plans.csv';a.click();
   URL.revokeObjectURL(url);
+  });
 }
 
 function renderFAQ(){
@@ -1697,4 +1743,6 @@ function init(){
 init();
 </script>
 </body>
-</html>
+</html
+  });
+}
