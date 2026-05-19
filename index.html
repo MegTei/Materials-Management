@@ -266,6 +266,7 @@ button:active{background:#eee}
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
 </head>
 <body>
 <!-- Sticky highlighted header bar -->
@@ -395,7 +396,7 @@ const TML=[
 
 // ── Storage ───────────────────────────────────────────────────────────────────
 const STORAGE_PREFIX='ao_wmp_';
-let S={screen:'loading',tab:'home',plans:[],plan:null};
+let S={screen:'loading',tab:'home',plans:[],plan:null,_unsaved:false};
 
 // ── Plan ID system ────────────────────────────────────────────────────────────
 function planCode(id){
@@ -623,7 +624,59 @@ function examplePlan(){
   };
 }
 
-// ── Storage helpers ───────────────────────────────────────────────────────────
+// ── EmailJS config ────────────────────────────────────────────────────────────
+// Setup steps:
+// 1. Create a free account at https://www.emailjs.com
+// 2. Connect an email service (e.g. Gmail) → note the Service ID
+// 3. Create a template with these variables:
+//      {{to_name}}   – recipient's name
+//      {{to_email}}  – recipient's email address
+//      {{plan_id}}   – the AO plan reference code
+//      {{action}}    – "created" or "updated"
+//    Subject:  Your AO Materials Management Plan – {{plan_id}}
+//    Body:
+//      Hi {{to_name}},
+//
+//      Your AO Materials Management plan has been {{action}}.
+//      {{plan_id}}
+//
+//      You can return to view and edit here https://megtei.github.io/Materials-Management/
+// 4. Replace the three placeholder values below with your credentials
+//    (found in EmailJS dashboard → Account → API Keys / Email Services / Email Templates)
+const EMAILJS_PUBLIC_KEY  = '323gT1x25kLDOfkPo';   // e.g. 'user_xxxxxxxxxxxx'
+const EMAILJS_SERVICE_ID  = 'service_1r439vp';   // e.g. 'service_xxxxxxx'
+const EMAILJS_TEMPLATE_ID = 'template_eptf0pm';  // e.g. 'template_xxxxxxx'
+
+const EMAILJS_READY = (
+  EMAILJS_PUBLIC_KEY  !== 'YOUR_EMAILJS_PUBLIC_KEY' &&
+  EMAILJS_SERVICE_ID  !== 'YOUR_EMAILJS_SERVICE_ID' &&
+  EMAILJS_TEMPLATE_ID !== 'YOUR_EMAILJS_TEMPLATE_ID'
+);
+
+if(EMAILJS_READY && typeof emailjs !== 'undefined'){
+  emailjs.init({publicKey: EMAILJS_PUBLIC_KEY});
+}
+
+async function sendPlanEmail(plan, isNew){
+  if(!EMAILJS_READY){console.info('EmailJS not configured – skipping confirmation email.');return;}
+  if(typeof emailjs === 'undefined'){console.warn('EmailJS library not loaded.');return;}
+  const email = (plan.profile.email||'').trim();
+  if(!email){return;} // no email address on file — skip silently
+  const name   = plan.profile.ownerName || plan.profile.editorName || 'there';
+  const code   = planCode(plan.id);
+  const action = isNew ? 'created' : 'updated';
+  try{
+    await emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, {
+      to_name : name,
+      to_email: email,
+      plan_id : code,
+      action  : action
+    });
+    console.info('Plan email sent to', email);
+  }catch(err){
+    console.warn('EmailJS send failed:', err);
+  }
+}
 function storageLoadAll(){
   try{
     const keys=Object.keys(localStorage).filter(k=>k.startsWith(STORAGE_PREFIX));
@@ -668,6 +721,11 @@ function showToast(msg){const t=document.getElementById('toast');t.textContent=m
 
 // ── Render routing ────────────────────────────────────────────────────────────
 function switchTab(tab){
+  // Guard: if the user is on the summary step with unsaved changes, warn before switching away
+  if(S.screen==='form'&&S.plan&&S.plan.step===2&&S._unsaved){
+    confirmLeaveIfUnsaved(()=>{S._unsaved=false;S.screen='home';switchTab(tab);});
+    return;
+  }
   S.tab=tab;
   window.scrollTo({top:0,behavior:'smooth'});
   document.getElementById('tab-home').classList.toggle('active',tab==='home');
@@ -1111,21 +1169,85 @@ function renderForm(){
 function stepAbout(plan){
   const p=plan.profile;
   return`<div class="card">
-    <div class="sechd" style="margin-top:0">Business details</div>
-    <div class="g2"><div class="fg"><label>Date</label><input type="date" id="p-date" value="${esc(p.date)}"></div><div class="fg"><label>Business name *</label><input type="text" id="p-biz" value="${esc(p.businessName)}" placeholder="Your company name"></div></div>
-    <div class="g2"><div class="fg"><label>Plan owner / Contact</label><input type="text" id="p-own" value="${esc(p.ownerName)}" placeholder="Full name"><div class="fhint">Responsible &amp; accountable for post-event reporting</div></div><div class="fg"><label>Contact email</label><input type="email" id="p-email" value="${esc(p.email)}" placeholder="email@company.com"></div></div>
-    <div class="g2"><div class="fg"><label>Role in AO design &amp; build</label><select id="p-role"><option value="">Select role...</option>${mkOpts(ROLES,p.role)}</select></div><div class="fg"><label>Editor name <span style="font-size:10px;color:#aaa;font-weight:400">(who is making changes)</span></label><input type="text" id="p-editor" value="${esc(p.editorName)}" placeholder="Name of person editing"></div></div>
+    <div class="sechd" style="margin-top:0">Business details <span style="font-size:10px;font-weight:400;color:#888;letter-spacing:0;text-transform:none">— all fields required</span></div>
+    <div class="g2">
+      <div class="fg"><label>Date *</label><input type="date" id="p-date" value="${esc(p.date)}"></div>
+      <div class="fg"><label>Business name *</label><input type="text" id="p-biz" value="${esc(p.businessName)}" placeholder="Your company name"></div>
+    </div>
+    <div class="g2">
+      <div class="fg"><label>Plan owner / Contact *</label><input type="text" id="p-own" value="${esc(p.ownerName)}" placeholder="Full name"><div class="fhint">Responsible &amp; accountable for post-event reporting</div></div>
+      <div class="fg"><label>Contact email *</label><input type="email" id="p-email" value="${esc(p.email)}" placeholder="email@company.com"><div class="fhint">A confirmation is emailed here when you save</div></div>
+    </div>
+    <div class="g2">
+      <div class="fg"><label>Role in AO design &amp; build *</label><select id="p-role"><option value="">Select role...</option>${mkOpts(ROLES,p.role)}</select></div>
+      <div class="fg"><label>Editor name * <span style="font-size:10px;color:#aaa;font-weight:400">(who is making changes)</span></label><input type="text" id="p-editor" value="${esc(p.editorName)}" placeholder="Name of person editing"></div>
+    </div>
+    <div id="about-errors" style="display:none;background:#FCEBEB;border:1px solid #f5c6c6;border-radius:8px;padding:10px 14px;font-size:13px;color:#A32D2D;margin-top:4px"></div>
   </div>
   <div class="card">
-    <div class="sechd" style="margin-top:0">AO27 targets</div>
-    <div class="g2"><div class="fg"><label>Your waste reduction target</label><input type="text" id="p-waste" value="${esc(p.wasteTarget)}"><div class="fhint">AO target: 10% reduction of total waste volume</div></div><div class="fg"><label>Your reuse target</label><input type="text" id="p-reuse" value="${esc(p.reuseTarget)}"><div class="fhint">AO target: 10% increase in reuse</div></div></div>
-    <div class="fg"><label>Storage details for reuse materials / assets</label><textarea id="p-store" rows="2" placeholder="e.g. TA storage / your warehouse / client storage...">${esc(p.storageDetails)}</textarea></div>
+    <div class="sechd" style="margin-top:0">AO27 targets <span style="font-size:10px;font-weight:400;color:#888;letter-spacing:0;text-transform:none">— all fields required</span></div>
+    <div class="g2">
+      <div class="fg"><label>Your waste reduction target *</label><input type="text" id="p-waste" value="${esc(p.wasteTarget)}" placeholder="e.g. 10% reduction of total waste volume"><div class="fhint">AO target: 10% reduction of total waste volume</div></div>
+      <div class="fg"><label>Your reuse target *</label><input type="text" id="p-reuse" value="${esc(p.reuseTarget)}" placeholder="e.g. 10% increase in reuse"><div class="fhint">AO target: 10% increase in reuse</div></div>
+    </div>
+    <div class="fg"><label>Storage details for reuse materials / assets *</label><textarea id="p-store" rows="2" placeholder="e.g. TA storage facility / your warehouse / client storage...">${esc(p.storageDetails)}</textarea></div>
   </div>
   <div class="acts"><button onclick="goHome()">Cancel</button><button onclick="goNext()">Next: Assets &amp; Materials &rarr;</button></div>`;
 }
+
 function saveAbout(){
-  const p=S.plan.profile;const g=id=>{const e=document.getElementById(id);return e?e.value:''};
-  p.date=g('p-date');p.businessName=g('p-biz');p.ownerName=g('p-own');p.email=g('p-email');p.role=g('p-role');p.editorName=g('p-editor');p.wasteTarget=g('p-waste');p.reuseTarget=g('p-reuse');p.storageDetails=g('p-store');
+  const g=id=>{const e=document.getElementById(id);return e?e.value.trim():''};
+
+  const fields=[
+    {id:'p-date',   label:'Date'},
+    {id:'p-biz',    label:'Business name'},
+    {id:'p-own',    label:'Plan owner / Contact'},
+    {id:'p-email',  label:'Contact email'},
+    {id:'p-role',   label:'Role in AO design & build'},
+    {id:'p-editor', label:'Editor name'},
+    {id:'p-waste',  label:'Waste reduction target'},
+    {id:'p-reuse',  label:'Reuse target'},
+    {id:'p-store',  label:'Storage details'},
+  ];
+
+  // Reset border colours
+  fields.forEach(f=>{const el=document.getElementById(f.id);if(el)el.style.borderColor='';});
+
+  // Find empty required fields
+  const missing=[];
+  fields.forEach(f=>{
+    if(!g(f.id)){
+      missing.push(f.label);
+      const el=document.getElementById(f.id);if(el)el.style.borderColor='#dc2626';
+    }
+  });
+
+  // Validate email format
+  const emailVal=g('p-email');
+  if(emailVal&&!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailVal)){
+    if(!missing.find(m=>m==='Contact email'))missing.push('Contact email (please enter a valid address)');
+    const el=document.getElementById('p-email');if(el)el.style.borderColor='#dc2626';
+  }
+
+  const errBox=document.getElementById('about-errors');
+  if(missing.length){
+    if(errBox){
+      errBox.style.display='';
+      errBox.innerHTML='<strong>Please complete all required fields before continuing:</strong>'
+        +'<ul style="margin:.35rem 0 0 1.25rem;padding:0">'+missing.map(m=>'<li>'+m+'</li>').join('')+'</ul>';
+      errBox.scrollIntoView({behavior:'smooth',block:'nearest'});
+    }
+    S.plan._aboutInvalid=true;
+    return;
+  }
+
+  // Valid — clear errors and write values
+  if(errBox)errBox.style.display='none';
+  S.plan._aboutInvalid=false;
+  const p=S.plan.profile;
+  p.date=g('p-date');p.businessName=g('p-biz');p.ownerName=g('p-own');
+  p.email=g('p-email');p.role=g('p-role');p.editorName=g('p-editor');
+  p.wasteTarget=g('p-waste');p.reuseTarget=g('p-reuse');p.storageDetails=g('p-store');
 }
 
 // ── Step 1: Assets & Materials ────────────────────────────────────────────────
@@ -1285,6 +1407,7 @@ function stepSummary(plan){
   const circBody=sc.total>0?'<div style="display:flex;justify-content:space-between;font-size:12px;color:#888;margin-bottom:4px"><span>Circularity rate</span><span style="font-weight:600;color:'+cl+'">'+sc.pct+'%</span></div><div class="strack"><div class="sfill" style="width:'+sc.pct+'%;background:'+cl+'"></div></div><div style="font-size:11px;color:#aaa;margin-top:3px">AO target: 10% improvement per year</div>':'<div style="font-size:13px;color:#888;margin-top:4px">Add materials with an expected status to see your score.</div>';
   const customHtml=customMats.length?'<div style="font-size:12px;color:#888">Custom: '+customMats.map(m=>'<strong>'+esc(m.name||'Unnamed')+'</strong>').join(', ')+'</div>':'';
   const saveBtnHtml=S.plan._example?'':'<button onclick="savePlan()" style="background:linear-gradient(135deg,#185FA5,#0F4C8A);color:#fff;border-color:#0F4C8A;font-weight:700;padding:9px 20px;box-shadow:0 2px 8px rgba(24,95,165,.3)">Save plan &#10003;</button>';
+  const unsavedBadge=S._unsaved&&!S.plan._example?'<span style="font-size:11px;font-weight:700;color:#854F0B;background:#FAEEDA;border:1px solid #f5ddb7;border-radius:6px;padding:3px 9px;white-space:nowrap">&#9679; Unsaved changes</span>':'';
 
   let h='';
   h+='<div class="card">';
@@ -1311,7 +1434,7 @@ function stepSummary(plan){
   h+='<div style="background:#EEF9F4;border:1px solid #b2e8d2;border-radius:8px;padding:11px 14px;font-size:13px;color:#0F6E56;margin-top:1.5rem;line-height:1.65">';
   h+='You can download your plan in XLS or PDF using the buttons below. To make changes, upload the XLS back on <a onclick="switchTab(\'plan\')" href="#" style="color:#0F6E56;font-weight:700">Create a materials plan</a>.';
   h+='</div>';
-  h+='<div class="acts" style="margin-top:.75rem"><button onclick="goPrev()">&larr; Back</button><button onclick="window.print()">Print / PDF</button><button onclick="exportPlanXLS()">Export XLS</button>'+saveBtnHtml+'</div>';
+  h+='<div class="acts" style="margin-top:.75rem"><button onclick="goPrev()">&larr; Back</button><button onclick="window.print()">Print / PDF</button><button onclick="exportPlanXLS()">Export XLS</button>'+unsavedBadge+saveBtnHtml+'</div>';
   return h;
 }
 
@@ -1431,6 +1554,8 @@ function importPlanXLS(input){
       S.plan=plan;
       S.screen='form';
       S.plan.step=2; // Go to summary to review
+      S._unsaved=true; // imported plan should still be saved via savePlan to cloud
+      sendPlanEmail(plan, !isUpdate); // send email: created if not an update
       showToast(isUpdate?'Plan updated from XLS':'Plan imported from XLS');
       render();
     }catch(err){
@@ -1531,12 +1656,49 @@ function exportPlanXLS(){
 }
 
 
-function goHome(){S.screen='home';render()}
+// ── Unsaved-changes guard ─────────────────────────────────────────────────────
+function confirmLeaveIfUnsaved(proceedFn){
+  // Show inline warning banner on summary page instead of browser dialog
+  const existing=document.getElementById('unsaved-warn');
+  if(existing){existing.remove();}
+  const warn=document.createElement('div');
+  warn.id='unsaved-warn';
+  warn.style.cssText='position:fixed;bottom:0;left:0;right:0;z-index:998;background:#FAEEDA;border-top:2px solid #EF9F27;padding:12px 1rem;display:flex;align-items:center;gap:10px;justify-content:space-between;box-shadow:0 -4px 16px rgba(0,0,0,.1)';
+  warn.innerHTML='<div style="font-size:13px;color:#854F0B;font-weight:600">⚠ You have unsaved changes. Save your plan before leaving so you can return to it.</div>'
+    +'<div style="display:flex;gap:8px;flex-shrink:0">'
+    +'<button id="unsaved-leave-btn" style="font-size:12px;padding:7px 14px;border:1px solid #c9a87a;background:#fff;color:#854F0B;border-radius:7px;cursor:pointer">Leave without saving</button>'
+    +'<button onclick="savePlan();document.getElementById(\'unsaved-warn\').remove();" style="font-size:12px;padding:7px 14px;background:#185FA5;color:#fff;border:none;border-radius:7px;cursor:pointer;font-weight:700">Save now</button>'
+    +'</div>';
+  document.body.appendChild(warn);
+  document.getElementById('unsaved-leave-btn').onclick=function(){
+    warn.remove();
+    proceedFn();
+  };
+}
+
+function goHome(){
+  if(S.screen==='form'&&S.plan&&S.plan.step===2&&S._unsaved){
+    confirmLeaveIfUnsaved(()=>{S._unsaved=false;S.screen='home';render();});
+    return;
+  }
+  S.screen='home';render();
+}
 function goPlan(id){const p=S.plans.find(x=>x.id===id);if(p){S.plan=JSON.parse(JSON.stringify(p));S.screen='form';render()}}
-function createNewPlan(){S.plan=newPlan();S.screen='form';render()}
-function loadExample(){S.plan=Object.assign(examplePlan(),{_example:true});S.screen='form';render()}
-function goNext(){if(S.plan.step===0)saveAbout();if(S.plan.step<2){S.plan.step++;render()}}
-function goPrev(){if(S.plan.step>0){S.plan.step--;render()}}
+function createNewPlan(){S.plan=newPlan();S._unsaved=false;S.screen='form';render();}
+function loadExample(){S.plan=Object.assign(examplePlan(),{_example:true});S.screen='form';render();}
+function goNext(){
+  if(S.plan.step===0)saveAbout();
+  // Don't advance if About You validation failed
+  if(S.plan._aboutInvalid)return;
+  if(S.plan.step<2){S.plan.step++;if(S.plan.step>=1)S._unsaved=true;render();}
+}
+function goPrev(){
+  if(S.plan.step===2&&S._unsaved){
+    confirmLeaveIfUnsaved(()=>{S.plan.step--;render();});
+    return;
+  }
+  if(S.plan.step>0){S.plan.step--;render();}
+}
 function deletePlan(id){if(!confirm('Delete this plan? This cannot be undone.'))return;storageDel(id);S.plans=S.plans.filter(p=>p.id!==id);render();showToast('Plan deleted')}
 function savePlan(){
   delete S.plan._example;
@@ -1547,12 +1709,20 @@ function savePlan(){
   S.plan.lastEditedBy=editor;
   S.plan.lastEditedAt=now;
   S.plan.audit.push({who:editor,when:now,action:'Saved plan'});
+
+  // Detect new vs update BEFORE saving (so we can send the right email)
+  const isNew = S.plans.findIndex(p=>p.id===S.plan.id) < 0;
+
   planDB.save(S.plan).then(res=>{
     const i=S.plans.findIndex(p=>p.id===S.plan.id);
     if(i>=0)S.plans[i]=JSON.parse(JSON.stringify(S.plan));
     else S.plans.unshift(JSON.parse(JSON.stringify(S.plan)));
     if(res.ok){
+      S._unsaved=false; // clear dirty flag
+      const warnBanner=document.getElementById('unsaved-warn');
+      if(warnBanner)warnBanner.remove();
       showSavedModal(planCode(S.plan.id), res.source);
+      sendPlanEmail(S.plan, isNew); // fire-and-forget email confirmation
     } else {
       showToast('Save failed - please try again');
     }
