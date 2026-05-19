@@ -420,7 +420,7 @@ function copyCode(el){
 // 3. Replace the two placeholder values below with your project credentials
 //    (Project Settings > API in the Supabase dashboard)
 const SUPABASE_URL = 'https://ybmlqersxibnsnjzrqsv.supabase.co';    // e.g. https://xxxx.supabase.co
-const SUPABASE_KEY = 'sb_publishable_EKNWTkhoLB5Odnxgd8JBvA_2MTDh...'; // starts with eyJ...
+const SUPABASE_KEY = 'sb_publishable_EKNWTkhoLB5Odnxgd8JBvA_2MTDhO_d'; // starts with eyJ...
 
 // Detect whether Supabase credentials have been configured
 const SUPABASE_READY = (
@@ -514,6 +514,7 @@ async function retrievePlan(){
 function esc(s){return(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
 function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2)}
 function fmtDate(ts){if(!ts)return'never';return new Date(ts).toLocaleDateString('en-AU',{day:'numeric',month:'short',year:'numeric'})}
+function fmtAUDate(d){if(!d)return'-';const parts=d.split('-');if(parts.length===3)return parts[2]+'/'+parts[1]+'/'+parts[0];return d;}
 function mkOpts(arr,val,ph){return(ph?`<option value="">${esc(ph)}</option>`:'')+arr.map(v=>`<option${v===val?' selected':''}>${esc(v)}</option>`).join('')}
 function calcScore(assets){
   const allMats=(assets||[]).flatMap(a=>a.materials||[]);
@@ -643,9 +644,9 @@ function examplePlan(){
 //      You can return to view and edit here https://megtei.github.io/Materials-Management/
 // 4. Replace the three placeholder values below with your credentials
 //    (found in EmailJS dashboard → Account → API Keys / Email Services / Email Templates)
-const EMAILJS_PUBLIC_KEY  = '323gT1x25kLDOfkPo';   // e.g. 'user_xxxxxxxxxxxx'
-const EMAILJS_SERVICE_ID  = 'service_1r439vp';   // e.g. 'service_xxxxxxx'
-const EMAILJS_TEMPLATE_ID = 'template_eptf0pm';  // e.g. 'template_xxxxxxx'
+const EMAILJS_PUBLIC_KEY  = 'YOUR_EMAILJS_PUBLIC_KEY';   // e.g. 'user_xxxxxxxxxxxx'
+const EMAILJS_SERVICE_ID  = 'YOUR_EMAILJS_SERVICE_ID';   // e.g. 'service_xxxxxxx'
+const EMAILJS_TEMPLATE_ID = 'YOUR_EMAILJS_TEMPLATE_ID';  // e.g. 'template_xxxxxxx'
 
 const EMAILJS_READY = (
   EMAILJS_PUBLIC_KEY  !== 'YOUR_EMAILJS_PUBLIC_KEY' &&
@@ -1253,7 +1254,7 @@ function saveAbout(){
 // ── Step 1: Assets & Materials ────────────────────────────────────────────────
 function stepAssets(plan){
   setTimeout(refreshAssets,0);
-  return`<div class="hbox">Add each <strong>asset or item</strong> in your scope. Each asset can contain multiple materials - for example, a facade panel may use ACM, structural ply, and a fabric skin. Focus on <strong>Engineered Wood, Cladding &amp; Facades, and Flooring</strong> (~80% of waste volume). Complete columns 1–8 now; leave column 9 (Actual Outcome) for post-event.</div>
+  return`<div class="hbox">Add each <strong>asset or item</strong> in your scope.<br><br>Each asset can contain multiple materials — for example, a facade panel may use ACM, structural ply and a fabric skin.<br><br>Only capture details about the key majority materials, not nuts and bolts. Fields marked * are required. Complete fields 1–7 now; field 8 (Actual Outcome) is completed post-event.</div>
   <div id="asset-list"></div>
   <div class="add-asset-area">
     <p>Add a new asset or item to your plan. Each asset can hold one or more materials.<br>Select from the <strong>AO Target Materials List</strong> within each asset card.</p>
@@ -1339,35 +1340,35 @@ function matRowHtml(aid,m,idx){
       <button onclick="delAssetMat('${aid}','${m.id}')" style="background:none;border:none;cursor:pointer;color:#ccc;padding:1px 5px;font-size:14px;flex-shrink:0" title="Remove material">&times;</button>
     </div>
     ${idx===0?`<div class="fg">
-      <label>4. Precinct application</label>
+      <label>4. Precinct application *</label>
       <select data-aid="${aid}" data-mid="${m.id}" data-f="app" onchange="upAssetMat(this)">
         <option value="">Select application...</option>${mkOpts(PREC_APPS,m.app)}
       </select>
     </div>`:''}
     <div class="fg">
-      <label>6. Material - AO Target Materials List</label>
+      <label>6. Material details *<span class="name-sub-label">Select from AO Target Materials List or tell us at 6a</span></label>
       <select data-aid="${aid}" data-mid="${m.id}" data-f="tmlRef" onchange="pickAssetMatTML(this)">
         <option value="">- Select from AO Target Materials List -</option>
-        ${renderTMLOptions(m.tmlRef)}
+        <option value="OTHER"${m.tmlRef==='OTHER'?' selected':''}>Not AO target material \u2013 go to 6a</option>
         <option value="" disabled style="color:#ccc">\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500</option>
-        <option value="OTHER"${m.tmlRef==='OTHER'?' selected':''}>Other - not on AO Target Materials List</option>
+        ${renderTMLOptions(m.tmlRef)}
       </select>
       ${tmlInfo}
     </div>
     <div class="fg" id="f7-${m.id}"${showF7?'':' style="display:none"'}>
-      <label>7. Other material</label>
+      <label>6a. If not on the AO target materials list, provide material name here *</label>
       <input type="text" data-aid="${aid}" data-mid="${m.id}" data-f="name" value="${esc(m.name)}" placeholder="Enter material name\u2026" onblur="upAssetMat(this)">
     </div>
     <div style="display:flex;gap:8px;align-items:flex-end">
-      <div class="fg" style="flex:1;margin-bottom:0"><label>Volume</label><input type="text" data-aid="${aid}" data-mid="${m.id}" data-f="vol" value="${esc(m.vol)}" placeholder="e.g. 50" onblur="upAssetMat(this)"></div>
-      <div class="fg" style="width:90px;margin-bottom:0"><label>Unit</label><select data-aid="${aid}" data-mid="${m.id}" data-f="vunit" onchange="upAssetMat(this)">${vOpts}</select></div>
+      <div class="fg" style="flex:1;margin-bottom:0"><label>Volume *</label><input type="text" data-aid="${aid}" data-mid="${m.id}" data-f="vol" value="${esc(m.vol)}" placeholder="e.g. 50" onblur="upAssetMat(this)"></div>
+      <div class="fg" style="width:90px;margin-bottom:0"><label>Unit *</label><select data-aid="${aid}" data-mid="${m.id}" data-f="vunit" onchange="upAssetMat(this)">${vOpts}</select></div>
     </div>
     <div class="fg" style="margin-top:8px">
-      <label>8. Expected material status at end of event</label>
+      <label>7. Expected material status at end of event *</label>
       <select data-aid="${aid}" data-mid="${m.id}" data-f="stat" onchange="upAssetMat(this)">${mkOpts(STATS,m.stat,'Select status...')}</select>
     </div>
     <div class="fg">
-      <label style="color:#aaa">9. Actual outcome <span style="font-size:10px;font-weight:400">(complete post-event)</span></label>
+      <label style="color:#aaa">8. Actual outcome <span style="font-size:10px;font-weight:400">(complete post-event)</span></label>
       <textarea data-aid="${aid}" data-mid="${m.id}" data-f="outcome" rows="2" placeholder="Complete on bump out" onblur="upAssetMat(this)">${esc(m.outcome)}</textarea>
     </div>
   </div>`;
@@ -1407,13 +1408,13 @@ function stepSummary(plan){
   const circBody=sc.total>0?'<div style="display:flex;justify-content:space-between;font-size:12px;color:#888;margin-bottom:4px"><span>Circularity rate</span><span style="font-weight:600;color:'+cl+'">'+sc.pct+'%</span></div><div class="strack"><div class="sfill" style="width:'+sc.pct+'%;background:'+cl+'"></div></div><div style="font-size:11px;color:#aaa;margin-top:3px">AO target: 10% improvement per year</div>':'<div style="font-size:13px;color:#888;margin-top:4px">Add materials with an expected status to see your score.</div>';
   const customHtml=customMats.length?'<div style="font-size:12px;color:#888">Custom: '+customMats.map(m=>'<strong>'+esc(m.name||'Unnamed')+'</strong>').join(', ')+'</div>':'';
   const saveBtnHtml=S.plan._example?'':'<button onclick="savePlan()" style="background:linear-gradient(135deg,#185FA5,#0F4C8A);color:#fff;border-color:#0F4C8A;font-weight:700;padding:9px 20px;box-shadow:0 2px 8px rgba(24,95,165,.3)">Save plan &#10003;</button>';
-  const unsavedBadge=S._unsaved&&!S.plan._example?'<span style="font-size:11px;font-weight:700;color:#854F0B;background:#FAEEDA;border:1px solid #f5ddb7;border-radius:6px;padding:3px 9px;white-space:nowrap">&#9679; Unsaved changes</span>':'';
+  const unsavedBadge=S._unsaved&&!S.plan._example?'<span id="unsaved-badge" style="font-size:11px;font-weight:700;color:#854F0B;background:#FAEEDA;border:1px solid #f5ddb7;border-radius:6px;padding:3px 9px;white-space:nowrap">&#9679; Unsaved changes</span>':'';
 
   let h='';
   h+='<div class="card">';
   h+='<div class="sechd" style="margin-top:0">Plan details</div>';
   h+='<div class="g2"><div><div style="font-size:12px;color:#888">Business</div><div style="font-size:14px;font-weight:600;margin-top:2px">'+(esc(p.businessName)||'-')+'</div></div><div><div style="font-size:12px;color:#888">Plan owner</div><div style="font-size:14px;margin-top:2px">'+(esc(p.ownerName)||'-')+'</div></div></div>';
-  h+='<div class="g2" style="margin-top:10px"><div><div style="font-size:12px;color:#888">Role</div><div style="font-size:14px;margin-top:2px">'+(esc(p.role)||'-')+'</div></div><div><div style="font-size:12px;color:#888">Date</div><div style="font-size:14px;margin-top:2px">'+(esc(p.date)||'-')+'</div></div></div>';
+  h+='<div class="g2" style="margin-top:10px"><div><div style="font-size:12px;color:#888">Role</div><div style="font-size:14px;margin-top:2px">'+(esc(p.role)||'-')+'</div></div><div><div style="font-size:12px;color:#888">Date</div><div style="font-size:14px;margin-top:2px">'+fmtAUDate(p.date)+'</div></div></div>';
   const sumCode=planCode(S.plan.id);
   h+='<div class="plan-id-badge">'
     +'<div><div class="plan-id-lbl">Plan ID</div><div class="plan-id-code">'+sumCode+'</div></div>'
@@ -1427,12 +1428,12 @@ function stepSummary(plan){
   h+=circBody;
   h+='</div>';
   if(allMats.length&&stRows)h+='<div class="card"><div class="sechd" style="margin-top:0">Materials by expected status</div>'+stRows+'</div>';
-  h+='<div class="card"><div class="sechd" style="margin-top:0">AO Target Materials coverage</div><div class="g2" style="margin-bottom:'+(customMats.length?'8px':'0')+'"><div class="met"><div class="mval" style="color:#185FA5">'+tmlMats.length+'</div><div class="mlbl">From AO Target List</div></div><div class="met"><div class="mval" style="color:#888">'+customMats.length+'</div><div class="mlbl">Custom / unlisted</div></div></div>'+customHtml+'</div>';
+  h+='<div class="card"><div class="sechd" style="margin-top:0">AO Target Materials coverage</div><div class="g2"><div class="met"><div class="mval" style="color:#185FA5">'+tmlMats.length+'</div><div class="mlbl">From AO Target List</div></div><div class="met"><div class="mval" style="color:#888">'+customMats.length+'</div><div class="mlbl">Custom / unlisted</div></div></div></div>';
   h+=flaggedBlock;
   if(assets.length)h+='<div class="card"><div class="sechd" style="margin-top:0">Asset &amp; material detail</div>'+assetRows+'</div>';
   h+=auditBlock;
   h+='<div style="background:#EEF9F4;border:1px solid #b2e8d2;border-radius:8px;padding:11px 14px;font-size:13px;color:#0F6E56;margin-top:1.5rem;line-height:1.65">';
-  h+='You can download your plan in XLS or PDF using the buttons below. To make changes, upload the XLS back on <a onclick="switchTab(\'plan\')" href="#" style="color:#0F6E56;font-weight:700">Create a materials plan</a>.';
+  h+='Save your Plan ID. You will need it to make changes by entering the Plan ID at the <a onclick="switchTab(\'plan\')" href="#" style="color:#0F6E56;font-weight:700">Create a materials plan</a> page.';
   h+='</div>';
   h+='<div class="acts" style="margin-top:.75rem"><button onclick="goPrev()">&larr; Back</button><button onclick="window.print()">Print / PDF</button><button onclick="exportPlanXLS()">Export XLS</button>'+unsavedBadge+saveBtnHtml+'</div>';
   return h;
@@ -1688,8 +1689,31 @@ function createNewPlan(){S.plan=newPlan();S._unsaved=false;S.screen='form';rende
 function loadExample(){S.plan=Object.assign(examplePlan(),{_example:true});S.screen='form';render();}
 function goNext(){
   if(S.plan.step===0)saveAbout();
-  // Don't advance if About You validation failed
   if(S.plan._aboutInvalid)return;
+  if(S.plan.step===1){
+    // Validate assets before advancing to summary
+    const assets=S.plan.assets||[];
+    if(!assets.length){showToast('Add at least one asset before continuing.');return;}
+    const errors=[];
+    assets.forEach((a,i)=>{
+      const label='Asset '+(i+1)+(a.assetName?' ('+a.assetName+')':'');
+      if(!a.prec)errors.push(label+': Precinct is required');
+      if(!a.assetName)errors.push(label+': Asset name is required');
+      a.materials.forEach((m,j)=>{
+        const ml=label+', Material '+(j+1);
+        if(j===0&&!a.materials[0].app)errors.push(label+': Precinct application (field 4) is required');
+        if(!m.tmlRef)errors.push(ml+': Select a material from the AO Target Materials List or choose "Not AO target material" (field 6)');
+        if(m.tmlRef==='OTHER'&&!m.name)errors.push(ml+': Material name required at 6a');
+        if(!m.vol)errors.push(ml+': Volume is required');
+        if(!m.stat)errors.push(ml+': Expected status (field 7) is required');
+      });
+    });
+    if(errors.length){
+      showToast(errors.length+' required field'+(errors.length>1?'s':'')+' missing — check assets');
+      console.warn('Asset validation errors:',errors);
+      return;
+    }
+  }
   if(S.plan.step<2){S.plan.step++;if(S.plan.step>=1)S._unsaved=true;render();}
 }
 function goPrev(){
@@ -1721,6 +1745,8 @@ function savePlan(){
       S._unsaved=false; // clear dirty flag
       const warnBanner=document.getElementById('unsaved-warn');
       if(warnBanner)warnBanner.remove();
+      const badge=document.getElementById('unsaved-badge');
+      if(badge)badge.remove();
       showSavedModal(planCode(S.plan.id), res.source);
       sendPlanEmail(S.plan, isNew); // fire-and-forget email confirmation
     } else {
