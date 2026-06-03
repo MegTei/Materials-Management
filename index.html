@@ -331,6 +331,24 @@ button:active{background:#eee}
 .step-divider span{font-size:10px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:#888}
 
 @keyframes spin{to{transform:rotate(360deg)}}
+
+/* ── Ported "Top waste categories" block (scoped under .twc-wrap to avoid style conflicts) ── */
+.twc-wrap{font-family:'DM Sans',system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;--navy:#1E2886;--navy-dark:#141b5e;--blue:#0288CC;--blue-dark:#0271ad;--green:#10b981;--green-dark:#059669;--slate-100:#f1f5f9;--slate-200:#e2e8f0;--text-light:#64748b}
+.twc-wrap .acc-item{background:white;border-radius:12px;border:1.5px solid var(--slate-200);overflow:hidden}
+.twc-wrap .acc-trigger{width:100%;background:none;border:none;padding:10px 14px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;font-family:inherit;text-align:left;transition:background .15s}
+.twc-wrap .acc-trigger:hover{background:rgba(30,40,134,.03)}
+.twc-wrap .acc-trigger-left{display:flex;align-items:center;gap:10px}
+.twc-wrap .acc-trigger-icon{width:30px;height:30px;border-radius:7px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.twc-wrap .acc-trigger-icon.amber{background:rgba(251,191,36,.12)}
+.twc-wrap .acc-trigger-icon.green{background:rgba(16,185,129,.1)}
+.twc-wrap .acc-trigger-icon.blue{background:rgba(30,40,134,.1)}
+.twc-wrap .acc-label{font-size:.80rem;font-weight:700;color:var(--navy)}
+.twc-wrap .acc-sublabel{font-size:.68rem;color:var(--text-light);margin-top:1px}
+.twc-wrap .acc-chevron{font-size:.85rem;color:var(--navy);transition:transform .25s;flex-shrink:0;font-weight:700}
+.twc-wrap .acc-body{display:none;padding:0 14px 14px;border-top:1px solid var(--slate-100)}
+.twc-wrap .acc-body.open{display:block}
+.twc-wrap .acc-item.open .acc-chevron{transform:rotate(180deg)}
+.twc-wrap .acc-item.open .acc-trigger{background:rgba(30,40,134,.03)}
 </style>
 <!-- XLSX: no crossorigin attribute — not needed without an integrity hash, and can cause CORS failures in some environments -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
@@ -386,9 +404,9 @@ const XLSX_TEMPLATE_B64="UEsDBBQAAAAIAKsmu1wfTPSidgEAACgHAAATAAAAW0NvbnRlbnRfVHl
 // PREC_APPS: AO venue precinct application areas (matches AO Target Materials List)
 const PREC_APPS=['Framing & structures','Flooring \u2013 indoor partner suites','Flooring \u2013 outdoor','F&B container facades \u2013 standardised structures','Graphics/ surfaces','Internal precinct hoardings','Joinery/ Cabinetry/ wall flats','Modular structures (Space Cubes/Highline) & Marquee projections','Precinct facades & cladding','Shade legs','Other'];
 const PRECS=['Garden Square','Rod Laver Arena','Margaret Court Arena','John Cain Arena','Show Courts','Player Services','Media Centre','Corporate','Public Areas','Multiple Precincts','Other'];
-const STATS=['Reuse \u2013 Next AO (stored at AO)','Reuse \u2013 Next AO (stored by us)','Reuse \u2013 Other Event / Client','Recycle','Repurpose – use material in another way','Donate','Mixed construction waste \u2013 AO onsite bin','Not sure yet'];
-const STCOL={'Reuse \u2013 Next AO (stored at AO)':'#16a34a','Reuse \u2013 Next AO (stored by us)':'#22c55e','Reuse \u2013 Other Event / Client':'#0d9488','Recycle':'#0891b2','Repurpose – use material in another way':'#7c3aed','Donate':'#a855f7','Mixed construction waste \u2013 AO onsite bin':'#dc2626','Not sure yet':'#9ca3af','Other':'#9ca3af'};
-const STCOL_ADMIN={'Reuse \u2013 Next AO (stored at AO)':'#16a34a','Reuse \u2013 Next AO (stored by us)':'#22c55e','Reuse \u2013 Other Event / Client':'#0d9488','Recycle':'#0891b2','Repurpose – use material in another way':'#7c3aed','Donate':'#a855f7','Mixed construction waste \u2013 AO onsite bin':'#dc2626','Not sure yet':'#9ca3af','Other':'#9ca3af','Reuse - Next AO':'#16a34a','Reuse - Other Event / Client':'#22c55e','Landfill':'#dc2626','TBC - decide later':'#9ca3af'};
+const STATS=['Reuse - next AO (stored by AO)','Reuse - next AO (stored by us)','Reuse - other event/ client','Recycle on site with AO take-back program','Recycle - we will take offsite','Repurpose - we will take offsite for another use','Donate','Mixed construction waste - AO onsite bins','Unsure yet'];
+const STCOL={'Reuse - next AO (stored by AO)':'#16a34a','Reuse - next AO (stored by us)':'#22c55e','Reuse - other event/ client':'#0d9488','Recycle on site with AO take-back program':'#0891b2','Recycle - we will take offsite':'#0891b2','Repurpose - we will take offsite for another use':'#7c3aed','Donate':'#a855f7','Mixed construction waste - AO onsite bins':'#dc2626','Unsure yet':'#9ca3af','Reuse \u2013 Next AO (stored at AO)':'#16a34a','Reuse \u2013 Next AO (stored by us)':'#22c55e','Reuse \u2013 Other Event / Client':'#0d9488','Recycle':'#0891b2','Repurpose – use material in another way':'#7c3aed','Mixed construction waste \u2013 AO onsite bin':'#dc2626','Not sure yet':'#9ca3af','Other':'#9ca3af'};
+const STCOL_ADMIN={'Reuse - next AO (stored by AO)':'#16a34a','Reuse - next AO (stored by us)':'#22c55e','Reuse - other event/ client':'#0d9488','Recycle on site with AO take-back program':'#0891b2','Recycle - we will take offsite':'#0891b2','Repurpose - we will take offsite for another use':'#7c3aed','Mixed construction waste - AO onsite bins':'#dc2626','Unsure yet':'#9ca3af','Reuse \u2013 Next AO (stored at AO)':'#16a34a','Reuse \u2013 Next AO (stored by us)':'#22c55e','Reuse \u2013 Other Event / Client':'#0d9488','Recycle':'#0891b2','Repurpose – use material in another way':'#7c3aed','Donate':'#a855f7','Mixed construction waste \u2013 AO onsite bin':'#dc2626','Not sure yet':'#9ca3af','Other':'#9ca3af','Reuse - Next AO':'#16a34a','Reuse - Other Event / Client':'#22c55e','Landfill':'#dc2626','TBC - decide later':'#9ca3af'};
 const ROLES=['Agency','Builder','Designer','Sub-contractor','TA PM','TA Design','TA Build','TA delivery team','Other'];
 const TA_ROLES=['TA PM','TA Design','TA Build','TA delivery team'];
 const TA_DEPARTMENTS=['Accommodation','Accreditation','Activations','Archives','Ballkids','Beauty Bar','Business Ops','Childcare','Client & Product Delivery','Communication and Content','Community Relations','Court Services','Customer Experience (CX)','Food & Revenue','Functions','Government Relations','Hot Shots','Infrastructure','IT','Live Events','Logistics','Major Events','Marketing','Media Ops','Media Services','Merchandise','Miscellaneous','National Tennis Centre','Officials','Participation','Partnerships','Player Medical','Player Services','Precinct Ops','Premium Experience (PX)','Safety','Staff and Communications','Statisticians','Tournament Operations','Tournament Spaces','Transport','VIP Stakeholder Relations','Workforce'];
@@ -649,7 +667,7 @@ function assetCirc(a){
   return`<span style="font-size:10px;font-weight:700;color:${cl};flex-shrink:0">${nonLan}/${withStat.length}&nbsp;♻</span>`;
 }
 function fillClr(pct){return pct>=80?'#1D9E75':pct>=50?'#EF9F27':'#E24B4A'}
-function statBdg(s){if(!s)return'';const m={'Reuse \u2013 Next AO (stored at AO)':'gr','Reuse \u2013 Next AO (stored by us)':'gr','Reuse \u2013 Other Event / Client':'tl','Recycle':'bl','Repurpose – use material in another way':'pu','Donate':'pu','Mixed construction waste \u2013 AO onsite bin':'re','Not sure yet':'gy','Other':'gy'};return`<span class="bdg ${m[s]||'gy'}">${esc(s)}</span>`}
+function statBdg(s){if(!s)return'';const m={'Reuse - next AO (stored by AO)':'gr','Reuse - next AO (stored by us)':'gr','Reuse - other event/ client':'tl','Recycle on site with AO take-back program':'bl','Recycle - we will take offsite':'bl','Repurpose - we will take offsite for another use':'pu','Donate':'pu','Mixed construction waste - AO onsite bins':'re','Unsure yet':'gy','Reuse \u2013 Next AO (stored at AO)':'gr','Reuse \u2013 Next AO (stored by us)':'gr','Reuse \u2013 Other Event / Client':'tl','Recycle':'bl','Repurpose – use material in another way':'pu','Mixed construction waste \u2013 AO onsite bin':'re','Not sure yet':'gy','Other':'gy'};return`<span class="bdg ${m[s]||'gy'}">${esc(s)}</span>`}
 
 // ── TML Helpers ───────────────────────────────────────────────────────────────
 function renderTMLOptions(selectedRef){
@@ -878,6 +896,15 @@ function render(){
   }
 }
 
+function toggleAcc(id){
+  var item=document.getElementById(id);
+  if(!item)return;
+  var body=document.getElementById(id+'-body');
+  var isOpen=item.classList.contains('open');
+  item.classList.toggle('open',!isOpen);
+  if(body)body.classList.toggle('open',!isOpen);
+}
+
 function renderPlanTab(){
   const pb=document.getElementById('page-body-wrap');
   if(pb){pb.style.padding='0';}
@@ -904,6 +931,80 @@ function renderPlanTab(){
   h+='</div>';
   h+='<button class="btn-cta" onclick="createNewPlan()">+ Create new materials plan</button>';
   h+='</div>';
+
+  // ── TOP WASTE CATEGORIES (ported verbatim from Start Here tab) ────────────────
+  h+=`<div class="twc-wrap" style="margin:0 -1rem;padding:1.25rem 1rem;background:#fff;border-bottom:1px solid #e8e5de">
+    <div class="acc-item" id="acc-categories">
+      <button class="acc-trigger" onclick="toggleAcc('acc-categories')">
+        <div class="acc-trigger-left">
+          <div class="acc-trigger-icon amber">
+            <svg width="16" height="16" viewBox="0 0 20 20" fill="none" stroke="#d97706" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 17l4-12 3 6 2-3 5 9H3Z"/></svg>
+          </div>
+          <div>
+            <div class="acc-label">Top waste categories at the AO</div>
+            <div class="acc-sublabel">These are the high impact ↔ high volume materials — 8 material types make up most of the waste volume — this is our zone of focus</div>
+          </div>
+        </div>
+        <span class="acc-chevron">&#8964;</span>
+      </button>
+      <div class="acc-body" id="acc-categories-body">
+        <div style="display:grid;grid-template-columns:1fr 340px;gap:20px;align-items:start;padding-top:16px;">
+          <!-- LEFT: content boxes -->
+          <div>
+            <!-- Choose Recommended Materials box -->
+            <div style="display:flex;border-radius:10px;overflow:hidden;margin-bottom:10px;border:1.5px solid var(--slate-200);">
+              <div style="width:26px;flex-shrink:0;background:#0A2240;display:flex;align-items:center;justify-content:center;">
+                <span style="color:#fff;font-size:.48rem;font-weight:800;letter-spacing:.12em;text-transform:uppercase;writing-mode:vertical-rl;transform:rotate(180deg);">Choose recommended materials</span>
+              </div>
+              <div style="padding:14px 16px;flex:1;background:white;">
+                <div style="margin-bottom:10px;">
+                  <div style="font-size:.79rem;font-weight:700;margin-bottom:4px;color:var(--blue-dark);">Wood / timber / engineered wood</div>
+                  <div style="font-size:.75rem;color:#333;line-height:1.75;">1&nbsp;&nbsp;Engineered Wood – MDF, LDF</div>
+                  <div style="font-size:.75rem;color:#333;line-height:1.75;">2&nbsp;&nbsp;Engineered Wood – Plywood, Formply, Particleboard</div>
+                  <div style="font-size:.75rem;color:#333;line-height:1.75;">3&nbsp;&nbsp;Wood / Timber / Pallets</div>
+                </div>
+                <div style="margin-bottom:10px;">
+                  <div style="font-size:.79rem;font-weight:700;margin-bottom:4px;color:var(--blue-dark);">Facades / graphics / skins</div>
+                  <div style="font-size:.75rem;color:#333;line-height:1.75;">4&nbsp;&nbsp;PVC sail track banners</div>
+                  <div style="font-size:.75rem;color:#333;line-height:1.75;">5&nbsp;&nbsp;ACM / ACP</div>
+                  <div style="font-size:.75rem;color:#333;line-height:1.75;">6&nbsp;&nbsp;SAV</div>
+                  <div style="font-size:.75rem;color:#333;line-height:1.75;">7&nbsp;&nbsp;Textiles / Fabrics</div>
+                </div>
+                <div style="font-size:.79rem;font-weight:700;color:var(--blue-dark);">8&nbsp;&nbsp;Flooring (carpet / vinyl)</div>
+              </div>
+            </div>
+            <!-- Highly Circular box -->
+            <div style="display:flex;border-radius:10px;overflow:hidden;border:1.5px solid rgba(16,185,129,.3);">
+              <div style="width:26px;flex-shrink:0;background:#1D9E75;display:flex;align-items:center;justify-content:center;">
+                <span style="color:#fff;font-size:.48rem;font-weight:800;letter-spacing:.12em;text-transform:uppercase;writing-mode:vertical-rl;transform:rotate(180deg);">Highly Circular</span>
+              </div>
+              <div style="padding:14px 16px;flex:1;background:white;">
+                <div style="margin-bottom:8px;"><div style="font-size:.81rem;font-weight:600;color:#222;">9&nbsp;&nbsp;Water-based Paint</div><div style="font-size:.73rem;color:#666;padding-left:14px;">Doesn't contaminate wood / timber</div></div>
+                <div style="margin-bottom:8px;"><div style="font-size:.81rem;font-weight:600;color:#222;">10&nbsp;&nbsp;Steel</div></div>
+                <div><div style="font-size:.81rem;font-weight:600;color:#222;">11&nbsp;&nbsp;Aluminium</div><div style="font-size:.73rem;color:#666;padding-left:14px;">High secondary market value — don't bin it</div></div>
+              </div>
+            </div>
+            <div style="margin-top:12px;">
+              <button onclick="window.open('https://megtei.github.io/Materials_Methods_Plan/','_blank')" style="font-size:.78rem;font-weight:700;color:var(--blue);background:rgba(2,136,204,.07);border:1.5px solid rgba(2,136,204,.22);border-radius:7px;padding:7px 14px;cursor:pointer;font-family:inherit;">View full Target Materials List &#8599;</button>
+            </div>
+          </div>
+          <!-- RIGHT: bubble chart -->
+          <div style="background:white;border-radius:10px;overflow:hidden;">
+            <svg viewBox="0 0 1447 1350" width="100%" role="img" style="display:block;">
+              <defs><marker id="tm-arrow2" markerWidth="14" markerHeight="14" refX="10" refY="7" orient="auto" markerUnits="strokeWidth"><path d="M0,0 L14,7 L0,14 z" fill="#3d3d3d"/></marker></defs>
+              <line stroke="#3d3d3d" stroke-width="7" stroke-linecap="square" marker-end="url(#tm-arrow2)" x1="82" y1="1250" x2="82" y2="331"/>
+              <line stroke="#3d3d3d" stroke-width="7" stroke-linecap="square" marker-end="url(#tm-arrow2)" x1="82" y1="1250" x2="997" y2="1250"/>
+              <text font-size="45" fill="#3d3d3d" font-weight="400" letter-spacing="-1" x="87" y="1306">Increasing Environmental Impact</text>
+              <text font-size="45" fill="#3d3d3d" font-weight="400" letter-spacing="-1" transform="translate(58 1228) rotate(-90)">Increasing Volume/ Spend</text>
+              <g transform="translate(268 385)"><clipPath id="tm-gridClip2"><rect width="730" height="730"/></clipPath><rect width="730" height="730" fill="#efefef"/><g opacity=".96" clip-path="url(#tm-gridClip2)"><rect x="91.25" y="0" width="91.25" height="638.75" fill="#e4f7fd"/><rect x="182.5" y="0" width="91.25" height="638.75" fill="#d0f0f8"/><rect x="273.75" y="0" width="91.25" height="638.75" fill="#bde9f4"/><rect x="365" y="0" width="91.25" height="638.75" fill="#92dbef"/><rect x="456.25" y="0" width="91.25" height="456.25" fill="#149bd0"/><rect x="547.5" y="0" width="91.25" height="456.25" fill="#087aa2"/><rect x="638.75" y="0" width="91.25" height="456.25" fill="#253491"/><rect x="365" y="91.25" width="365" height="91.25" fill="#61cbea" opacity=".65"/><rect x="365" y="182.5" width="365" height="91.25" fill="#26b7df" opacity=".75"/><rect x="365" y="273.75" width="365" height="91.25" fill="#0c9bd0" opacity=".9"/><rect x="365" y="365" width="365" height="91.25" fill="#07a2d0" opacity=".95"/><rect x="365" y="456.25" width="365" height="91.25" fill="#80d7ee" opacity=".9"/><rect x="365" y="547.5" width="365" height="91.25" fill="#d7f3fa" opacity=".85"/></g>
+              <g><line stroke="white" stroke-opacity=".35" stroke-width="3" x1="91.25" y1="0" x2="91.25" y2="730"/><line stroke="white" stroke-opacity=".35" stroke-width="3" x1="182.5" y1="0" x2="182.5" y2="730"/><line stroke="white" stroke-opacity=".35" stroke-width="3" x1="273.75" y1="0" x2="273.75" y2="730"/><line stroke="white" stroke-opacity=".35" stroke-width="3" x1="365" y1="0" x2="365" y2="730"/><line stroke="white" stroke-opacity=".35" stroke-width="3" x1="456.25" y1="0" x2="456.25" y2="730"/><line stroke="white" stroke-opacity=".35" stroke-width="3" x1="547.5" y1="0" x2="547.5" y2="730"/><line stroke="white" stroke-opacity=".35" stroke-width="3" x1="638.75" y1="0" x2="638.75" y2="730"/><line stroke="white" stroke-opacity=".35" stroke-width="3" x1="0" y1="91.25" x2="730" y2="91.25"/><line stroke="white" stroke-opacity=".35" stroke-width="3" x1="0" y1="182.5" x2="730" y2="182.5"/><line stroke="white" stroke-opacity=".35" stroke-width="3" x1="0" y1="273.75" x2="730" y2="273.75"/><line stroke="white" stroke-opacity=".35" stroke-width="3" x1="0" y1="365" x2="730" y2="365"/><line stroke="white" stroke-opacity=".35" stroke-width="3" x1="0" y1="456.25" x2="730" y2="456.25"/><line stroke="white" stroke-opacity=".35" stroke-width="3" x1="0" y1="547.5" x2="730" y2="547.5"/><line stroke="white" stroke-opacity=".35" stroke-width="3" x1="0" y1="638.75" x2="730" y2="638.75"/></g></g>
+              <g><circle fill="rgba(255,255,255,.05)" stroke="black" stroke-width="5" cx="231" cy="580" r="54"/><text font-size="31" font-weight="700" fill="#4a4a4a" text-anchor="middle" dominant-baseline="middle" x="231" y="580">3</text><circle fill="rgba(255,255,255,.05)" stroke="black" stroke-width="5" cx="602" cy="435" r="54"/><text font-size="31" font-weight="700" fill="#4a4a4a" text-anchor="middle" dominant-baseline="middle" x="602" y="435">6</text><circle fill="rgba(255,255,255,.05)" stroke="black" stroke-width="5" cx="681" cy="435" r="55"/><text font-size="31" font-weight="700" fill="#4a4a4a" text-anchor="middle" dominant-baseline="middle" x="681" y="435">2</text><circle fill="rgba(255,255,255,.05)" stroke="white" stroke-width="5" cx="759" cy="435" r="55"/><text font-size="31" font-weight="700" fill="white" text-anchor="middle" dominant-baseline="middle" x="759" y="435">5</text><circle fill="rgba(255,255,255,.05)" stroke="white" stroke-width="5" cx="880" cy="435" r="55"/><text font-size="31" font-weight="700" fill="white" text-anchor="middle" dominant-baseline="middle" x="880" y="435">1</text><circle fill="rgba(255,255,255,.05)" stroke="white" stroke-width="5" cx="982" cy="435" r="55"/><text font-size="31" font-weight="700" fill="white" text-anchor="middle" dominant-baseline="middle" x="982" y="435">11</text><circle fill="rgba(255,255,255,.05)" stroke="white" stroke-width="5" cx="959" cy="514" r="54"/><text font-size="31" font-weight="700" fill="white" text-anchor="middle" dominant-baseline="middle" x="959" y="514">10</text><circle fill="rgba(255,255,255,.05)" stroke="white" stroke-width="5" cx="854" cy="593" r="55"/><text font-size="31" font-weight="700" fill="white" text-anchor="middle" dominant-baseline="middle" x="854" y="593">8</text><circle fill="rgba(255,255,255,.05)" stroke="white" stroke-width="5" cx="952" cy="594" r="55"/><text font-size="31" font-weight="700" fill="white" text-anchor="middle" dominant-baseline="middle" x="952" y="594">4</text><circle fill="rgba(255,255,255,.05)" stroke="white" stroke-width="5" cx="727" cy="703" r="55"/><text font-size="31" font-weight="700" fill="white" text-anchor="middle" dominant-baseline="middle" x="727" y="703">7</text><circle fill="rgba(255,255,255,.05)" stroke="black" stroke-width="5" cx="686" cy="766" r="55"/><text font-size="31" font-weight="700" fill="#4a4a4a" text-anchor="middle" dominant-baseline="middle" x="686" y="766">9</text></g>
+            </svg>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>`;
 
   // ── STEP 2: VIEW / EDIT ─────────────────────────────────────────
   h+='<div class="section-panel" style="padding-top:1.25rem">';
@@ -1474,7 +1575,7 @@ function saveAbout(){
 // ── Step 1: Assets & Materials ────────────────────────────────────────────────
 function stepAssets(plan){
   setTimeout(refreshAssets,0);
-  return`<div class="hbox">Add each <strong>asset or item</strong> in your scope.<br><br>Each asset can contain multiple materials — for example, a facade panel may use ACM, structural ply and a fabric skin.<br><br>Only capture details about the key majority materials, not nuts and bolts. Fields marked * are required. Complete fields 1–6 now; field 7 (Actual Outcome) is completed post-event.</div>
+  return`<div class="hbox">Add each <strong>asset or item</strong> in your scope.<br><br>Each asset can contain multiple materials — for example, a facade panel may use ACM, structural ply and a fabric skin.<br><br>Only capture details about the key majority materials, not nuts and bolts. We are focused on the high impact&lt;&gt;high volume materials — those that are majority of your procurement. Fields marked * are required. Complete fields 1–6 now; field 7 (Actual Outcome) is completed post-event.</div>
   <div id="asset-list"></div>
   <div class="add-asset-area">
     <p>Add a new asset or item to your plan. Each asset can hold one or more materials.<br>Select from the <strong>AO Target Materials List</strong> within each asset card — <a href="https://megtei.github.io/Materials_Methods_Plan/" target="_blank" style="color:#185FA5;font-weight:600">view the full list &#8599;</a></p>
@@ -1589,7 +1690,7 @@ function matRowHtml(aid,m,idx){
     </div>
     <div class="fg">
       <label style="color:#aaa">7. Actual outcome <span style="font-size:10px;font-weight:400">(complete post-event)</span></label>
-      <select data-aid="${aid}" data-mid="${m.id}" data-f="outcome" onchange="upAssetMat(this);toggleOutcomeOther(this,'${aid}','${m.id}')">${mkOpts(['Reuse \u2013 Next AO (stored at AO)','Reuse \u2013 Next AO (stored by us)','Reuse \u2013 Other Event / Client','Recycle','Repurpose – use material in another way','Donate','Mixed construction waste \u2013 AO onsite bin'],m.outcome,'Select actual outcome...')}</select>
+      <select data-aid="${aid}" data-mid="${m.id}" data-f="outcome" onchange="upAssetMat(this);toggleOutcomeOther(this,'${aid}','${m.id}')">${mkOpts(['Reuse - next AO (stored by AO)','Reuse - next AO (stored by us)','Reuse - other event/ client','Recycle on site with AO take-back program','Recycle - we will take offsite','Repurpose - we will take offsite for another use','Donate','Mixed construction waste - AO onsite bins'],m.outcome,'Select actual outcome...')}</select>
       ${m.outcome==='Other'?`<input type="text" data-aid="${aid}" data-mid="${m.id}" data-f="outcomeOther" value="${esc(m.outcomeOther||'')}" placeholder="Please specify..." onblur="upAssetMat(this)" style="margin-top:6px">`:'<span id="outcome-other-'+aid+'-'+m.id+'" style="display:none"><input type="text" data-aid="'+aid+'" data-mid="'+m.id+'" data-f="outcomeOther" value="'+esc(m.outcomeOther||'')+'" placeholder="Please specify..." onblur="upAssetMat(this)" style="margin-top:6px"></span>'}
     </div>
   </div>`;
@@ -1609,7 +1710,7 @@ function stepSummary(plan){
     const precLabel=a.prec||'';
     const matList=a.materials.map(m=>{
       const statClr=STCOL[m.stat]||'#94a3b8';
-      const statBdgMap={'Reuse \u2013 Next AO (stored at AO)':'gr','Reuse \u2013 Next AO (stored by us)':'gr','Reuse \u2013 Other Event / Client':'tl','Recycle':'bl','Repurpose – use material in another way':'pu','Donate':'pu','Mixed construction waste \u2013 AO onsite bin':'re','Not sure yet':'gy','Other':'gy'};
+      const statBdgMap={'Reuse - next AO (stored by AO)':'gr','Reuse - next AO (stored by us)':'gr','Reuse - other event/ client':'tl','Recycle on site with AO take-back program':'bl','Recycle - we will take offsite':'bl','Repurpose - we will take offsite for another use':'pu','Donate':'pu','Mixed construction waste - AO onsite bins':'re','Unsure yet':'gy','Reuse \u2013 Next AO (stored at AO)':'gr','Reuse \u2013 Next AO (stored by us)':'gr','Reuse \u2013 Other Event / Client':'tl','Recycle':'bl','Repurpose – use material in another way':'pu','Mixed construction waste \u2013 AO onsite bin':'re','Not sure yet':'gy','Other':'gy'};
       const volHtml=m.vol?'<span style="color:#aaa;font-size:11px">'+esc(m.vol)+' '+esc(m.vunit)+'</span>':'';
       const statHtml=m.stat?'<span class="bdg '+(statBdgMap[m.stat]||'gy')+'">'+esc(m.stat)+'</span>':'';
       return '<div class="smat-item"><span class="smat-dot" style="background:'+statClr+'"></span><span style="flex:1">'+esc(m.name||m.cat||'Unnamed')+'</span>'+volHtml+statHtml+'</div>';
