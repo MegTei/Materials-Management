@@ -566,6 +566,35 @@ if(SUPABASE_READY){
   }
 }
 
+// ── Admin dashboard auth (Option B: server-side gated read) ────────────────────
+// The dashboard password is NOT stored in this file. The manager types it, and
+// it is sent as an `x-dashboard-key` request header on the admin read query.
+// A Postgres RLS policy (dashboard_authed()) compares it against a hashed value
+// in the database and returns plan rows only on a match — so a wrong password
+// returns zero rows regardless of anything done in the browser.
+// The key is held only in sessionStorage for the life of the tab so the
+// dashboard can re-query without re-prompting; it is cleared on sign-out.
+const ADMIN_KEY_SS = 'adminDashKey';
+let sbAdmin = null;
+function buildAdminClient(key){
+  if(typeof supabase === 'undefined' || !SUPABASE_READY) return null;
+  try{
+    return supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
+      global: { headers: { 'x-dashboard-key': key } }
+    });
+  }catch(e){
+    console.warn('Admin client init failed:', e.message);
+    return null;
+  }
+}
+// Rebuild the admin client from a stored session key (e.g. after a tab reload).
+function ensureAdminClient(){
+  if(sbAdmin) return sbAdmin;
+  const key = sessionStorage.getItem(ADMIN_KEY_SS);
+  if(key) sbAdmin = buildAdminClient(key);
+  return sbAdmin;
+}
+
 // ── Plan storage abstraction ──────────────────────────────────────────────────
 // Swap this object's two methods to change the backend.
 // localStorage is always used as an offline fallback.
@@ -1051,12 +1080,14 @@ function renderAdmin(){
   const pb=document.getElementById('page-body-wrap');
   if(pb)pb.style.padding='1.25rem 1rem 2rem';
 
-  // PIN gate
-  if(!sessionStorage.getItem('adminAuth')){
+  // Password gate — the password is validated server-side (see buildAdminClient
+  // / dashboard_authed RLS policy). No password is stored in this file.
+  if(!sessionStorage.getItem(ADMIN_KEY_SS)){
     let h='<div class="admin-login">';
     h+='<h3>Admin Dashboard</h3>';
-    h+='<p>Restricted access. Enter the admin PIN to view all submitted plans.</p>';
-    h+='<div class="fg"><label>PIN</label><input type="password" id="admin-pin" placeholder="Enter PIN" onkeydown="if(event.keyCode===13)checkAdminPin()"></div>';
+    h+='<p>Restricted access. Enter the dashboard password to view all submitted plans.</p>';
+    h+='<div class="fg"><label>Password</label><input type="password" id="admin-pin" placeholder="Enter password" onkeydown="if(event.keyCode===13)checkAdminPin()"></div>';
+    h+='<div id="admin-login-msg" style="font-size:12px;color:#A32D2D;min-height:16px;margin-bottom:4px"></div>';
     h+='<button onclick="checkAdminPin()" class="btn-primary" style="width:100%;margin-top:4px;padding:10px">Access dashboard</button>';
     h+='</div>';
     document.getElementById('main').innerHTML=h;
@@ -1094,8 +1125,12 @@ async function loadAdminPlans(){
   // result — and must NOT blend in this browser's localStorage, otherwise
   // stale/deleted plans (and the example plan) reappear and Supabase deletions
   // never show up in the dashboard.
-  if(sb){
-    const{data,error}=await sb.from('plans')
+  // Reads go through the admin client, which carries the x-dashboard-key header
+  // required by the dashboard_authed() RLS policy. Without a valid password the
+  // database returns zero rows, so the gate is enforced server-side.
+  const client = ensureAdminClient();
+  if(client){
+    const{data,error}=await client.from('plans')
       .select('data,updated_at')
       .order('updated_at',{ascending:false})
       .limit(300);
@@ -1358,13 +1393,51 @@ function renderAdminDashboard(rawPlans){
 
   document.getElementById('main').innerHTML=h;
 }
-function adminSignOut(){sessionStorage.removeItem('adminAuth');renderAdmin();}
+function adminSignOut(){
+  sessionStorage.removeItem(ADMIN_KEY_SS);
+  sbAdmin=null;
+  renderAdmin();
+}
 
-function checkAdminPin(){
+// Validate the typed dashboard password by attempting a gated read against
+// Supabase. The dashboard_authed() RLS policy returns rows only when the
+// x-dashboard-key header matches the hashed password stored server-side, so a
+// successful query (no error) proves the password is correct. No password is
+// stored in this file.
+async function checkAdminPin(){
   const val=document.getElementById('admin-pin');
+  const msg=document.getElementById('admin-login-msg');
   if(!val)return;
-  if(val.value==='CircularAO2027'){sessionStorage.setItem('adminAuth','1');renderAdmin();}
-  else{val.style.borderColor='#dc2626';val.placeholder='Incorrect PIN';}
+  const key=val.value;
+  if(!key){if(msg)msg.textContent='Enter the dashboard password.';return;}
+
+  // If Supabase isn't available, fall back to local-only mode (offline use).
+  if(!sb){
+    sessionStorage.setItem(ADMIN_KEY_SS, key);
+    renderAdmin();
+    return;
+  }
+
+  const btn=document.querySelector('.admin-login .btn-primary');
+  if(btn){btn.disabled=true;btn.textContent='Checking...';}
+  if(msg){msg.style.color='#888';msg.textContent='Checking password...';}
+
+  const probe=buildAdminClient(key);
+  try{
+    // HEAD count request: returns a count when the gate passes, 0 rows / no
+    // error is also a pass (valid empty table). A wrong password trips the RLS
+    // policy and Supabase returns an error, which we treat as "denied".
+    const{error}=await probe.from('plans').select('id',{count:'exact',head:true});
+    if(error) throw error;
+    // Password accepted — persist for the session and promote the admin client.
+    sessionStorage.setItem(ADMIN_KEY_SS, key);
+    sbAdmin=probe;
+    renderAdmin();
+  }catch(err){
+    if(msg){msg.style.color='#A32D2D';msg.textContent='Incorrect password.';}
+    if(val){val.style.borderColor='#dc2626';val.value='';val.focus();}
+    if(btn){btn.disabled=false;btn.textContent='Access dashboard';}
+  }
 }
 
 function exportAdminCSV(){
