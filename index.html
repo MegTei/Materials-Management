@@ -1070,31 +1070,73 @@ function renderAdmin(){
     +'<div style="width:32px;height:32px;border:3px solid #e0ddd6;border-top-color:#185FA5;border-radius:50%;animation:spin .8s linear infinite;margin:0 auto"></div>'
     +'</div>';
 
-  // Load plans from Supabase or localStorage
-  loadAdminPlans().then(renderAdminDashboard);
+  // Load plans from Supabase (authoritative) or localStorage
+  loadAdminPlansInto();
+}
+
+// ── Example-plan exclusion (shared by dashboard + CSV export) ──────────────────
+// The example/seed plan must never appear in the admin portal. It is identified
+// primarily by its stable Plan ID (code); email + _example flag are kept as
+// secondary fallbacks in case the code ever changes.
+const EXAMPLE_PLAN_CODES=['AO27-MPEQ-H0C7'];
+const EXAMPLE_EMAILS=['jamie@studioconstruct.com.au'];
+function isExamplePlan(p){
+  if(!p)return false;
+  if(p._example)return true;
+  if(p.id && EXAMPLE_PLAN_CODES.includes(planCode(p.id)))return true;
+  const email=(p.profile&&p.profile.email||'').toLowerCase().trim();
+  return EXAMPLE_EMAILS.includes(email);
 }
 
 async function loadAdminPlans(){
+  // Admin portal is CLOUD-AUTHORITATIVE when Supabase is configured.
+  // It must reflect exactly what is in the `plans` table — including an empty
+  // result — and must NOT blend in this browser's localStorage, otherwise
+  // stale/deleted plans (and the example plan) reappear and Supabase deletions
+  // never show up in the dashboard.
   if(sb){
-    try{
-      const{data,error}=await sb.from('plans').select('data,updated_at').order('updated_at',{ascending:false}).limit(300);
-      if(error)throw error;
-      if(data&&data.length){
-        return data.map(row=>row.data).filter(Boolean);
-      }
-    }catch(err){
-      console.warn('Supabase admin load failed, falling back to local:',err.message);
+    const{data,error}=await sb.from('plans')
+      .select('data,updated_at')
+      .order('updated_at',{ascending:false})
+      .limit(300);
+    if(error){
+      // Surface the failure instead of silently falling back to local data.
+      throw new Error('CLOUD_LOAD_FAILED: '+error.message);
     }
+    // Return cloud rows verbatim (an empty array is a valid, authoritative answer).
+    return (data||[]).map(row=>row.data).filter(Boolean);
   }
+  // Only when Supabase was never configured do we use local storage.
   return storageLoadAll();
 }
 
+// Single entry point for the admin dashboard: loads plans and renders, or
+// shows an explicit error panel if the authoritative cloud load fails — so we
+// never silently display a stale/empty list that looks like real data.
+function loadAdminPlansInto(){
+  loadAdminPlans()
+    .then(renderAdminDashboard)
+    .catch(err=>renderAdminError(err));
+}
+
+function renderAdminError(err){
+  const main=document.getElementById('main');if(!main)return;
+  const msg=esc((err&&err.message)||'Unknown error');
+  let h='<div class="admin-hero"><h2 style="font-size:20px;font-weight:800;color:#fff;margin-bottom:.4rem">Admin Dashboard</h2>';
+  h+='<p style="font-size:12px;opacity:.85">Could not load plans from the cloud.</p></div>';
+  h+='<div class="admin-section">';
+  h+='<div class="hbox" style="background:#FCEBEB;border-color:#f5c6c6;color:#A32D2D">';
+  h+='Plans could not be loaded from Supabase, so nothing is shown (rather than risk displaying out-of-date local copies). ';
+  h+='Check your connection and try again.<br><span style="font-size:11px;opacity:.8">Details: '+msg+'</span></div>';
+  h+='<button onclick="loadAdminPlansInto()" class="btn-primary" style="padding:9px 18px">Retry</button>';
+  h+='<button onclick="adminSignOut()" style="margin-left:8px;font-size:12px;padding:9px 16px;border:1px solid #ddd;color:#555;background:#fff;border-radius:7px;cursor:pointer">Sign out</button>';
+  h+='</div>';
+  main.innerHTML=h;
+}
+
 function renderAdminDashboard(rawPlans){
-  // EXCLUDE example plans from all admin data
-  // Matches on _example flag OR the known Studio Construct seed email
-  // (_example is stripped on save, so email is the stable fallback)
-  const EXAMPLE_EMAILS=['jamie@studioconstruct.com.au'];
-  const isExamplePlan=p=>!!p._example||(p.profile&&EXAMPLE_EMAILS.includes((p.profile.email||'').toLowerCase().trim()));
+  // EXCLUDE the example plan from all admin data (see isExamplePlan above —
+  // keyed on Plan ID AO27-MPEQ-H0C7, with email/_example as fallbacks).
   const allPlans=rawPlans.filter(p=>!isExamplePlan(p));
 
   // ── Year filter ──────────────────────────────────────────────────────────
@@ -1128,10 +1170,10 @@ function renderAdminDashboard(rawPlans){
     h+='<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">';
     h+='<span style="font-size:11px;font-weight:700;color:#888;text-transform:uppercase;letter-spacing:.06em;margin-right:4px">Year</span>';
     const tabStyle=(active)=>'font-size:12px;font-weight:700;padding:5px 14px;border-radius:20px;cursor:pointer;border:1.5px solid '+(active?'#185FA5':'#d0cdc7')+';background:'+(active?'#185FA5':'#fff')+';color:'+(active?'#fff':'#555');
-    h+='<button style="'+tabStyle(selYear==="all")+'" onclick="sessionStorage.setItem(&quot;adminYear&quot;,&quot;all&quot;);loadAdminPlans().then(renderAdminDashboard)">All years ('+allPlans.length+')</button>';
+    h+='<button style="'+tabStyle(selYear==="all")+'" onclick="sessionStorage.setItem(&quot;adminYear&quot;,&quot;all&quot;);loadAdminPlansInto()">All years ('+allPlans.length+')</button>';
     for(const yr of years){
       const cnt=allPlans.filter(p=>(p.profile&&p.profile.aoYear?p.profile.aoYear:'Unknown')===yr).length;
-      h+='<button style="'+tabStyle(selYear===yr)+'" onclick="sessionStorage.setItem(&quot;adminYear&quot;,&quot;'+yr+'&quot;);loadAdminPlans().then(renderAdminDashboard)">'+esc(yr)+' ('+cnt+')</button>';
+      h+='<button style="'+tabStyle(selYear===yr)+'" onclick="sessionStorage.setItem(&quot;adminYear&quot;,&quot;'+yr+'&quot;);loadAdminPlansInto()">'+esc(yr)+' ('+cnt+')</button>';
     }
     h+='</div></div>';
   }
@@ -1311,7 +1353,7 @@ function renderAdminDashboard(rawPlans){
   // ── Actions ───────────────────────────────────────────────────────────────
   h+='<div class="admin-section" style="display:flex;gap:8px;flex-wrap:wrap">';
   h+='<button onclick="exportAdminCSV()" style="font-size:12px;padding:8px 16px;border:1px solid #185FA5;color:#185FA5;background:#EEF5FF;border-radius:7px;cursor:pointer">Export all plans as CSV</button>';
-  if(SUPABASE_READY)h+='<button onclick="loadAdminPlans().then(renderAdminDashboard)" style="font-size:12px;padding:8px 16px;border:1px solid #ddd;color:#555;background:#fff;border-radius:7px;cursor:pointer">Refresh</button>';
+  if(SUPABASE_READY)h+='<button onclick="loadAdminPlansInto()" style="font-size:12px;padding:8px 16px;border:1px solid #ddd;color:#555;background:#fff;border-radius:7px;cursor:pointer">Refresh</button>';
   h+='</div>'; // close actions admin-section
 
   document.getElementById('main').innerHTML=h;
@@ -1326,7 +1368,8 @@ function checkAdminPin(){
 }
 
 function exportAdminCSV(){
-  loadAdminPlans().then(plans=>{
+  loadAdminPlans().then(rawPlans=>{
+    const plans=(rawPlans||[]).filter(p=>!isExamplePlan(p));
     if(!plans.length){showToast('No plans to export');return;}
   const rows=[['Business','Owner','Role','Email','Date Saved','Asset','Precinct','Material','TML Ref','Volume','Unit','Status','Outcome']];
   for(const p of plans){
@@ -1347,7 +1390,7 @@ function exportAdminCSV(){
   const url=URL.createObjectURL(blob);
   const a=document.createElement('a');a.href=url;a.download='AO27_Materials_Plans.csv';a.click();
   URL.revokeObjectURL(url);
-  });
+  }).catch(err=>showToast('Export failed — could not load plans from cloud'));
 }
 
 function renderFAQ(){
@@ -1575,7 +1618,7 @@ function saveAbout(){
 // ── Step 1: Assets & Materials ────────────────────────────────────────────────
 function stepAssets(plan){
   setTimeout(refreshAssets,0);
-  return`<div class="hbox">Add each <strong>asset or item</strong> in your scope.<br><br>Each asset can contain multiple materials — for example, a facade panel may use ACM, structural ply and a fabric skin.<br><br>Only capture details about the key majority materials, not nuts and bolts. We are focused on the high impact&lt;&gt;high volume materials — those that are majority of your procurement. Fields marked * are required. Complete fields 1–6 now; field 7 (Actual Outcome) is completed post-event.</div>
+  return`<div class="hbox">Add each <strong>asset or item</strong> in your scope.<br><br>Each asset can contain multiple materials — for example, a facade panel may use ACM, structural ply and a fabric skin.<br><br>We are focused on the high impact&lt;&gt;high volume materials — those that are majority of your procurement. Fields marked * are required. Complete fields 1–6 now; field 7 (Actual Outcome) is completed post-event.</div>
   <div id="asset-list"></div>
   <div class="add-asset-area">
     <p>Add a new asset or item to your plan. Each asset can hold one or more materials.<br>Select from the <strong>AO Target Materials List</strong> within each asset card — <a href="https://megtei.github.io/Materials_Methods_Plan/" target="_blank" style="color:#185FA5;font-weight:600">view the full list &#8599;</a></p>
