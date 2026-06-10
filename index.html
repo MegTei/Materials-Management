@@ -970,14 +970,14 @@ function renderPlanTab(){
   h+='<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px">';
   h+='<div>';
   h+='<div style="font-size:10px;font-weight:800;letter-spacing:.12em;color:rgba(255,255,255,.55);text-transform:uppercase;margin-bottom:4px">AO27</div>';
-  h+='<h2 style="font-size:20px;font-weight:800;color:#fff;margin-bottom:.4rem;letter-spacing:-.02em">New plan</h2>';
+  h+='<h2 style="font-size:20px;font-weight:800;color:#fff;margin-bottom:.4rem;letter-spacing:-.02em">Start here</h2>';
   h+='';
   h+='</div></div></div>';
 
   // ── STEP 1: CREATE ──────────────────────────────────────────────
   h+='<div class="cta-section" style="text-align:left;padding-top:1.5rem">';
   h+='<div class="sechd sechd-first">Step one — Create a materials management plan</div>';
-  h+='<p style="font-size:13px;color:#555;line-height:1.6;margin-bottom:1.25rem;max-width:480px;margin-left:0;margin-right:0">Complete a plan before the event to document assets and materials, set circularity targets and share with TA. You\'ll need your AO27 scope and the Target Materials List.</p>';
+  h+='<p style="font-size:13px;color:#555;line-height:1.6;margin-bottom:1.25rem;max-width:480px;margin-left:0;margin-right:0">Complete a plan before the event to document assets and materials, set circularity and waste reduction targets. You\'ll need your AO27 scope and the Target Materials List.</p>';
   h+='<div class="how-steps-h">';
   h+='<div class="how-step-card"><div class="step-n">1</div><h4>About you</h4><p>Business details, your role, and your AO27 waste and reuse targets.</p></div>';
   h+='<div class="how-step-card"><div class="step-n">2</div><h4>Assets &amp; Materials</h4><p>Add each asset in your scope with its materials, volumes and expected end-of-event status.</p></div>';
@@ -987,8 +987,8 @@ function renderPlanTab(){
   h+='<div class="mreq-card">';
   h+='<div class="mreq-img fit"><img src="'+CREATE_IMG+'" alt="Create plan illustration"></div>';
   h+='<div class="mreq-body">';
-  h+='<div class="mreq-title">Create a materials plan</div>';
-  h+='<p class="mreq-text">Document your assets and materials, set circularity targets, and submit your plan to TA before the event.</p>';
+  h+='<div class="mreq-title">New Plan</div>';
+  h+='<p class="mreq-text">Document your assets and materials, targets and submit your plan to TA before the event.</p>';
   h+='<div class="mreq-divider"></div>';
   h+='<div class="mreq-foot"><button class="mreq-btn" onclick="createNewPlan()">&rsaquo; Open form</button></div>';
   h+='</div></div>';
@@ -1109,12 +1109,12 @@ function renderUpdateTab(){
 
   // ── STEP 2: VIEW / EDIT ─────────────────────────────────────────
   h+='<div class="section-panel" style="padding-top:1.25rem">';
-  h+='<div class="sechd sechd-first">View / edit an existing plan</div>';
+  h+='<div class="sechd sechd-first">Review and update</div>';
   h+='<div class="mreq-card">';
   h+='<div class="mreq-img fit fit-grad"><img src="'+UPDATE_IMG+'" alt="Plan lookup illustration"></div>';
   h+='<div class="mreq-body">';
-  h+='<div class="mreq-title">Update a materials plan</div>';
-  h+='<p class="mreq-text">Already submitted a plan? Reload it with your Plan ID to view, edit, or add your post-event actuals at bump-out.</p>';
+  h+='<div class="mreq-title">View and make changes</div>';
+  h+='<p class="mreq-text">Have a plan and need to make updates/ additions - reload it using your Plan ID. This is also the place to add your post-event actuals at bump-out.</p>';
   h+='<div class="mreq-divider"></div>';
   h+='<div class="retrieve-row"><input type="text" id="retrieve-input" placeholder="AO27-XXXX-XXXX" maxlength="14" oninput="this.value=this.value.toUpperCase().replace(/[^A-Z0-9-]/g,\'\');" onkeydown="if(event.keyCode===13)retrievePlan()"><button onclick="retrievePlan()">Load plan</button></div>';
   h+='<div id="retrieve-msg" style="margin-top:.5rem;font-size:11px;color:#aaa"></div>';
