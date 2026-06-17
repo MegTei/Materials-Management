@@ -548,11 +548,26 @@ let S={screen:'loading',tab:'plan',plans:[],plan:null,_unsaved:false};
 
 // ── Plan ID system ────────────────────────────────────────────────────────────
 function planCode(id){
-  const ch=(id||'').replace(/[^a-z0-9]/gi,'').toUpperCase().padEnd(8,'0');
-  return 'AO27-'+ch.slice(0,4)+'-'+ch.slice(4,8);
+  const raw=(id||'').trim();
+  const clean=raw.replace(/[^a-z0-9]/gi,'').toUpperCase();
+  // Idempotent: if id is ALREADY a formatted plan code, don't re-wrap it. Otherwise a plan
+  // re-imported on another device (where plan.id becomes the formatted code) would be saved
+  // with a double-encoded plan_code (AO27-AO27-XXXX) and never match a correct lookup.
+  // Formatted = dashed AO27-XXXX-XXXX (0/O tolerant) or a 12-char AO27/A027-prefixed string.
+  const isCode=/^A[O0]27-[A-Z0-9]{4}-[A-Z0-9]{4}$/i.test(raw)||(clean.length===12&&/^A[O0]27/.test(clean));
+  const body=(isCode?clean.slice(-8):clean).padEnd(8,'0').slice(0,8);
+  return 'AO27-'+body.slice(0,4)+'-'+body.slice(4,8);
+}
+// Canonicalise any user-entered Plan ID to the stored "AO27-XXXX-XXXX" form.
+// Tolerates the common 0/O prefix slip, missing dashes, lower case and spacing.
+function canonicalCode(raw){
+  let s=(raw||'').toUpperCase().replace(/[^A-Z0-9]/g,'');
+  if(s.length>8)s=s.slice(-8);            // drop the constant AO27 prefix, keep the 8-char body
+  s=s.padEnd(8,'0').slice(0,8);
+  return 'AO27-'+s.slice(0,4)+'-'+s.slice(4,8);
 }
 function findByCode(code){
-  const n=code.trim().toUpperCase().replace(/\s/g,'');
+  const n=canonicalCode(code);
   return storageLoadAll().find(p=>planCode(p.id)===n)||null;
 }
 function copyCode(el){
@@ -648,14 +663,17 @@ const planDB = {
   },
 
   async loadById(code) {
-    const normalised = code.trim().toUpperCase().replace(/\s/g,'');
+    const normalised = canonicalCode(code);
     if (sb) {
       try {
-        const { data, error } = await sb
-          .from('plans')
-          .select('data')
-          .eq('plan_code', normalised)
-          .single();
+        // Primary: match the canonical plan_code.
+        let { data } = await sb.from('plans').select('data').eq('plan_code', normalised).single();
+        // Recovery: rows saved before the idempotency fix have a double-encoded plan_code,
+        // but their id is still the formatted code (AO27-XXXX-XXXX) — match on id to find them.
+        // (Re-saving such a plan upserts the corrected plan_code, healing the row.)
+        if (!data?.data) {
+          ({ data } = await sb.from('plans').select('data').eq('id', normalised).single());
+        }
         if (data?.data) return data.data;
       } catch(err) {
         console.warn('Supabase lookup failed, trying local:', err.message);
@@ -671,8 +689,8 @@ async function retrievePlan(){
   const msg=document.getElementById('retrieve-msg');
   const btn=document.querySelector('.retrieve-row button');
   if(!inp)return;
-  const code=inp.value.trim().toUpperCase();
-  if(code.length<9){
+  const code=canonicalCode(inp.value);
+  if(inp.value.replace(/[^A-Z0-9]/gi,'').length<8){
     if(msg){msg.textContent='Enter a full Plan ID (format: AO27-XXXX-XXXX)';msg.style.color='#A32D2D';}
     return;
   }
@@ -1149,8 +1167,8 @@ async function prepareXlsUpdate(){
   const msg=document.getElementById('xls-update-msg');
   const drop=document.getElementById('xls-update-drop');
   if(!inp)return;
-  const code=inp.value.trim().toUpperCase();
-  if(code.length<9){
+  const code=canonicalCode(inp.value);
+  if(inp.value.replace(/[^A-Z0-9]/gi,'').length<8){
     if(msg){msg.textContent='Enter a full Plan ID (format: AO27-XXXX-XXXX)';msg.style.color='#A32D2D';}
     if(drop)drop.style.display='none';
     return;
