@@ -548,26 +548,14 @@ let S={screen:'loading',tab:'plan',plans:[],plan:null,_unsaved:false};
 
 // ── Plan ID system ────────────────────────────────────────────────────────────
 function planCode(id){
-  const raw=(id||'').trim();
-  const clean=raw.replace(/[^a-z0-9]/gi,'').toUpperCase();
-  // Idempotent: if id is ALREADY a formatted plan code, don't re-wrap it. Otherwise a plan
-  // re-imported on another device (where plan.id becomes the formatted code) would be saved
-  // with a double-encoded plan_code (AO27-AO27-XXXX) and never match a correct lookup.
-  // Formatted = dashed AO27-XXXX-XXXX (0/O tolerant) or a 12-char AO27/A027-prefixed string.
-  const isCode=/^A[O0]27-[A-Z0-9]{4}-[A-Z0-9]{4}$/i.test(raw)||(clean.length===12&&/^A[O0]27/.test(clean));
-  const body=(isCode?clean.slice(-8):clean).padEnd(8,'0').slice(0,8);
-  return 'AO27-'+body.slice(0,4)+'-'+body.slice(4,8);
-}
-// Canonicalise any user-entered Plan ID to the stored "AO27-XXXX-XXXX" form.
-// Tolerates the common 0/O prefix slip, missing dashes, lower case and spacing.
-function canonicalCode(raw){
-  let s=(raw||'').toUpperCase().replace(/[^A-Z0-9]/g,'');
-  if(s.length>8)s=s.slice(-8);            // drop the constant AO27 prefix, keep the 8-char body
-  s=s.padEnd(8,'0').slice(0,8);
-  return 'AO27-'+s.slice(0,4)+'-'+s.slice(4,8);
+  // Idempotent: if id is already a formatted plan code, return it unchanged
+  // (prevents double-prefixing like AO27-AO27-xxxx when an id contains the prefix).
+  if(/^AO27-[A-Z0-9]{4}-[A-Z0-9]{4}$/i.test(id||''))return String(id).toUpperCase();
+  const ch=(id||'').replace(/[^a-z0-9]/gi,'').toUpperCase().padEnd(8,'0');
+  return 'AO27-'+ch.slice(0,4)+'-'+ch.slice(4,8);
 }
 function findByCode(code){
-  const n=canonicalCode(code);
+  const n=code.trim().toUpperCase().replace(/\s/g,'');
   return storageLoadAll().find(p=>planCode(p.id)===n)||null;
 }
 function copyCode(el){
@@ -663,17 +651,14 @@ const planDB = {
   },
 
   async loadById(code) {
-    const normalised = canonicalCode(code);
+    const normalised = code.trim().toUpperCase().replace(/\s/g,'');
     if (sb) {
       try {
-        // Primary: match the canonical plan_code.
-        let { data } = await sb.from('plans').select('data').eq('plan_code', normalised).single();
-        // Recovery: rows saved before the idempotency fix have a double-encoded plan_code,
-        // but their id is still the formatted code (AO27-XXXX-XXXX) — match on id to find them.
-        // (Re-saving such a plan upserts the corrected plan_code, healing the row.)
-        if (!data?.data) {
-          ({ data } = await sb.from('plans').select('data').eq('id', normalised).single());
-        }
+        const { data, error } = await sb
+          .from('plans')
+          .select('data')
+          .eq('plan_code', normalised)
+          .single();
         if (data?.data) return data.data;
       } catch(err) {
         console.warn('Supabase lookup failed, trying local:', err.message);
@@ -689,8 +674,8 @@ async function retrievePlan(){
   const msg=document.getElementById('retrieve-msg');
   const btn=document.querySelector('.retrieve-row button');
   if(!inp)return;
-  const code=canonicalCode(inp.value);
-  if(inp.value.replace(/[^A-Z0-9]/gi,'').length<8){
+  const code=inp.value.trim().toUpperCase();
+  if(code.length<9){
     if(msg){msg.textContent='Enter a full Plan ID (format: AO27-XXXX-XXXX)';msg.style.color='#A32D2D';}
     return;
   }
@@ -721,20 +706,26 @@ function uid(){var CH="0123456789abcdefghijklmnopqrstuvwxyz",out=[],buf=new Uint
 function fmtDate(ts){if(!ts)return'never';return new Date(ts).toLocaleDateString('en-AU',{day:'numeric',month:'short',year:'numeric'})}
 function fmtAUDate(d){if(!d)return'-';const parts=d.split('-');if(parts.length===3)return parts[2]+'/'+parts[1]+'/'+parts[0];return d;}
 function mkOpts(arr,val,ph){return(ph?`<option value="">${esc(ph)}</option>`:'')+arr.map(v=>`<option${v===val?' selected':''}>${esc(v)}</option>`).join('')}
+// Circularity rating per AO mapping.
+// Circular  = reuse / recycle / repurpose / donate
+// Otherwise (mixed construction waste / landfill / unsure / blank-with-status) = NOT circular.
+function statRating(v){if(!v)return null;const s=String(v).toLowerCase();if(/reuse|recycle|repurpose|donate/.test(s))return'circular';return'not';}
+// Score a material list for a field ('stat' or 'outcome').
+// Denominator = every material that HAS a value for that field (unsure included → counts against the score).
+// pct is null only when there is NO data at all for that field (so the UI can show a dash).
+function circStats(mats,field){let circular=0,withVal=0;const arr=mats||[];for(let i=0;i<arr.length;i++){const v=arr[i][field];if(!v||v==='')continue;withVal++;if(statRating(v)==='circular')circular++;}return{circular:circular,total:withVal,rated:withVal,pct:withVal>0?Math.round(circular/withVal*100):null};}
 function calcScore(assets){
   const allMats=(assets||[]).flatMap(a=>a.materials||[]);
-  const f=allMats.filter(m=>m.stat);
-  const lan=f.filter(m=>m.stat&&m.stat.toLowerCase().includes('landfill')).length;
-  const tot=f.length;
-  return{total:tot,landfill:lan,nonLandfill:tot-lan,pct:tot>0?Math.round((tot-lan)/tot*100):0};
+  const s=circStats(allMats,'stat');
+  const nonCirc=s.total-s.circular;
+  return{total:s.total,rated:s.total,circular:s.circular,waste:nonCirc,landfill:nonCirc,nonLandfill:s.circular,pct:s.pct==null?0:s.pct};
 }
 // Per-asset circularity summary for header badge
 function assetCirc(a){
-  const withStat=(a.materials||[]).filter(m=>m.stat);
-  if(!withStat.length)return'';
-  const nonLan=withStat.filter(m=>!m.stat.toLowerCase().includes('landfill')).length;
-  const cl=nonLan===withStat.length?'#33D900':nonLan===0?'#dc2626':'#EF9F27';
-  return`<span style="font-size:10px;font-weight:700;color:${cl};flex-shrink:0">${nonLan}/${withStat.length}&nbsp;♻</span>`;
+  const s=circStats(a.materials||[],'stat');
+  if(!s.total)return'';
+  const cl=s.circular===s.total?'#33D900':s.circular===0?'#dc2626':'#EF9F27';
+  return`<span style="font-size:10px;font-weight:700;color:${cl};flex-shrink:0">${s.circular}/${s.total}&nbsp;♻</span>`;
 }
 function fillClr(pct){return pct>=80?'#33D900':pct>=50?'#EF9F27':'#E24B4A'}
 function statBdg(s){if(!s)return'';const m={'Reuse - next AO (stored at TA warehouse)':'gr','Reuse - next AO (stored by Agency/Builder)':'gr','Reuse - other event/ client (Agency/Builder)':'tl','Recycle - we will take off site (Agency/Builder)':'bl','Recycle on site with AO Take-back program':'bl','Repurpose - keep for another use':'pu','Reuse - next AO (stored by AO)':'gr','Reuse - next AO (stored by us)':'gr','Reuse - other event/ client':'tl','Recycle on site with AO take-back program':'bl','Recycle - we will take offsite':'bl','Repurpose - we will take offsite for another use':'pu','Donate':'pu','Mixed construction waste - AO onsite bins':'re','Unsure yet':'gy','Reuse \u2013 Next AO (stored at AO)':'gr','Reuse \u2013 Next AO (stored by us)':'gr','Reuse \u2013 Other Event / Client':'tl','Recycle':'bl','Repurpose – use material in another way':'pu','Mixed construction waste \u2013 AO onsite bin':'re','Not sure yet':'gy','Other':'gy'};return`<span class="bdg ${m[s]||'gy'}">${esc(s)}</span>`}
@@ -784,46 +775,46 @@ function examplePlan(){
       newAsset({
         prec:'Garden Square',assetName:'FOH Reception Desks',desc:'2 × bespoke FOH reception desks, single-use bespoke construction.',
         materials:[
-          newAssetMat({tmlRef:'C19',cat:'Engineered Wood (MDF / Particleboard / Plywood)',app:'Joinery/ Cabinetry/ wall flats',name:'MDF 18mm',vol:'30',vunit:'sqm',stat:'Landfill',outcome:''}),
-          newAssetMat({tmlRef:'C6', cat:'Engineered Wood (MDF / Particleboard / Plywood)',app:'Joinery/ Cabinetry/ wall flats',name:'Melamine Particleboard Substrate',vol:'12',vunit:'sqm',stat:'Landfill',outcome:''})
+          newAssetMat({tmlRef:'C19',cat:'Engineered Wood (MDF / Particleboard / Plywood)',app:'Joinery/ Cabinetry/ wall flats',name:'MDF 18mm',vol:'30',vunit:'sqm',stat:'Mixed construction waste - AO onsite bins',outcome:''}),
+          newAssetMat({tmlRef:'C6', cat:'Engineered Wood (MDF / Particleboard / Plywood)',app:'Joinery/ Cabinetry/ wall flats',name:'Melamine Particleboard Substrate',vol:'12',vunit:'sqm',stat:'Unsure yet',outcome:''})
         ]
       }),
       newAsset({
         prec:'Garden Square',assetName:'Marquee Extension Structural Flooring',desc:'Marquee extension structural flooring panels, reused from AO26.',
         materials:[
-          newAssetMat({tmlRef:'C1',cat:'Engineered Wood (MDF / Particleboard / Plywood)',app:'Modular structures (Space Cubes/Highline) & Marquee projections',name:'Particleboard A-Bond 12mm',vol:'120',vunit:'sqm',stat:'Reuse \u2013 Next AO',outcome:''})
+          newAssetMat({tmlRef:'C1',cat:'Engineered Wood (MDF / Particleboard / Plywood)',app:'Modular structures (Space Cubes/Highline) & Marquee projections',name:'Particleboard A-Bond 12mm',vol:'120',vunit:'sqm',stat:'Reuse - next AO (stored at TA warehouse)',outcome:''})
         ]
       }),
       newAsset({
         prec:'Rod Laver Arena',assetName:'Slatted Feature Wall Panels',desc:'3 × 4m sections, branded installation. Deinstalled as full panels.',
         materials:[
-          newAssetMat({tmlRef:'C4',cat:'Solid Timber',app:'Joinery/ Cabinetry/ wall flats',name:'Victorian Ash 19mm finger-jointed',vol:'48',vunit:'sqm',stat:'Reuse \u2013 Other Event / Client',outcome:''})
+          newAssetMat({tmlRef:'C4',cat:'Solid Timber',app:'Joinery/ Cabinetry/ wall flats',name:'Victorian Ash 19mm finger-jointed',vol:'48',vunit:'sqm',stat:'Reuse - other event/ client (Agency/Builder)',outcome:''})
         ]
       }),
       newAsset({
         prec:'Rod Laver Arena',assetName:'Entrance Lobby Flooring',desc:'Entrance lobby and circulation flooring across 3 zones.',
         materials:[
-          newAssetMat({tmlRef:'41',cat:'Flooring',app:'Flooring \u2013 indoor partner suites',name:'DESSO Desert EcoBase Carpet Tiles',vol:'200',vunit:'sqm',stat:'Recycle',outcome:''})
+          newAssetMat({tmlRef:'41',cat:'Flooring',app:'Flooring \u2013 indoor partner suites',name:'DESSO Desert EcoBase Carpet Tiles',vol:'200',vunit:'sqm',stat:'Recycle on site with AO Take-back program',outcome:''})
         ]
       }),
       newAsset({
         prec:'Multiple Precincts',assetName:'External Facade Branding Panels',desc:'External facade panels across Garden Square and Show Courts.',
         materials:[
-          newAssetMat({tmlRef:'C12',cat:'Cladding & Facades',app:'Precinct facades & cladding',name:'ACM (A-Bond) 4mm composite',vol:'160',vunit:'sqm',stat:'Recycle',outcome:''}),
-          newAssetMat({tmlRef:'C2', cat:'Engineered Wood (MDF / Particleboard / Plywood)',app:'Precinct facades & cladding',name:'Structural Ply 9mm substrate',vol:'160',vunit:'sqm',stat:'Recycle',outcome:''}),
-          newAssetMat({tmlRef:'C13',cat:'Branding / Graphics / Skins',app:'Graphics/ surfaces',name:'Tetrik fabric skin overlay',vol:'60',vunit:'sqm',stat:'Reuse \u2013 Next AO',outcome:''})
+          newAssetMat({tmlRef:'C12',cat:'Cladding & Facades',app:'Precinct facades & cladding',name:'ACM (A-Bond) 4mm composite',vol:'160',vunit:'sqm',stat:'Recycle - we will take off site (Agency/Builder)',outcome:''}),
+          newAssetMat({tmlRef:'C2', cat:'Engineered Wood (MDF / Particleboard / Plywood)',app:'Precinct facades & cladding',name:'Structural Ply 9mm substrate',vol:'160',vunit:'sqm',stat:'Reuse - next AO (stored by Agency/Builder)',outcome:''}),
+          newAssetMat({tmlRef:'C13',cat:'Branding / Graphics / Skins',app:'Graphics/ surfaces',name:'Tetrik fabric skin overlay',vol:'60',vunit:'sqm',stat:'Donate',outcome:''})
         ]
       }),
       newAsset({
         prec:'Multiple Precincts',assetName:'Wayfinding Signage Totems',desc:'PVC banner wayfinding signage across full venue.',
         materials:[
-          newAssetMat({tmlRef:'C15',cat:'Branding / Graphics / Skins',app:'Graphics/ surfaces',name:'PVC flex banner 510gsm',vol:'95',vunit:'sqm',stat:'Recycle',outcome:''})
+          newAssetMat({tmlRef:'C15',cat:'Branding / Graphics / Skins',app:'Graphics/ surfaces',name:'PVC flex banner 510gsm',vol:'95',vunit:'sqm',stat:'Mixed construction waste - AO onsite bins',outcome:''})
         ]
       }),
       newAsset({
         prec:'Multiple Precincts',assetName:'Feature Wall Paint Treatment',desc:'Water-based paint, all activated feature walls.',
         materials:[
-          newAssetMat({tmlRef:'C14',cat:'Paint & Coatings',app:'Joinery/ Cabinetry/ wall flats',name:'Wattyl water-based low-VOC',vol:'40',vunit:'L',stat:'Repurpose – use material in another way',outcome:''})
+          newAssetMat({tmlRef:'C14',cat:'Paint & Coatings',app:'Joinery/ Cabinetry/ wall flats',name:'Wattyl water-based low-VOC',vol:'40',vunit:'L',stat:'Repurpose - keep for another use',outcome:''})
         ]
       })
     ]
@@ -1134,22 +1125,26 @@ function renderUpdateTab(){
 
   // ── OPTION 1: Edit in the tool ──────────────────────────────────────────
   h+='<div class="card" style="border:1.5px solid #c5daf5">';
-  h+='<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px"><span style="display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:50%;background:#0091D2;color:#fff;font-size:12px;font-weight:800">1</span><div class="sechd" style="margin:0">Edit your Materials Management plan in the Browser</div></div>';
+  h+='<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px"><span style="display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:50%;background:#0091D2;color:#fff;font-size:12px;font-weight:800">1</span><div class="sechd" style="margin:0">Edit your plan in the tool</div></div>';
   h+='<p style="font-size:13px;color:#666;line-height:1.6;margin-bottom:12px">Reload your plan with your Plan ID and make changes directly in the form — add or edit assets and materials, and enter post-event actuals at bump-out.</p>';
-  h+='<div class="retrieve-row"><input type="text" id="retrieve-input" placeholder="AO27-XXXX-XXXX" maxlength="14" oninput="this.value=this.value.toUpperCase().replace(/[^A-Z0-9-]/g,\'\');" onkeydown="if(event.keyCode===13)retrievePlan()"><button onclick="retrievePlan()">Load plan</button></div>';
+  h+='<div class="retrieve-row"><input type="text" id="retrieve-input" name="ao-plan-id-retrieve" autocomplete="off" autocapitalize="characters" autocorrect="off" spellcheck="false" placeholder="AO27-XXXX-XXXX" maxlength="14" oninput="this.value=this.value.toUpperCase().replace(/[^A-Z0-9-]/g,\'\');" onkeydown="if(event.keyCode===13)retrievePlan()"><button onclick="retrievePlan()">Load plan</button></div>';
   h+='<div id="retrieve-msg" style="margin-top:.5rem;font-size:11px;color:#aaa"></div>';
   h+='</div>';
 
   // ── Divider ─────────────────────────────────────────────────────────────
   h+='<div style="display:flex;align-items:center;gap:12px;margin:6px 2px 14px"><div style="flex:1;height:1px;background:#e0ddd6"></div><span style="font-size:11px;font-weight:700;color:#aaa;text-transform:uppercase;letter-spacing:.08em">or</span><div style="flex:1;height:1px;background:#e0ddd6"></div></div>';
 
-  // ── OPTION 2: Update from edited XLS (direct upload) ────────────────────
+  // ── OPTION 2: Update from edited XLS ────────────────────────────────────
   h+='<div class="card" style="border:1.5px solid #b7e4d0">';
-  h+='<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px"><span style="display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:50%;background:#0F6E56;color:#fff;font-size:12px;font-weight:800">2</span><div class="sechd" style="margin:0">Update using a Materials Management xls</div></div>';
-  h+='<p style="font-size:13px;color:#666;line-height:1.6;margin-bottom:12px">If you have made edits offline in the Materials Management xls, simply upload here to refresh your data.</p>';
-  h+='<input type="file" accept=".xlsx" id="xls-update-file" style="display:none" onchange="importPlanXLS(this)">';
-  h+='<button class="mreq-btn" onclick="document.getElementById(&#39;xls-update-file&#39;).click()">Upload</button>';
+  h+='<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px"><span style="display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:50%;background:#0F6E56;color:#fff;font-size:12px;font-weight:800">2</span><div class="sechd" style="margin:0">Materials plan offline updates</div></div>';
+  h+='<p style="font-size:13px;color:#666;line-height:1.6;margin-bottom:12px">If you have made updates to your Materials Management plan offline in xls, provide your plan ID to upload and refresh.</p>';
+  h+='<div class="retrieve-row"><input type="text" id="xls-update-input" name="ao-plan-id-xls" autocomplete="off" autocapitalize="characters" autocorrect="off" spellcheck="false" placeholder="AO27-XXXX-XXXX" maxlength="14" oninput="this.value=this.value.toUpperCase().replace(/[^A-Z0-9-]/g,\'\');" onkeydown="if(event.keyCode===13)prepareXlsUpdate()"><button onclick="prepareXlsUpdate()">Find plan</button></div>';
   h+='<div id="xls-update-msg" style="margin-top:.5rem;font-size:11px;color:#aaa"></div>';
+  h+='<div id="xls-update-drop" style="display:none;margin-top:12px;padding:14px;border:1.5px dashed #b7e4d0;border-radius:10px;background:#F6FBF8">';
+  h+='<div style="font-size:12.5px;color:#333;margin-bottom:10px">Located <strong id="xls-update-name"></strong>. Upload your <strong>AO Materials Management</strong> spreadsheet (.xlsx) to refresh the data.<br>Note: The Plan ID in the file must match.</div>';
+  h+='<input type="file" accept=".xlsx" id="xls-update-file" style="display:none" onchange="importPlanXLS(this)">';
+  h+='<button class="mreq-btn" onclick="document.getElementById(&#39;xls-update-file&#39;).click()">&#8593; Upload edited spreadsheet</button>';
+  h+='</div>';
   h+='</div>';
 
   const dbStatus=SUPABASE_READY
@@ -1167,8 +1162,8 @@ async function prepareXlsUpdate(){
   const msg=document.getElementById('xls-update-msg');
   const drop=document.getElementById('xls-update-drop');
   if(!inp)return;
-  const code=canonicalCode(inp.value);
-  if(inp.value.replace(/[^A-Z0-9]/gi,'').length<8){
+  const code=inp.value.trim().toUpperCase();
+  if(code.length<9){
     if(msg){msg.textContent='Enter a full Plan ID (format: AO27-XXXX-XXXX)';msg.style.color='#A32D2D';}
     if(drop)drop.style.display='none';
     return;
@@ -1401,19 +1396,31 @@ function renderAdminDashboard(rawPlans){
   const allMats=filtered.flatMap(p=>(p.assets||[]).flatMap(a=>a.materials||[]));
   const withStat=allMats.filter(m=>m.stat);
   const withActual=allMats.filter(m=>m.outcome&&m.outcome!=='');
-  const LANDFILL_VALS=['landfill','mixed construction waste'];const landfill=withStat.filter(m=>m.stat&&LANDFILL_VALS.some(v=>m.stat.toLowerCase().includes(v))).length;
-  const diverted=withStat.length-landfill;
-  const pct=withStat.length?Math.round(diverted/withStat.length*100):0;
-  const actualLandfill=withActual.filter(m=>m.outcome&&LANDFILL_VALS.some(v=>m.outcome.toLowerCase().includes(v))).length;
-  const actualDiverted=withActual.length-actualLandfill;
-  const actualPct=withActual.length?Math.round(actualDiverted/withActual.length*100):0;
+  // Plan-weighted average across submitted plans (each plan counts equally).
+  // A plan's score = circular materials / materials with a status (unsure counts as not circular),
+  // so a plan with no circular data scores 0%. Plans with zero materials are skipped.
+  // The headline is a dash only when no plan has any data for that field.
+  function planWeightedPct(field){
+    let sum=0,n=0,anyData=false;
+    for(const p of filtered){
+      const mats=(p.assets||[]).flatMap(a=>a.materials||[]);
+      if(!mats.length)continue;            // empty plan – not a participant
+      n++;
+      const s=circStats(mats,field);
+      if(s.pct!=null){anyData=true;sum+=s.pct;} // no data for this field → contributes 0
+    }
+    if(!n||!anyData)return null;
+    return Math.round(sum/n);
+  }
+  const pct=planWeightedPct('stat');
+  const actualPct=planWeightedPct('outcome');
 
   h+='<div class="admin-section">';
   h+='<div class="metg" style="grid-template-columns:repeat(4,1fr)">';
   h+='<div class="met"><div class="mval">'+filtered.length+'</div><div class="mlbl">Plans submitted</div></div>';
   h+='<div class="met"><div class="mval">'+totalAssets+'</div><div class="mlbl">Total assets</div></div>';
-  h+='<div class="met"><div class="mval" style="color:'+fillClr(pct)+'">'+pct+'%</div><div class="mlbl">Planned circularity</div></div>';
-  h+='<div class="met"><div class="mval" style="color:'+fillClr(actualPct)+'">'+actualPct+'%</div><div class="mlbl">Actual circularity</div></div>';
+  h+='<div class="met"><div class="mval" style="color:'+(pct==null?'#9ca3af':fillClr(pct))+'">'+(pct==null?'-':pct+'%')+'</div><div class="mlbl">Planned circularity</div></div>';
+  h+='<div class="met"><div class="mval" style="color:'+(actualPct==null?'#9ca3af':fillClr(actualPct))+'">'+(actualPct==null?'-':actualPct+'%')+'</div><div class="mlbl">Actual circularity</div></div>';
   h+='</div></div>';
 
   // ── TML adoption ──────────────────────────────────────────────────────────
@@ -1447,8 +1454,7 @@ function renderAdminDashboard(rawPlans){
   // Circularity trend by plan (for sparkline-style list)
   const planCirc=filtered.map(p=>{
     const mats=(p.assets||[]).flatMap(a=>a.materials||[]);
-    const ws=mats.filter(m=>m.stat);
-    const pp=ws.length?Math.round(ws.filter(m=>!m.stat.toLowerCase().includes('landfill')).length/ws.length*100):null;
+    const pp=circStats(mats,'stat').pct; // null only if the plan has no status data at all
     return{name:p.profile&&p.profile.businessName?p.profile.businessName:'Unknown',pct:pp};
   }).filter(x=>x.pct!==null).sort((a,b)=>b.pct-a.pct);
 
@@ -1540,8 +1546,9 @@ function renderAdminDashboard(rawPlans){
     const assets=p.assets||[];
     const mats=assets.flatMap(a=>a.materials||[]);
     const sc=calcScore(assets);
-    const statBg=sc.pct>=80?'#EEF9F4':sc.pct>=50?'#FFF8EE':'#FCEBEB';
-    const statCol=sc.pct>=80?'#0F6E56':sc.pct>=50?'#854F0B':'#A32D2D';
+    const _noSc=sc.total===0;
+    const statBg=_noSc?'#f1f1f1':sc.pct>=80?'#EEF9F4':sc.pct>=50?'#FFF8EE':'#FCEBEB';
+    const statCol=_noSc?'#9ca3af':sc.pct>=80?'#0F6E56':sc.pct>=50?'#854F0B':'#A32D2D';
     const code=planCode(p.id);
     const yr=p.profile&&p.profile.aoYear?p.profile.aoYear:'—';
     h+='<tr>';
@@ -1550,7 +1557,7 @@ function renderAdminDashboard(rawPlans){
     h+='<td><span style="font-size:12px;font-weight:700;color:#0091D2">'+esc(yr)+'</span></td>';
     h+='<td><span style="font-family:monospace;font-size:11px;color:#0091D2;font-weight:700">'+code+'</span></td>';
     h+='<td>'+assets.length+' assets<br><span style="color:#aaa;font-size:10px">'+mats.length+' mats</span></td>';
-    h+='<td><span class="admin-stat" style="background:'+statBg+';color:'+statCol+'">'+sc.pct+'%</span></td>';
+    h+='<td><span class="admin-stat" style="background:'+statBg+';color:'+statCol+'">'+(_noSc?'-':sc.pct+'%')+'</span></td>';
     h+='<td style="white-space:nowrap;font-size:11px">'+fmtDate(p.lastEditedAt||p.savedAt)+'<br><span style="color:#aaa">'+esc(p.lastEditedBy||'')+'</span></td>';
     h+='</tr>';
   }
@@ -2073,6 +2080,9 @@ function matRowHtml(aid,m,idx){
 function stepSummary(plan){
   const p=plan.profile;const assets=plan.assets||[];const sc=calcScore(assets);const cl=fillClr(sc.pct);
   const allMats=assets.flatMap(a=>a.materials||[]);
+  // Waste = ONLY materials whose expected status is "Mixed construction waste".
+  // "Unsure yet"/no status is no-data, NOT waste, so it is excluded from this count.
+  const wasteCount=allMats.filter(m=>m.stat&&String(m.stat).toLowerCase().includes('mixed construction waste')).length;
   const stCts={};for(const m of allMats)if(m.stat)stCts[m.stat]=(stCts[m.stat]||0)+1;
   const stRows=Object.entries(stCts).sort((a,b)=>b[1]-a[1]).map(([s,n])=>'<div class="srow"><div class="sdot" style="background:'+(STCOL[s]||'#9ca3af')+'"></div><div style="flex:1;color:#1a1a1a">'+esc(s)+'</div><div style="font-weight:600;min-width:20px;text-align:right">'+n+'</div></div>').join('');
   const tmlMats=allMats.filter(m=>m.tmlRef&&m.tmlRef!=='OTHER');
@@ -2113,7 +2123,7 @@ function stepSummary(plan){
   h+='</div>';
   h+='<div class="card">';
   h+='<div class="sechd" style="margin-top:0">Circularity score</div>';
-  h+='<div class="metg"><div class="met"><div class="mval">'+allMats.length+'</div><div class="mlbl">Total materials</div></div><div class="met"><div class="mval" style="color:'+cl+'">'+(sc.total>0?sc.pct+'%':'-')+'</div><div class="mlbl">Diverted from landfill</div></div><div class="met"><div class="mval" style="color:#A32D2D">'+sc.landfill+'</div><div class="mlbl">To landfill</div></div></div>';
+  h+='<div class="metg"><div class="met"><div class="mval">'+allMats.length+'</div><div class="mlbl">Total materials</div></div><div class="met"><div class="mval" style="color:'+cl+'">'+(sc.total>0?sc.pct+'%':'-')+'</div><div class="mlbl">Diverted from landfill</div></div><div class="met"><div class="mval" style="color:#A32D2D">'+wasteCount+'</div><div class="mlbl">Waste</div></div></div>';
   h+=circBody;
   h+='</div>';
   const actualCts={};for(const m of allMats)if(m.outcome&&m.outcome!=='')actualCts[m.outcome]=(actualCts[m.outcome]||0)+1;
@@ -2183,6 +2193,10 @@ function importPlanXLS(input){
         }
       }
 
+      // Is this a brand-new TA migration upload (admin gate "Import existing record")?
+      // If so, this is a NEW plan: the system generates the canonical id/Plan ID — never the file.
+      const taUpload=!!(S.gate&&S.gate.mode==='import');
+
       // Find existing plan or create new
       let plan=null;
       let isUpdate=false;
@@ -2191,7 +2205,10 @@ function importPlanXLS(input){
         if(stored){plan=JSON.parse(JSON.stringify(stored));isUpdate=true;}
       }
       if(!plan)plan=newPlan();
-      if(existingId&&!isUpdate)plan.id=existingId; // preserve ID for new-to-this-device
+      // Preserve the id from the file ONLY for a genuine cross-device re-import of an
+      // existing, already-system-generated plan (so its permanent Plan ID survives).
+      // A TA migration is a new plan, so it keeps the fresh uid() from newPlan().
+      if(existingId&&!isUpdate&&!taUpload)plan.id=existingId;
 
       // ── Field length limits & sanitisation ──────────────────────────────
       const clamp=(v,max)=>String(v||'').slice(0,max);
@@ -2210,7 +2227,6 @@ function importPlanXLS(input){
       plan.profile.storageDetails=clamp(gv('B13'), 500);
       // TA migration upload (from the gate "Import existing record" path):
       // role comes from the gate selection; the "Business" value maps to Department.
-      const taUpload=!!(S.gate&&S.gate.mode==='import');
       if(taUpload){
         plan.roleType='TA';
         plan.profile.department=plan.profile.businessName||plan.profile.department||'';
