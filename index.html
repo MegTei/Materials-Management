@@ -713,12 +713,15 @@ function statRating(v){if(!v)return null;const s=String(v).toLowerCase();if(/reu
 // Score a material list for a field ('stat' or 'outcome').
 // Denominator = every material that HAS a value for that field (unsure included → counts against the score).
 // pct is null only when there is NO data at all for that field (so the UI can show a dash).
-function circStats(mats,field){let circular=0,withVal=0;const arr=mats||[];for(let i=0;i<arr.length;i++){const v=arr[i][field];if(!v||v==='')continue;withVal++;if(statRating(v)==='circular')circular++;}return{circular:circular,total:withVal,rated:withVal,pct:withVal>0?Math.round(circular/withVal*100):null};}
+function circStats(mats,field){let circular=0,withVal=0;const arr=mats||[];for(let i=0;i<arr.length;i++){const v=arr[i][field];if(!v||v==='')continue;withVal++;if(statRating(v)==='circular')circular++;}return{circular:circular,total:withVal,rated:withVal,pct:withVal>0?Math.round(circular/withVal*100):null,pctExact:withVal>0?circular/withVal*100:null};}
+// Format a percentage for display: whole number normally, but one decimal when the value
+// is small enough that rounding would hide it (e.g. 0.4% instead of 0%).
+function pctText(exact){if(exact==null)return'-';if(exact>0&&exact<1)return(Math.round(exact*10)/10)+'%';if(exact>99&&exact<100)return(Math.round(exact*10)/10)+'%';return Math.round(exact)+'%';}
 function calcScore(assets){
   const allMats=(assets||[]).flatMap(a=>a.materials||[]);
   const s=circStats(allMats,'stat');
   const nonCirc=s.total-s.circular;
-  return{total:s.total,rated:s.total,circular:s.circular,waste:nonCirc,landfill:nonCirc,nonLandfill:s.circular,pct:s.pct==null?0:s.pct};
+  return{total:s.total,rated:s.total,circular:s.circular,waste:nonCirc,landfill:nonCirc,nonLandfill:s.circular,pct:s.pct==null?0:s.pct,pctExact:s.pctExact};
 }
 // Per-asset circularity summary for header badge
 function assetCirc(a){
@@ -1407,20 +1410,21 @@ function renderAdminDashboard(rawPlans){
       if(!mats.length)continue;            // empty plan – not a participant
       n++;
       const s=circStats(mats,field);
-      if(s.pct!=null){anyData=true;sum+=s.pct;} // no data for this field → contributes 0
+      if(s.pctExact!=null){anyData=true;sum+=s.pctExact;} // no data for this field → contributes 0
     }
     if(!n||!anyData)return null;
-    return Math.round(sum/n);
+    return sum/n; // exact average; format with pctText for display
   }
   const pct=planWeightedPct('stat');
   const actualPct=planWeightedPct('outcome');
 
   h+='<div class="admin-section">';
+  h+='<div class="sechd sechd-first">Snapshot</div>';
   h+='<div class="metg" style="grid-template-columns:repeat(4,1fr)">';
   h+='<div class="met"><div class="mval">'+filtered.length+'</div><div class="mlbl">Plans submitted</div></div>';
   h+='<div class="met"><div class="mval">'+totalAssets+'</div><div class="mlbl">Total assets</div></div>';
-  h+='<div class="met"><div class="mval" style="color:'+(pct==null?'#9ca3af':fillClr(pct))+'">'+(pct==null?'-':pct+'%')+'</div><div class="mlbl">Planned circularity</div></div>';
-  h+='<div class="met"><div class="mval" style="color:'+(actualPct==null?'#9ca3af':fillClr(actualPct))+'">'+(actualPct==null?'-':actualPct+'%')+'</div><div class="mlbl">Actual circularity</div></div>';
+  h+='<div class="met"><div class="mval" style="color:'+(pct==null?'#9ca3af':fillClr(pct))+'">'+pctText(pct)+'</div><div class="mlbl">Planned circularity</div></div>';
+  h+='<div class="met"><div class="mval" style="color:'+(actualPct==null?'#9ca3af':fillClr(actualPct))+'">'+pctText(actualPct)+'</div><div class="mlbl">Actual circularity</div></div>';
   h+='</div></div>';
 
   // ── TML adoption ──────────────────────────────────────────────────────────
@@ -1557,7 +1561,7 @@ function renderAdminDashboard(rawPlans){
     h+='<td><span style="font-size:12px;font-weight:700;color:#0091D2">'+esc(yr)+'</span></td>';
     h+='<td><span style="font-family:monospace;font-size:11px;color:#0091D2;font-weight:700">'+code+'</span></td>';
     h+='<td>'+assets.length+' assets<br><span style="color:#aaa;font-size:10px">'+mats.length+' mats</span></td>';
-    h+='<td><span class="admin-stat" style="background:'+statBg+';color:'+statCol+'">'+(_noSc?'-':sc.pct+'%')+'</span></td>';
+    h+='<td><span class="admin-stat" style="background:'+statBg+';color:'+statCol+'">'+(_noSc?'-':pctText(sc.pctExact))+'</span></td>';
     h+='<td style="white-space:nowrap;font-size:11px">'+fmtDate(p.lastEditedAt||p.savedAt)+'<br><span style="color:#aaa">'+esc(p.lastEditedBy||'')+'</span></td>';
     h+='</tr>';
   }
@@ -2083,6 +2087,8 @@ function stepSummary(plan){
   // Waste = ONLY materials whose expected status is "Mixed construction waste".
   // "Unsure yet"/no status is no-data, NOT waste, so it is excluded from this count.
   const wasteCount=allMats.filter(m=>m.stat&&String(m.stat).toLowerCase().includes('mixed construction waste')).length;
+  // Diverted from landfill = every material with a status EXCEPT waste and "unsure yet".
+  const divertedCount=allMats.filter(m=>{const s=String(m.stat||'').toLowerCase();if(!s)return false;if(s.includes('mixed construction waste'))return false;if(s.includes('unsure'))return false;return true;}).length;
   const stCts={};for(const m of allMats)if(m.stat)stCts[m.stat]=(stCts[m.stat]||0)+1;
   const stRows=Object.entries(stCts).sort((a,b)=>b[1]-a[1]).map(([s,n])=>'<div class="srow"><div class="sdot" style="background:'+(STCOL[s]||'#9ca3af')+'"></div><div style="flex:1;color:#1a1a1a">'+esc(s)+'</div><div style="font-weight:600;min-width:20px;text-align:right">'+n+'</div></div>').join('');
   const tmlMats=allMats.filter(m=>m.tmlRef&&m.tmlRef!=='OTHER');
@@ -2104,7 +2110,7 @@ function stepSummary(plan){
   }),'Assets');
   const lastEditedHtml=plan.lastEditedBy?'<div style="margin-top:10px;padding-top:10px;border-top:1px solid #e8e5de"><div style="display:flex;justify-content:space-between;align-items:baseline"><div style="font-size:12px;color:#888">Last edited by</div><div style="font-size:11px;color:#aaa">'+(plan.lastEditedAt?fmtDate(plan.lastEditedAt):'')+'</div></div><div style="font-size:13px;font-weight:600;color:#0091D2;margin-top:2px">'+esc(plan.lastEditedBy)+'</div></div>':'';
   const storageHtml=p.storageDetails?'<div style="margin-top:10px"><div style="font-size:12px;color:#888">Storage</div><div style="font-size:13px;margin-top:2px;color:#1a1a1a">'+esc(p.storageDetails)+'</div></div>':'';
-  const circBody=sc.total>0?'<div style="display:flex;justify-content:space-between;font-size:12px;color:#888;margin-bottom:4px"><span>Circularity rate</span><span style="font-weight:600;color:'+cl+'">'+sc.pct+'%</span></div><div class="strack"><div class="sfill" style="width:'+sc.pct+'%;background:'+cl+'"></div></div><div style="font-size:11px;color:#aaa;margin-top:3px">AO target: 10% improvement per year</div>':'<div style="font-size:13px;color:#888;margin-top:4px">Add materials with an expected status to see your score.</div>';
+  const circBody=sc.total>0?'<div style="display:flex;justify-content:space-between;font-size:12px;color:#888;margin-bottom:4px"><span>Circularity rate</span><span style="font-weight:600;color:'+cl+'">'+pctText(sc.pctExact)+'</span></div><div class="strack"><div class="sfill" style="width:'+sc.pct+'%;background:'+cl+'"></div></div><div style="font-size:11px;color:#aaa;margin-top:3px">AO target: 10% improvement per year</div>':'<div style="font-size:13px;color:#888;margin-top:4px">Add materials with an expected status to see your score.</div>';
   const customHtml=customMats.length?'<div style="font-size:12px;color:#888">Custom: '+customMats.map(m=>'<strong>'+esc(m.name||'Unnamed')+'</strong>').join(', ')+'</div>':'';
   const saveBtnHtml=S.plan._example?'':'<button onclick="savePlan()" style="background:linear-gradient(135deg,#0091D2,#0072A8);color:#fff;border-color:#0072A8;font-weight:700;padding:9px 20px;box-shadow:0 2px 8px rgba(0,145,210,.3)">Save plan &#10003;</button>';
   const unsavedBadge=S._unsaved&&!S.plan._example?'<span id="unsaved-badge" style="font-size:11px;font-weight:700;color:#854F0B;background:#FAEEDA;border:1px solid #f5ddb7;border-radius:6px;padding:3px 9px;white-space:nowrap">&#9679; Unsaved changes</span>':'';
@@ -2123,7 +2129,7 @@ function stepSummary(plan){
   h+='</div>';
   h+='<div class="card">';
   h+='<div class="sechd" style="margin-top:0">Circularity score</div>';
-  h+='<div class="metg"><div class="met"><div class="mval">'+allMats.length+'</div><div class="mlbl">Total materials</div></div><div class="met"><div class="mval" style="color:'+cl+'">'+(sc.total>0?sc.pct+'%':'-')+'</div><div class="mlbl">Diverted from landfill</div></div><div class="met"><div class="mval" style="color:#A32D2D">'+wasteCount+'</div><div class="mlbl">Waste</div></div></div>';
+  h+='<div class="metg"><div class="met"><div class="mval">'+allMats.length+'</div><div class="mlbl">Total materials</div></div><div class="met"><div class="mval" style="color:'+cl+'">'+divertedCount+'</div><div class="mlbl">Diverted from landfill</div></div><div class="met"><div class="mval" style="color:#A32D2D">'+wasteCount+'</div><div class="mlbl">Waste</div></div></div>';
   h+=circBody;
   h+='</div>';
   const actualCts={};for(const m of allMats)if(m.outcome&&m.outcome!=='')actualCts[m.outcome]=(actualCts[m.outcome]||0)+1;
