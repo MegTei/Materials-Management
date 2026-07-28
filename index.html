@@ -2270,43 +2270,169 @@ async function extractCellImages(data,preferCol){
   return out;
 }
 
-// Upload extracted spreadsheet images to Storage and attach them to their assets.
-// Sequential and failure-isolated: one bad image never aborts the batch, and the
-// import itself has already succeeded before this runs.
-async function attachImportedImages(plan,imgMap){
-  if(!imgMap||!imgMap.size||!sb)return {ok:0,failed:0};
-  const jobs=[];
-  for(const a of (plan.assets||[])){
-    const info=a._srcRow?imgMap.get(a._srcRow):null;
-    if(info)jobs.push({asset:a,info:info});
-  }
-  if(!jobs.length)return {ok:0,failed:0};
+// ── Bulk image upload engine ──────────────────────────────────────────────────
+// Handles imports carrying hundreds to 1000+ embedded photos. Design goals:
+//  - Concurrency-limited (a handful in flight at once) instead of one at a time,
+//    so a 1000-image batch takes minutes instead of tens of minutes.
+//  - Per-image retry with backoff, since a single flaky request over a long
+//    batch shouldn't permanently cost a photo when a retry would likely succeed.
+//  - Checkpoints progress into the plan (local + cloud) every so often, so a
+//    closed tab or dropped connection loses at most a few images, not the batch.
+//  - Skips assets that already have an image in the slot being imported, so
+//    re-running the same import after an interruption only fills the gaps
+//    instead of re-uploading everything from the top. (This does mean a photo
+//    already attached — from an earlier import or a manual upload — will not be
+//    replaced by a fresh embedded image of the same row on a later re-import;
+//    remove the existing photo first if you want the sheet's image to win.)
+//  - Cancellable mid-batch via a shared flag, surfaced through a persistent
+//    progress banner rather than a flood of toasts.
+const BULK_UPLOAD_CONCURRENCY=4;      // simultaneous uploads
+const BULK_UPLOAD_RETRIES=2;          // extra attempts after the first, per image
+const BULK_UPLOAD_CHECKPOINT_EVERY=20; // cloud checkpoint cadence (successes+failures)
 
-  let ok=0,failed=0,i=0;
-  for(const job of jobs){
-    i++;
-    showToast('Uploading image '+i+' of '+jobs.length+'\u2026');
-    try{
-      const buf=await job.info.file.async('blob');
-      const raw=new Blob([buf],{type:job.info.mime});
-      const body=await imgDownscale(raw);
-      const name=(job.asset.assetId||'asset')+'.'+job.info.ext;
-      const path=imgPathFor(plan.id,job.asset.assetId,name);
-      const { error }=await sb.storage.from(STORAGE_BUCKET).upload(path,body,{
-        cacheControl:'3600',upsert:false,contentType:body.type||job.info.mime
-      });
-      if(error)throw error;
-      const { data }=sb.storage.from(STORAGE_BUCKET).getPublicUrl(path);
-      job.asset.imagePath=path;
-      job.asset.imageUrl=(data&&data.publicUrl)||'';
-      ok++;
-    }catch(err){
-      failed++;
-      console.warn('Image upload failed for asset '+job.asset.assetId+':',(err&&err.message)||err);
+function sleep(ms){return new Promise(function(res){setTimeout(res,ms);});}
+
+// Runs worker(item) over items with at most `limit` running concurrently.
+// Waits for every item to settle (the worker itself must not throw).
+async function runWithConcurrency(items,limit,worker){
+  let idx=0;
+  async function lane(){
+    while(idx<items.length){
+      const my=idx++;
+      await worker(items[my],my);
     }
   }
-  return {ok:ok,failed:failed};
+  const lanes=[];
+  const n=Math.max(1,Math.min(limit,items.length));
+  for(let i=0;i<n;i++)lanes.push(lane());
+  await Promise.all(lanes);
 }
+
+// Shared upload-with-retry used by both the single asset-photo uploader and the
+// bulk importer, so both benefit from the same resilience to transient errors.
+async function storageUploadWithRetry(path,body,contentType,retries){
+  const tries=(retries==null?BULK_UPLOAD_RETRIES:retries);
+  let lastErr=null;
+  for(let attempt=0;attempt<=tries;attempt++){
+    try{
+      const { error }=await sb.storage.from(STORAGE_BUCKET).upload(path,body,{
+        cacheControl:'3600',upsert:false,contentType:contentType
+      });
+      if(error)throw error;
+      return {ok:true};
+    }catch(err){
+      lastErr=err;
+      if(attempt<tries)await sleep(400*Math.pow(2,attempt)); // 400ms, 800ms, ...
+    }
+  }
+  return {ok:false,error:lastErr};
+}
+
+async function attachImportedImages(plan,imgMap,opts){
+  const options=opts||{};
+  const onProgress=options.onProgress||function(){};
+  const isCancelled=options.isCancelled||function(){return false;};
+
+  if(!imgMap||!imgMap.size||!sb)return {ok:0,failed:0,skipped:0,cancelled:false};
+
+  const jobs=[];
+  let skipped=0;
+  for(const a of (plan.assets||[])){
+    const info=a._srcRow?imgMap.get(a._srcRow):null;
+    if(!info)continue;
+    if(a.imageUrl){skipped++;continue;} // already has a photo — see note above
+    jobs.push({asset:a,info:info});
+  }
+  if(!jobs.length)return {ok:0,failed:0,skipped:skipped,cancelled:false};
+
+  let ok=0,failed=0,done=0,cancelled=false;
+  let sinceCheckpoint=0,checkpointInFlight=false;
+
+  async function checkpoint(){
+    if(checkpointInFlight)return; // don't stack overlapping cloud writes
+    checkpointInFlight=true;
+    storageSave(plan);
+    try{ await planDB.save(plan); }catch(e){ /* best-effort; next checkpoint retries */ }
+    checkpointInFlight=false;
+  }
+
+  await runWithConcurrency(jobs,BULK_UPLOAD_CONCURRENCY,async function(job){
+    if(isCancelled()){cancelled=true;return;}
+    let lastErr=null;
+    for(let attempt=0;attempt<=BULK_UPLOAD_RETRIES;attempt++){
+      if(isCancelled()){cancelled=true;return;}
+      try{
+        const buf=await job.info.file.async('blob');
+        const raw=new Blob([buf],{type:job.info.mime});
+        const body=await imgDownscale(raw);
+        const name=(job.asset.assetId||'asset')+'.'+job.info.ext;
+        const path=imgPathFor(plan.id,job.asset.assetId,name);
+        const res=await storageUploadWithRetry(path,body,body.type||job.info.mime,0); // outer loop already retries
+        if(!res.ok)throw res.error;
+        const { data }=sb.storage.from(STORAGE_BUCKET).getPublicUrl(path);
+        job.asset.imagePath=path;
+        job.asset.imageUrl=(data&&data.publicUrl)||'';
+        ok++;lastErr=null;
+        break;
+      }catch(err){
+        lastErr=err;
+        if(attempt<BULK_UPLOAD_RETRIES)await sleep(400*Math.pow(2,attempt));
+      }
+    }
+    if(lastErr){
+      failed++;
+      console.warn('Image upload failed for asset '+job.asset.assetId+':',(lastErr&&lastErr.message)||lastErr);
+    }
+    done++;sinceCheckpoint++;
+    onProgress({done:done,total:jobs.length,ok:ok,failed:failed,skipped:skipped});
+    if(sinceCheckpoint>=BULK_UPLOAD_CHECKPOINT_EVERY){
+      sinceCheckpoint=0;
+      await checkpoint();
+    }
+  });
+
+  await checkpoint(); // final checkpoint so the tail of the batch is never left unsaved
+
+  return {ok:ok,failed:failed,skipped:skipped,cancelled:cancelled};
+}
+
+// ── Bulk image progress banner ────────────────────────────────────────────────
+// A persistent banner (not the auto-hiding toast) for batches that can run for
+// minutes across hundreds of images, with a Cancel button. Checkpointing above
+// means cancelling — or the tab closing unexpectedly — only loses work back to
+// the last checkpoint, not the whole batch.
+let _bulkImgCancelFlag=false;
+let _bulkImgLastRender=0;
+function bulkImgBannerShow(){
+  if(document.getElementById('bulk-img-banner'))return;
+  const el=document.createElement('div');
+  el.id='bulk-img-banner';
+  el.style.cssText='position:fixed;top:0;left:0;right:0;z-index:998;background:#003A5D;color:#fff;padding:10px 16px;font-size:12.5px;display:flex;align-items:center;justify-content:center;gap:14px;box-shadow:0 2px 8px rgba(0,0,0,.25)';
+  el.innerHTML='<span id="bulk-img-banner-text">Attaching photos\u2026</span>'
+    +'<button id="bulk-img-banner-cancel" onclick="cancelBulkImageUpload()" style="font-size:11px;padding:4px 12px;background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.4);color:#fff;border-radius:6px;cursor:pointer">Cancel</button>';
+  document.body.appendChild(el);
+}
+function bulkImgBannerUpdate(text){
+  const t=document.getElementById('bulk-img-banner-text');
+  if(t)t.textContent=text;
+}
+function bulkImgBannerHide(){
+  const el=document.getElementById('bulk-img-banner');
+  if(el)el.remove();
+}
+function cancelBulkImageUpload(){
+  _bulkImgCancelFlag=true;
+  bulkImgBannerUpdate('Cancelling\u2026 finishing photos already in flight');
+  const btn=document.getElementById('bulk-img-banner-cancel');
+  if(btn){btn.disabled=true;btn.textContent='Cancelling\u2026';}
+}
+// Warn before an accidental close/refresh while a batch is running. Progress
+// itself is safe (checkpointed), this just avoids unnecessary re-work.
+window.addEventListener('beforeunload',function(e){
+  if(document.getElementById('bulk-img-banner')){
+    e.preventDefault();e.returnValue='';
+  }
+});
 
 // Maps a photo "slot" (1 = original reference image, 2 = bump-out photo) to its
 // three data fields on the asset. Slot 1 keeps the original field names/DOM ids
@@ -2333,10 +2459,8 @@ async function uploadAssetImage(input,aid,slot){
   try{
     const body=await imgDownscale(file);
     const path=imgPathFor(S.plan.id,a.assetId,file.name);
-    const { error }=await sb.storage.from(STORAGE_BUCKET).upload(path,body,{
-      cacheControl:'3600', upsert:false, contentType:body.type||file.type
-    });
-    if(error)throw error;
+    const res=await storageUploadWithRetry(path,body,body.type||file.type,1); // 1 retry for a single manual upload
+    if(!res.ok)throw res.error;
     const { data }=sb.storage.from(STORAGE_BUCKET).getPublicUrl(path);
 
     // Replacing an existing image? Clean up the old object so the bucket doesn't
@@ -2920,31 +3044,46 @@ function importPlanXLS(input){
               for(const a of (plan.assets||[]))delete a._srcRow;
               return;
             }
-            showToast('Found '+imgMap.size+' image'+(imgMap.size===1?'':'s')+' in the spreadsheet\u2026');
-            attachImportedImages(plan,imgMap).then(function(res){
+            // Large batches (100s–1000s of photos) can run for several minutes,
+            // so this uses a persistent progress banner (throttled updates) plus
+            // a Cancel option, instead of a wall of toasts. attachImportedImages
+            // checkpoints to local storage + Supabase every ~20 images, so a
+            // closed tab, dropped connection, or Cancel click only loses progress
+            // back to the last checkpoint, not the whole batch.
+            _bulkImgCancelFlag=false;
+            bulkImgBannerShow();
+            bulkImgBannerUpdate('Found '+imgMap.size+' image'+(imgMap.size===1?'':'s')+' \u2014 starting\u2026');
+            attachImportedImages(plan,imgMap,{
+              onProgress:function(p){
+                const now=Date.now();
+                if(now-_bulkImgLastRender<250&&p.done<p.total)return; // throttle DOM writes
+                _bulkImgLastRender=now;
+                bulkImgBannerUpdate('Attaching photos: '+p.done+' / '+p.total
+                  +(p.failed?' \u2014 '+p.failed+' failed':''));
+              },
+              isCancelled:function(){return _bulkImgCancelFlag;}
+            }).then(function(res){
               for(const a of (plan.assets||[]))delete a._srcRow;
-              if(res.ok){
-                // Push the updated imageUrl/imagePath fields to Supabase right away.
-                // storageSave() only writes to this browser's localStorage — the
-                // image files were already uploaded to Storage, but without this
-                // cloud write the plan row never learns their URLs, so the images
-                // exist in the bucket yet never render for anyone loading the plan
-                // from Supabase (a different device/browser, or after cache clear).
+              bulkImgBannerHide();
+              const parts=[];
+              if(res.ok)parts.push(res.ok+' attached');
+              if(res.skipped)parts.push(res.skipped+' already had a photo');
+              if(res.failed)parts.push(res.failed+' failed');
+              if(res.cancelled)parts.push('cancelled \u2014 rerun the import to pick up where it left off');
+              const summary=parts.length?parts.join(', '):'No images could be attached';
+              if(res.ok||res.skipped){
+                // Final sync: attachImportedImages already checkpoints along the way,
+                // but this refreshes S.plans/S._unsaved so the UI reflects the
+                // authoritative save state (cloud vs local-only) once the batch ends.
                 planDB.save(plan).then(function(saveRes){
                   const k=S.plans.findIndex(p=>p.id===plan.id);
                   if(k>=0)S.plans[k]=JSON.parse(JSON.stringify(plan));
                   S._unsaved=!(saveRes&&saveRes.ok&&saveRes.source==='cloud');
                   render();
-                  showToast(res.failed
-                    ? res.ok+' image'+(res.ok===1?'':'s')+' attached, '+res.failed+' failed \u2014 see console'
-                    : (saveRes&&saveRes.source==='cloud')
-                      ? res.ok+' image'+(res.ok===1?'':'s')+' attached and saved to cloud'
-                      : res.ok+' image'+(res.ok===1?'':'s')+' attached \u2014 remember to save the plan');
+                  showToast(summary+((saveRes&&saveRes.source==='cloud')?' \u2014 saved to cloud':' \u2014 saved locally'));
                 });
               }else{
-                showToast(res.failed
-                  ? res.ok+' image'+(res.ok===1?'':'s')+' attached, '+res.failed+' failed \u2014 see console'
-                  : 'No images could be attached \u2014 see console');
+                showToast(summary+' \u2014 see console');
               }
             });
           });
