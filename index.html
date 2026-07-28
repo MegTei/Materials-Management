@@ -370,10 +370,14 @@ button:active{background:#eee}
 .mreq-btn:hover{background:#0091D2;color:#fff;border-color:#0091D2}
 </style>
 <!-- XLSX: no crossorigin attribute — not needed without an integrity hash, and can cause CORS failures in some environments -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"
+  integrity="sha384-vtjasyidUo0kW94K5MXDXntzOJpQgBKXmE7e2Ga4LG0skTTLeBi97eFAXsqewJjw"
   crossorigin="anonymous"></script>
-<script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.110.9/dist/umd/supabase.js"
+  integrity="sha384-6foGJ1oz/y3anEo0BXRtTgBK1GvpnR0GbJZb0ijG+nBAJ4rYT+VqlD/9e3CSiFIA"
+  crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4.4.1/dist/email.min.js"
+  integrity="sha384-SALc35EccAf6RzGw4iNsyj7kTPr33K7RoGzYu+7heZhT8s0GZouafRiCg1qy44AS"
   crossorigin="anonymous"></script>
 </head>
 <body>
@@ -773,7 +777,7 @@ function renderTMLInfo(ref){
 
 // ── Data constructors ─────────────────────────────────────────────────────────
 function newAsset(o){
-  return Object.assign({id:uid(),expanded:false,serialNumber:'',serialNumberNew:'',assetId:'',prec:'',precCustom:'',assetName:'',desc:'',noOfItems:'',yearBuilt:'',builderSupplier:'',drawingRef:'',imageRef:'',imageUrl:'',imagePath:'',comments:'',materials:[newAssetMat()]},o||{});
+  return Object.assign({id:uid(),expanded:false,serialNumber:'',serialNumberNew:'',assetId:'',prec:'',precCustom:'',assetName:'',desc:'',noOfItems:'',yearBuilt:'',builderSupplier:'',drawingRef:'',imageRef:'',imageUrl:'',imagePath:'',image2Ref:'',image2Url:'',image2Path:'',comments:'',materials:[newAssetMat()]},o||{});
 }
 function newAssetMat(o){
   return Object.assign({id:uid(),cat:'',app:'',tmlRef:'',name:'',vol:'',vunit:'sqm',stat:'',outcome:''},o||{});
@@ -923,6 +927,10 @@ function migratePlan(p){
         if(m.outcome===undefined)m.outcome=(a.outcome||'');
       }
       delete a.stat;delete a.outcome;
+      // v27: second (bump-out) photo slot — backfill on assets saved before this existed.
+      if(a.image2Ref===undefined)a.image2Ref='';
+      if(a.image2Url===undefined)a.image2Url='';
+      if(a.image2Path===undefined)a.image2Path='';
     }
   }
   return p;
@@ -2065,7 +2073,7 @@ function foldByApp(assets,items,label){
   order.sort(function(x,y){return String(x).localeCompare(String(y));});
   let h='';
   for(let gi=0;gi<order.length;gi++){
-    const k=order[gi];const open=gi===0;
+    const k=order[gi];const open=false;
     h+='<div class="fold-sec" style="margin-bottom:10px;border:1px solid #dde2e8;border-radius:8px;overflow:hidden">';
     h+='<button type="button" onclick="toggleFold(this)" data-open="'+(open?'1':'0')+'" style="width:100%;text-align:left;padding:10px 14px;background:#EDEEEF;border:none;cursor:pointer;font-weight:700;font-size:13px;color:#003A5D;display:flex;justify-content:space-between;align-items:center;font-family:inherit">';
     h+='<span>'+esc(k)+' <span style="color:#888;font-weight:400">('+groups[k].length+')</span></span><span class="fold-chev" style="font-size:11px;color:#888">'+(open?'&#9650;':'&#9660;')+'</span></button>';
@@ -2300,7 +2308,17 @@ async function attachImportedImages(plan,imgMap){
   return {ok:ok,failed:failed};
 }
 
-async function uploadAssetImage(input,aid){
+// Maps a photo "slot" (1 = original reference image, 2 = bump-out photo) to its
+// three data fields on the asset. Slot 1 keeps the original field names/DOM ids
+// so existing plans and existing uploaded images keep working unchanged.
+function imgSlotFields(slot){
+  return slot===2
+    ? {url:'image2Url',path:'image2Path',ref:'image2Ref',tag:'2'}
+    : {url:'imageUrl', path:'imagePath', ref:'imageRef', tag:''};
+}
+
+async function uploadAssetImage(input,aid,slot){
+  const F=imgSlotFields(slot||1);
   const file=input.files&&input.files[0];
   input.value='';
   if(!file)return;
@@ -2310,7 +2328,7 @@ async function uploadAssetImage(input,aid){
   if(file.size>IMAGE_MAX_BYTES){showToast('Image is too large (max 10MB)');return;}
   if(!sb){showToast('Image upload needs a cloud connection');return;}
 
-  const stat=document.getElementById('img-stat-'+aid);
+  const stat=document.getElementById('img-stat'+F.tag+'-'+aid);
   if(stat)stat.textContent='Uploading\u2026';
   try{
     const body=await imgDownscale(file);
@@ -2323,10 +2341,10 @@ async function uploadAssetImage(input,aid){
 
     // Replacing an existing image? Clean up the old object so the bucket doesn't
     // accumulate orphans. Failure here is non-fatal — the new image is already up.
-    const oldPath=a.imagePath;
-    a.imagePath=path;
-    a.imageUrl=(data&&data.publicUrl)||'';
-    if(!a.imageRef)a.imageRef=file.name;
+    const oldPath=a[F.path];
+    a[F.path]=path;
+    a[F.url]=(data&&data.publicUrl)||'';
+    if(!a[F.ref])a[F.ref]=file.name;
     if(oldPath&&oldPath!==path){
       try{ await sb.storage.from(STORAGE_BUCKET).remove([oldPath]); }
       catch(e){ console.warn('Old image cleanup failed:',e.message); }
@@ -2358,41 +2376,59 @@ async function uploadAssetImage(input,aid){
   }
 }
 
-async function removeAssetImage(aid){
+async function removeAssetImage(aid,slot){
+  const F=imgSlotFields(slot||1);
   const a=S.plan.assets.find(x=>x.id===aid);if(!a)return;
   if(!confirm('Remove this image? This deletes it from storage and cannot be undone.'))return;
-  const path=a.imagePath;
-  a.imageUrl='';a.imagePath='';
+  const path=a[F.path];
+  a[F.url]='';a[F.path]='';
   S._unsaved=true;
   refreshAssets();
   if(path&&sb){
     try{ await sb.storage.from(STORAGE_BUCKET).remove([path]); }
     catch(e){ console.warn('Image delete failed:',e.message); }
   }
-  showToast('Image removed \u2014 remember to save the plan');
+  // Sync the removal to Supabase immediately too, for the same reason as upload above —
+  // otherwise a stale imageUrl can linger in the cloud record after the file is gone.
+  planDB.save(S.plan).then(function(saveRes){
+    const i=S.plans.findIndex(p=>p.id===S.plan.id);
+    if(i>=0)S.plans[i]=JSON.parse(JSON.stringify(S.plan));
+    S._unsaved=!(saveRes&&saveRes.ok&&saveRes.source==='cloud');
+    refreshAssets();
+    showToast((saveRes&&saveRes.source==='cloud')
+      ? 'Image removed and saved to cloud'
+      : 'Image removed \u2014 remember to save the plan');
+  });
 }
 
 // Image block for the Asset details panel: thumbnail + upload/replace/remove,
 // plus the original text reference (kept for Smartsheet filenames).
+// Renders two independent photo slots: the original reference image, and a
+// second "Bump-out photo" slot for the asset's actual end-of-event condition.
 function assetImageBlock(a){
-  const hasImg=!!a.imageUrl;
+  return imgSlotBlock(a,1,'Image')+imgSlotBlock(a,2,'Bump-out photo');
+}
+function imgSlotBlock(a,slot,label){
+  const F=imgSlotFields(slot);
+  const url=a[F.url],ref=a[F.ref];
+  const hasImg=!!url;
   const thumb=hasImg
-    ? '<a href="'+esc(a.imageUrl)+'" target="_blank" rel="noopener" style="flex-shrink:0;display:block">'
-      +'<img src="'+esc(a.imageUrl)+'" alt="'+esc(a.imageRef||'Asset image')+'" '
+    ? '<a href="'+esc(url)+'" target="_blank" rel="noopener" style="flex-shrink:0;display:block">'
+      +'<img src="'+esc(url)+'" alt="'+esc(ref||label)+'" '
       +'style="width:74px;height:74px;object-fit:cover;border-radius:8px;border:1px solid #dde2e8;display:block"></a>'
     : '<div style="width:74px;height:74px;border-radius:8px;border:1.5px dashed #d0cdc7;background:#faf9f7;display:flex;align-items:center;justify-content:center;color:#c4c0b8;font-size:22px;flex-shrink:0">&#9634;</div>';
   const btnStyle='font-size:11.5px;font-weight:600;padding:6px 12px;border-radius:7px;cursor:pointer;border:1px solid #d0cdc7;background:#fff;color:#555;font-family:inherit;width:auto';
-  let btns='<input type="file" accept="image/*" id="img-file-'+a.id+'" style="display:none" onchange="uploadAssetImage(this,\''+a.id+'\')">';
-  btns+='<button type="button" style="'+btnStyle+'" onclick="document.getElementById(\'img-file-'+a.id+'\').click()">'+(hasImg?'Replace':'&#8593; Upload image')+'</button>';
-  if(hasImg)btns+='<button type="button" style="'+btnStyle+';color:#A32D2D;border-color:#f0cfcf" onclick="removeAssetImage(\''+a.id+'\')">Remove</button>';
+  let btns='<input type="file" accept="image/*" id="img-file'+F.tag+'-'+a.id+'" style="display:none" onchange="uploadAssetImage(this,\''+a.id+'\','+slot+')">';
+  btns+='<button type="button" style="'+btnStyle+'" onclick="document.getElementById(\'img-file'+F.tag+'-'+a.id+'\').click()">'+(hasImg?'Replace':'&#8593; Upload image')+'</button>';
+  if(hasImg)btns+='<button type="button" style="'+btnStyle+';color:#A32D2D;border-color:#f0cfcf" onclick="removeAssetImage(\''+a.id+'\','+slot+')">Remove</button>';
 
   return '<div class="fg">'
-    +'<label>Image</label>'
+    +'<label>'+esc(label)+'</label>'
     +'<div style="display:flex;gap:12px;align-items:center">'
     +thumb
     +'<div style="flex:1;min-width:0">'
     +'<div style="display:flex;gap:6px;flex-wrap:wrap">'+btns+'</div>'
-    +'<div id="img-stat-'+a.id+'" style="font-size:11px;color:#888;min-height:14px;margin-top:5px">'+(hasImg&&a.imageRef?esc(a.imageRef):'')+'</div>'
+    +'<div id="img-stat'+F.tag+'-'+a.id+'" style="font-size:11px;color:#888;min-height:14px;margin-top:5px">'+(hasImg&&ref?esc(ref):'')+'</div>'
     +'</div></div></div>';
 }
 
@@ -2408,7 +2444,7 @@ function assetCard(a,i){
   for(let j=0;j<a.materials.length;j++)_matItems.push(matRowHtml(a.id,a.materials[j],j));
   let matsHtml=foldEvery50(_matItems,'Materials');
   const isTA=TA_ROLES.includes((S.plan&&S.plan.profile&&S.plan.profile.role)||'')||(S.plan&&S.plan.roleType==='TA');
-  const hasAssetDetails=!!(a.serialNumber||a.serialNumberNew||a.assetId||a.noOfItems||a.yearBuilt||a.builderSupplier||a.drawingRef||a.imageRef||a.imageUrl||a.comments);
+  const hasAssetDetails=!!(a.serialNumber||a.serialNumberNew||a.assetId||a.noOfItems||a.yearBuilt||a.builderSupplier||a.drawingRef||a.imageRef||a.imageUrl||a.image2Ref||a.image2Url||a.comments);
   const taBlock=((isTA&&S.plan&&S.plan.imported)||hasAssetDetails)?`
       <div class="fold-sec" style="margin:0 0 12px;border:1px solid #dde2e8;border-radius:8px;overflow:hidden">
         <button type="button" onclick="toggleFold(this)" data-open="0" style="width:100%;text-align:left;padding:9px 12px;background:#EDEEEF;border:none;cursor:pointer;font-weight:700;font-size:12px;color:#003A5D;display:flex;justify-content:space-between;align-items:center;font-family:inherit"><span>Asset details</span><span class="fold-chev" style="font-size:11px;color:#888">&#9660;</span></button>
@@ -2749,6 +2785,22 @@ function importPlanXLS(input){
       const cv=function(key,rr){const c=COL[key];return c?gv(c+rr):'';};
       const appNorm=function(v){if(!v)return'';const lo=String(v).toLowerCase().trim();for(let qi=0;qi<PREC_APPS_TA.length;qi++){if(PREC_APPS_TA[qi].toLowerCase()===lo)return PREC_APPS_TA[qi];}return v;};
 
+      // ── Preserve identity across a self-service "update from XLS" re-import ──────
+      // plan.assets here is still the PRE-import array (it isn't replaced until
+      // backfillAssetIds() below). An asset's images, expanded state, and internal id
+      // are never round-tripped through the spreadsheet — they only ever exist because
+      // someone uploaded them in the browser. Without this lookup, every re-import
+      // rebuilt every asset from scratch with a brand-new id, which silently orphaned
+      // any photo already uploaded (the file stayed in Storage, but the plan lost the
+      // link to it). Matching by Asset # (the same key used to group rows below) lets
+      // an update only change the fields that actually changed in the sheet, while a
+      // row with no Asset # (one-off items) still gets a fresh asset, same as before.
+      const existingByAssetId={};
+      (plan.assets||[]).forEach(function(ea){
+        const k=String(ea.assetId||'').trim();
+        if(k)existingByAssetId['A:'+k]=ea;
+      });
+
       // ── Parse asset rows (data from row 17). Blank Asset# => each row is its own asset. ──
       const assetMap={};
       const assetOrder=[];
@@ -2789,10 +2841,17 @@ function importPlanXLS(input){
           // Asset ID may be blank here; backfillAssetIds() below fills every blank
           // with the lowest unused number, so supplied IDs are never overwritten
           // and auto-assigned ones can never collide with them.
-          assetMap[key]={id:uid(),expanded:false,_srcRow:r,serialNumber:clamp(serialNumber,1000),serialNumberNew:clamp(serialNew,1000),assetId:clamp(assetNumRaw,100),
-            prec:clamp(prec,100),precCustom:'',assetName:clamp(assetName,200),desc:clamp(desc,500),
+          const prior=existingByAssetId[key]; // matched only for real 'A:<assetNum>' keys
+          assetMap[key]={id:(prior&&prior.id)||uid(),expanded:(prior&&prior.expanded)||false,_srcRow:r,serialNumber:clamp(serialNumber,1000),serialNumberNew:clamp(serialNew,1000),assetId:clamp(assetNumRaw,100),
+            prec:clamp(prec,100),precCustom:(prior&&prior.precCustom)||'',assetName:clamp(assetName,200),desc:clamp(desc,500),
             noOfItems:clamp(noOfItems,30),yearBuilt:clamp(yearBuilt,20),
-            builderSupplier:clamp(builder,200),drawingRef:clamp(drawing,100),imageRef:clamp(cleanImageRef(imageRef),200),comments:clamp(comments,500),materials:[]};
+            builderSupplier:clamp(builder,200),drawingRef:clamp(drawing,100),imageRef:clamp(cleanImageRef(imageRef),200),comments:clamp(comments,500),
+            // Carry over previously-uploaded photos so a routine spreadsheet update can
+            // never silently disconnect them (they're only ever set via browser upload,
+            // or below by attachImportedImages() if the sheet has a fresh embedded image).
+            imageUrl:(prior&&prior.imageUrl)||'',imagePath:(prior&&prior.imagePath)||'',
+            image2Ref:(prior&&prior.image2Ref)||'',image2Url:(prior&&prior.image2Url)||'',image2Path:(prior&&prior.image2Path)||'',
+            materials:[]};
           assetOrder.push(key);
         }
         // Volume may be dimensions/text, not just a number — keep numeric if it parses, else keep trimmed text
@@ -2999,10 +3058,19 @@ async function _doExportXLS(){
     const dataStyle=ci=>(ci===4||ci===9)?20:9;  // E (Description) and J (Precinct Application) wrap-text style
     let rowIdx=17;
     let rowsXml='';
+    // Collect one job per uploaded photo (both slots), anchored to the row where
+    // this asset's data starts — used below to actually embed the images.
+    const imageJobs=[];
     for(let ai=0;ai<assets.length;ai++){
       const a=assets[ai];
       const mats=a.materials||[];
       const matCount=mats.length;
+      const assetStartRow=rowIdx;
+      // Primary photo anchors directly on column Q (Image Ref) rather than a
+      // separate new column — the thumbnail sits over the existing Image Ref
+      // cell instead of needing its own header/column.
+      if(a.imageUrl) imageJobs.push({row:assetStartRow,col:16,url:a.imageUrl,path:a.imagePath});
+      if(a.image2Url) imageJobs.push({row:assetStartRow,col:19,url:a.image2Url,path:a.image2Path});
       for(let mi=0;mi<matCount;mi++){
         const m=mats[mi];
         const vals=[
@@ -3033,8 +3101,19 @@ async function _doExportXLS(){
       }
     }
     s1=s1.replace('</sheetData>',rowsXml+'</sheetData>');
-    s1=s1.replace(/ref="A1:[A-Z]+\d+"/,'ref="A1:S'+Math.max(16,rowIdx-1)+'"');
-    zip.file('xl/worksheets/sheet1.xml',s1);
+    const hasImageJobs=imageJobs.length>0;
+    s1=s1.replace(/ref="A1:[A-Z]+\d+"/,'ref="A1:'+(hasImageJobs?'T':'S')+Math.max(16,rowIdx-1)+'"');
+    if(hasImageJobs){
+      // Only the bump-out photo needs a header for a new column (T) — the
+      // primary photo now anchors on the existing Image Ref column (Q), so no
+      // "Photo" column/header is added for it.
+      const photoHdr='<c r="T16" s="39" t="inlineStr"><is><t>Bump-out Photo</t></is></c>';
+      s1=s1.replace(/(<row r="16"[^>]*>[\s\S]*?)(<\/row>)/,'$1'+photoHdr+'$2');
+    }
+    // Widen column Q (Image Ref) by 50% so the embedded photo thumbnail fits
+    // without being clipped by the column's original text-only width.
+    s1=s1.replace(/(<col min="17" max="17" width=")([\d.]+)(")/,
+      (m,pre,w,suf)=>pre+(parseFloat(w)*1.5).toFixed(6)+suf);
 
     // ── SHARED STRINGS — needed for sheet2 (has Excel Table, requires t="s") ──
     // t="inlineStr" is rejected inside Tables; must use shared string references.
@@ -3087,6 +3166,123 @@ async function _doExportXLS(){
       ssXml=ssXml.replace(/uniqueCount="\d+"/,`uniqueCount="${unique}"`);
       zip.file('xl/sharedStrings.xml',ssXml);
     }
+
+    // ── SHEET 1 IMAGES — embed each asset's uploaded photo(s) ────────────────
+    // SheetJS (the xlsx library) can only read spreadsheets; it has no support for
+    // writing images at all, even in cells or floating over them. So this builds
+    // the underlying OOXML drawing parts by hand: one media file per photo, a
+    // drawing part anchoring each one to its asset's row, and the handful of
+    // relationship/content-type entries Excel needs to recognise them. A failed
+    // fetch for any one photo is skipped rather than aborting the whole export —
+    // a partial spreadsheet beats a failed one.
+    const IMG_MIME={png:'image/png',jpg:'image/jpeg',jpeg:'image/jpeg',gif:'image/gif',webp:'image/webp'};
+    // Decode just enough of the image to read its real pixel size — needed so the
+    // embedded thumbnail can be sized to its true aspect ratio instead of being
+    // force-stretched into an arbitrary cell box (which is what caused the
+    // squashed/stretched thumbnails).
+    const imgPixelSize=function(blob){
+      return new Promise(function(resolve){
+        const url=URL.createObjectURL(blob);
+        const im=new Image();
+        im.onload=function(){URL.revokeObjectURL(url);resolve({w:im.naturalWidth||200,h:im.naturalHeight||200});};
+        im.onerror=function(){URL.revokeObjectURL(url);resolve({w:200,h:200});};
+        im.src=url;
+      });
+    };
+    const embeds=[];
+    let imgFail=0;
+    for(let ji=0;ji<imageJobs.length;ji++){
+      const job=imageJobs[ji];
+      showToast('Adding image '+(ji+1)+' of '+imageJobs.length+' to export\u2026');
+      try{
+        const resp=await fetch(job.url);
+        if(!resp.ok)throw new Error('fetch failed');
+        const buf=await resp.arrayBuffer();
+        const ext=(/\.([a-zA-Z0-9]+)$/.exec(job.path||'')||[,'png'])[1].toLowerCase();
+        const mime=IMG_MIME[ext]||'image/png';
+        const size=await imgPixelSize(new Blob([buf],{type:mime}));
+        embeds.push({row:job.row,col:job.col,ext:IMG_MIME[ext]?ext:'png',mime:mime,buf:buf,w:size.w,h:size.h});
+      }catch(e){
+        imgFail++;
+        console.warn('Export: could not fetch image for row '+job.row+':',(e&&e.message)||e);
+      }
+    }
+
+    if(embeds.length>0){
+      // Media files — named distinctly from the template's own (unused) image1.png.
+      const anchors=[];
+      const rels=[];
+      // Target thumbnail size: scaled to fit within TARGET_PX on the longer side,
+      // preserving the photo's real aspect ratio (no stretching either way).
+      const TARGET_PX=90, EMU_PER_PX=9525;
+      embeds.forEach(function(em,i){
+        const n=i+1;
+        const fname='assetphoto'+n+'.'+em.ext;
+        zip.file('xl/media/'+fname,em.buf);
+        rels.push('<Relationship Id="rIdImg'+n+'" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="../media/'+fname+'"/>');
+        const longer=Math.max(em.w,em.h)||1;
+        const dispW=Math.max(1,Math.round(em.w*TARGET_PX/longer));
+        const dispH=Math.max(1,Math.round(em.h*TARGET_PX/longer));
+        // oneCellAnchor: position comes from the cell, but size is an explicit
+        // EMU extent independent of row/column dimensions — this is what actually
+        // prevents the stretching, since it no longer depends on guessing what
+        // the real row height / column width will be.
+        anchors.push(
+          '<xdr:oneCellAnchor>'
+          +'<xdr:from><xdr:col>'+em.col+'</xdr:col><xdr:colOff>0</xdr:colOff><xdr:row>'+(em.row-1)+'</xdr:row><xdr:rowOff>0</xdr:rowOff></xdr:from>'
+          +'<xdr:ext cx="'+(dispW*EMU_PER_PX)+'" cy="'+(dispH*EMU_PER_PX)+'"/>'
+          +'<xdr:pic><xdr:nvPicPr><xdr:cNvPr id="'+(100+n)+'" name="AssetPhoto'+n+'"/><xdr:cNvPicPr><a:picLocks noChangeAspect="1"/></xdr:cNvPicPr></xdr:nvPicPr>'
+          +'<xdr:blipFill><a:blip xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" r:embed="rIdImg'+n+'"/><a:stretch><a:fillRect/></a:stretch></xdr:blipFill>'
+          +'<xdr:spPr><a:prstGeom prst="rect"><a:avLst/></a:prstGeom></xdr:spPr></xdr:pic><xdr:clientData/></xdr:oneCellAnchor>'
+        );
+      });
+
+      // New drawing part (drawing2.xml — the template's own drawing1.xml belongs
+      // to a different sheet and is left untouched).
+      const drawingXml='<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
+        +'<xdr:wsDr xmlns:xdr="http://schemas.openxmlformats.org/drawingml/2006/spreadsheetDrawing" xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main">'
+        +anchors.join('')+'</xdr:wsDr>';
+      zip.file('xl/drawings/drawing2.xml',drawingXml);
+      zip.file('xl/drawings/_rels/drawing2.xml.rels',
+        '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
+        +'<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">'+rels.join('')+'</Relationships>');
+
+      // Wire the drawing into sheet1: a relationship (rId2 — rId1 is already the
+      // template's mailto hyperlink) plus the <drawing> element itself, which per
+      // the OOXML schema must sit after <pageSetup> and before <extLst>.
+      let sheet1Rels=await zip.file('xl/worksheets/_rels/sheet1.xml.rels').async('string');
+      sheet1Rels=sheet1Rels.replace('</Relationships>',
+        '<Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/drawing" Target="../drawings/drawing2.xml"/></Relationships>');
+      zip.file('xl/worksheets/_rels/sheet1.xml.rels',sheet1Rels);
+      s1=s1.replace(/(<pageSetup[^>]*\/>)/,'$1<drawing r:id="rId2"/>');
+
+      // Register the new parts (and any image types not already declared) in
+      // [Content_Types].xml — Excel treats an unregistered part as corruption.
+      let ctXml=await zip.file('[Content_Types].xml').async('string');
+      if(!/PartName="\/xl\/drawings\/drawing2\.xml"/.test(ctXml)){
+        ctXml=ctXml.replace('</Types>',
+          '<Override PartName="/xl/drawings/drawing2.xml" ContentType="application/vnd.openxmlformats-officedocument.drawing+xml"/></Types>');
+      }
+      const usedExts=[...new Set(embeds.map(em=>em.ext))];
+      usedExts.forEach(function(ext){
+        if(!new RegExp('Extension="'+ext+'"').test(ctXml)){
+          ctXml=ctXml.replace('</Types>','<Default Extension="'+ext+'" ContentType="'+IMG_MIME[ext]+'"/></Types>');
+        }
+      });
+      zip.file('[Content_Types].xml',ctXml);
+
+      showToast(imgFail
+        ? embeds.length+' image'+(embeds.length===1?'':'s')+' added to export, '+imgFail+' failed \u2014 see console'
+        : embeds.length+' image'+(embeds.length===1?'':'s')+' added to export');
+    }
+    zip.file('xl/worksheets/sheet1.xml',s1);
+
+    // ── Hide the "Sheet1" helper tab (dropdown source values) ────────────────
+    // Not meant for end users to see — Master Data and hiddenSheet are already
+    // hidden in the template; this one was left visible.
+    let wbXml=await zip.file('xl/workbook.xml').async('string');
+    wbXml=wbXml.replace(/(<sheet name="Sheet1"(?![^>]*\bstate=)[^>]*)\/>/,'$1 state="hidden"/>');
+    zip.file('xl/workbook.xml',wbXml);
 
     // ── CALCHAIN — remove cleanly so Excel regenerates it (avoids repair error) ─
     // calcChain.xml caches formula calc order; its absence is fine — Excel rebuilds.
