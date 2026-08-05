@@ -588,6 +588,12 @@ const SUPABASE_KEY = 'sb_publishable_EKNWTkhoLB5Odnxgd8JBvA_2MTDhO_d'; // starts
 const STORAGE_BUCKET = 'Asset-images';
 const IMAGE_MAX_BYTES = 10 * 1024 * 1024;  // reject anything over 10MB before upload
 const IMAGE_MAX_DIM   = 1600;              // downscale longest edge to this before upload
+// Upload workbook size thresholds. Measured cost of opening one is ~2.5-3x its size in
+// resident memory (raw bytes + parsed workbook + a JSZip pass for the embedded images),
+// so 150MB is where a mid-range tablet starts to be at risk and 400MB is past what a
+// desktop tab can be relied on to survive.
+const XLS_UPLOAD_WARN_MB = 150;
+const XLS_UPLOAD_HARD_MB = 400;
 
 // Detect whether Supabase credentials have been configured
 const SUPABASE_READY = (
@@ -2178,6 +2184,11 @@ function imgDownscale(file){
         const isPng=/png/i.test(file.type);
         c.toBlob(function(blob){
           URL.revokeObjectURL(url);
+          // Zero the canvas before dropping it. Safari/iOS accounts canvas backing
+          // stores outside the JS heap and is slow to reclaim them, so on a run of
+          // several hundred photos the un-zeroed canvases are what actually pushes
+          // the tab over its memory ceiling.
+          c.width=c.height=0;
           resolve(blob&&blob.size<file.size?blob:file);
         },isPng?'image/png':'image/jpeg',0.85);
       }catch(e){URL.revokeObjectURL(url);resolve(file);}
@@ -2232,6 +2243,35 @@ function zipResolve(basePart,target){
 }
 
 // Source 1: in-cell rich-value images.
+// Content signature for an image inside the workbook, taken from the zip's own central
+// directory — no decompression, so it stays free across 1000 images. Comparing this to
+// the signature the last export recorded is what distinguishes "the same photo coming
+// back round" from "the user replaced this photo", which is the difference between
+// re-uploading everything on every update and never picking up an update at all.
+// CRC32 over raw bytes, matching the checksum a zip stores for each entry. Used at
+// export time to record what photo a row is carrying, so the next upload can compare
+// it against the same checksum read straight out of the uploaded workbook.
+let _crcTable=null;
+function crc32Bytes(bytes){
+  if(!_crcTable){
+    _crcTable=new Int32Array(256);
+    for(let n=0;n<256;n++){
+      let c=n;
+      for(let k=0;k<8;k++)c=(c&1)?(0xEDB88320^(c>>>1)):(c>>>1);
+      _crcTable[n]=c;
+    }
+  }
+  let crc=-1;
+  for(let i=0;i<bytes.length;i++)crc=(crc>>>8)^_crcTable[(crc^bytes[i])&0xFF];
+  return (crc^-1)>>>0;
+}
+
+function imgSigOf(f){
+  const d=(f&&f._data)||null;
+  if(!d||d.crc32===undefined||d.uncompressedSize===undefined)return '';
+  return (d.crc32>>>0)+':'+d.uncompressedSize;
+}
+
 async function collectRichValueImages(zip,txt,sheetPath,found){
   const rvXml=await txt('xl/richData/rdrichvalue.xml');
   const rvrXml=await txt('xl/richData/richValueRel.xml');
@@ -2264,7 +2304,7 @@ async function collectRichValueImages(zip,txt,sheetPath,found){
     const path=zipResolve('xl/richData/richValueRel.xml',tgt);
     const f=zip.file(path);      if(!f)continue;
     const ext=(/\.([a-z0-9]+)$/i.exec(path)||[,'png'])[1].toLowerCase();
-    found.push({col:c.col,row:c.row,file:f,ext:ext,mime:IMG_EXT_MIME[ext]||'image/png'});
+    found.push({col:c.col,row:c.row,file:f,ext:ext,sig:imgSigOf(f),mime:IMG_EXT_MIME[ext]||'image/png'});
   }
 }
 
@@ -2306,7 +2346,7 @@ async function collectDrawingImages(zip,txt,sheetPath,found){
         const ext=(/\.([a-z0-9]+)$/i.exec(path)||[,'png'])[1].toLowerCase();
         // Anchor indices are 0-based; sheet rows are 1-based.
         found.push({col:colIdxToLetter(parseInt(cIdx[1],10)),row:parseInt(rIdx[1],10)+1,
-                    file:f,ext:ext,mime:IMG_EXT_MIME[ext]||'image/png'});
+                    file:f,ext:ext,sig:imgSigOf(f),mime:IMG_EXT_MIME[ext]||'image/png'});
       }
     });
   }
@@ -2351,7 +2391,7 @@ async function extractCellImages(data,cols){
     // displace one that genuinely came from the Image Ref column.
     if(!slot.p||(slot.p.col!==imgCol&&info.col<slot.p.col))slot.p=info;
   }
-  const strip=v=>v?{file:v.file,ext:v.ext,mime:v.mime}:null;
+  const strip=v=>v?{file:v.file,ext:v.ext,sig:v.sig||'',mime:v.mime}:null;
   for(const row in chosen){
     const v=chosen[row];
     if(v.p||v.b)out.set(parseInt(row,10),{p:strip(v.p),b:strip(v.b)});
@@ -2367,12 +2407,10 @@ async function extractCellImages(data,cols){
 //    batch shouldn't permanently cost a photo when a retry would likely succeed.
 //  - Checkpoints progress into the plan (local + cloud) every so often, so a
 //    closed tab or dropped connection loses at most a few images, not the batch.
-//  - Skips assets that already have an image in the slot being imported, so
-//    re-running the same import after an interruption only fills the gaps
-//    instead of re-uploading everything from the top. (This does mean a photo
-//    already attached — from an earlier import or a manual upload — will not be
-//    replaced by a fresh embedded image of the same row on a later re-import;
-//    remove the existing photo first if you want the sheet's image to win.)
+//  - Uploads a slot only when the sheet's photo actually differs from the one
+//    already recorded for it (compared by content signature), so re-running an
+//    interrupted import fills only the gaps, an unchanged workbook costs nothing,
+//    and a photo the user genuinely replaced in Excel does take effect.
 //  - Cancellable mid-batch via a shared flag, surfaced through a persistent
 //    progress banner rather than a flood of toasts.
 const BULK_UPLOAD_CONCURRENCY=4;      // simultaneous uploads
@@ -2429,21 +2467,38 @@ async function attachImportedImages(plan,imgMap,opts){
   for(const a of (plan.assets||[])){
     const found=a._srcRow?imgMap.get(a._srcRow):null;
     if(!found)continue;
-    // One job per filled slot, so a row carrying both an Image Ref photo and a
-    // Bump-out Photo imports both. Each slot is skipped independently if it is
-    // already populated — see the note above.
-    if(found.p){ if(a.imageUrl)skipped++; else jobs.push({asset:a,info:found.p,slot:1}); }
-    if(found.b){ if(a.image2Url)skipped++; else jobs.push({asset:a,info:found.b,slot:2}); }
+    // Change detection. Our own export embeds each photo AND records that photo's
+    // signature in a hidden column, so a workbook coming back untouched presents the
+    // very same bytes we put in it. Comparing the two is what makes an update actually
+    // update: previously any slot that already had a photo was skipped outright, so a
+    // photo the user replaced in Excel could never take effect. Rules per slot:
+    //   - nothing stored yet            -> upload (first migration)
+    //   - sheet image matches recorded  -> leave it alone, nothing changed
+    //   - anything else                 -> the user changed it, upload and replace
+    const unchanged=(info,sig)=>!!(info&&info.sig&&sig&&info.sig===sig);
+    if(found.p){
+      if(a.imageUrl&&unchanged(found.p,a._sheetSig1))skipped++;
+      else jobs.push({asset:a,info:found.p,slot:1,replacing:a.imagePath||''});
+    }
+    if(found.b){
+      if(a.image2Url&&unchanged(found.b,a._sheetSig2))skipped++;
+      else jobs.push({asset:a,info:found.b,slot:2,replacing:a.image2Path||''});
+    }
   }
   if(!jobs.length)return {ok:0,failed:0,skipped:skipped,cancelled:false};
 
   let ok=0,failed=0,done=0,cancelled=false;
-  let sinceCheckpoint=0,checkpointInFlight=false;
+  let sinceCheckpoint=0,checkpointInFlight=false,localFull=false;
 
   async function checkpoint(){
     if(checkpointInFlight)return; // don't stack overlapping cloud writes
     checkpointInFlight=true;
-    storageSave(plan);
+    // A 500–1000 asset plan serialises to well past the ~5MB localStorage quota, so
+    // storageSave() just fails. Left alone that is a full JSON.stringify of the whole
+    // plan thrown away on every checkpoint, dozens of times over a long migration.
+    // Try once; if it does not fit, stop trying and rely on IndexedDB, which has no
+    // practical size limit here and is what actually makes the batch resumable.
+    if(!localFull&&!storageSave(plan))localFull=true;
     try{ await planDB.save(plan); }catch(e){ /* best-effort; next checkpoint retries */ }
     checkpointInFlight=false;
   }
@@ -2467,8 +2522,13 @@ async function attachImportedImages(plan,imgMap,opts){
         const { data }=sb.storage.from(STORAGE_BUCKET).getPublicUrl(path);
         job.asset[F.path]=path;
         job.asset[F.url]=(data&&data.publicUrl)||'';
-        ok++;lastErr=null;
-        break;
+        // This upload replaced an earlier photo — drop the old object so a plan that is
+        // updated repeatedly does not accumulate orphans in the bucket. Best effort:
+        // the new photo is already safely attached, so a failure here is not fatal.
+        if(job.replacing&&job.replacing!==path){
+          try{ await sb.storage.from(STORAGE_BUCKET).remove([job.replacing]); }catch(e){}
+        }
+        ok++;lastErr=null;        break;
       }catch(err){
         lastErr=err;
         if(attempt<BULK_UPLOAD_RETRIES)await sleep(400*Math.pow(2,attempt));
@@ -2478,6 +2538,11 @@ async function attachImportedImages(plan,imgMap,opts){
       failed++;
       console.warn('Image upload failed for asset '+job.asset.assetId+':',(lastErr&&lastErr.message)||lastErr);
     }
+    // Drop this image's zip entry now that it is uploaded (or has failed for good).
+    // JSZip caches an entry's decompressed bytes on first read, so on a 500–1000
+    // photo migration holding all of them would keep the entire workbook's images
+    // resident at once. Releasing per job keeps the ceiling at the few in flight.
+    job.info.file=null;
     done++;sinceCheckpoint++;
     onProgress({done:done,total:jobs.length,ok:ok,failed:failed,skipped:skipped});
     if(sinceCheckpoint>=BULK_UPLOAD_CHECKPOINT_EVERY){
@@ -2873,6 +2938,23 @@ function importPlanXLS(input){
 
   if(typeof XLSX==='undefined'){showToast('Export library not loaded yet. Please try again.');input.value='';return;}
 
+  // Pre-flight size check. A migration workbook with 500–1000 embedded photos can run
+  // to hundreds of MB, and opening it costs roughly 3x its size in memory: the raw
+  // bytes, the parsed workbook, and a second pass over the same bytes to pull the
+  // images out. Past a few hundred MB that reliably kills a tab — on iPad well before
+  // that — and a crash gives the user nothing to act on. Warn first instead.
+  const MB=1024*1024;
+  if(file.size>XLS_UPLOAD_HARD_MB*MB){
+    showToast('This file is '+Math.round(file.size/MB)+'MB, too large to open in the browser. Split it into smaller uploads (a few hundred assets each) and upload them one after another.');
+    input.value='';return;
+  }
+  if(file.size>XLS_UPLOAD_WARN_MB*MB&&!window.confirm(
+      'This file is '+Math.round(file.size/MB)+'MB and may take several minutes to process.\n\n'
+      +'Keep this tab open and in the foreground until it finishes. On a phone or tablet '
+      +'an upload this large may run out of memory — a laptop or desktop is safer.\n\nContinue?')){
+    input.value='';return;
+  }
+
   const reader=new FileReader();
   reader.onload=function(e){
     try{
@@ -2952,7 +3034,9 @@ function importPlanXLS(input){
       plan.profile.ownerName    = clamp(gv('D5'), 200);
       plan.profile.role         = clamp(gv('B6'), 100);
       plan.profile.email        = clamp(gv('D6'), 254);
-      plan.profile.department   = clamp(gv('D7'), 100);
+      // Older exports had no Department cell; treat a blank as "not supplied" rather
+      // than as an instruction to clear whatever the plan already holds.
+      plan.profile.department   = clamp(gv('D7'), 100) || plan.profile.department || '';
       plan.profile.date         = clamp(gv('B7'), 20);
       plan.profile.editorName   = clamp(gv('B8'), 200);
       plan.lastEditedBy         = clamp(gv('B8'), 200);
@@ -2968,7 +3052,13 @@ function importPlanXLS(input){
 
       // ── Header-driven column mapping (robust to column shifts/edits) ──
       const hmap={};
-      'ABCDEFGHIJKLMNOPQRSTUVWX'.split('').forEach(function(c){
+      // Scan the whole header row, not a hard-coded slice of it. This list used to stop
+      // at X, which silently dropped column Y — the bump-out photo's hash — so that slot
+      // compared against an empty signature and re-uploaded on every single update.
+      // Generated through AD to leave room for the layout to grow.
+      const HDR_COLS=[];
+      for(let ci=0;ci<30;ci++)HDR_COLS.push(colIdxToLetter(ci));
+      HDR_COLS.forEach(function(c){
         const t=gv(c+'16').toLowerCase().replace(/\s+/g,' ').trim();
         if(t&&!(t in hmap))hmap[t]=c;
       });
@@ -3006,8 +3096,10 @@ function importPlanXLS(input){
         // they cannot shadow a real column, and absent from older files — in which case
         // these are null and the legacy identity matching below takes over unchanged.
         linkKey:  findCol(['ao link']),
-        photo1:   findCol(['ao photo 1']),
-        photo2:   findCol(['ao photo 2']),
+        photo1:   findCol(['ao photo 1 path']),
+        photo2:   findCol(['ao photo 2 path']),
+        sig1:     findCol(['ao photo 1 hash']),
+        sig2:     findCol(['ao photo 2 hash']),
         comments: findCol(['comments'])
       };
       const cv=function(key,rr){const c=COL[key];return c?gv(c+rr):'';};
@@ -3101,6 +3193,8 @@ function importPlanXLS(input){
         const linkKey     =cv('linkKey',r);
         const photo1Path  =cv('photo1',r);
         const photo2Path  =cv('photo2',r);
+        const sheetSig1   =cv('sig1',r);
+        const sheetSig2   =cv('sig2',r);
 
         const hasContent=!!(serialNumber||serialNew||assetNumRaw||precRaw||assetName||matName||desc||app||volRaw||vunit||stat||yearBuilt||outcome||noOfItems);
         if(!hasContent){emptyStreak++;if(emptyStreak>=3&&r>20)break;r++;continue;}
@@ -3131,12 +3225,20 @@ function importPlanXLS(input){
           assetMap[key]={id:(prior&&prior.id)||String(linkKey||'').trim()||uid(),expanded:(prior&&prior.expanded)||false,_srcRow:r,serialNumber:clamp(serialNumber,1000),serialNumberNew:clamp(serialNew,1000),assetId:clamp(assetNumRaw,100),
             prec:clamp(prec,100),precCustom:(prior&&prior.precCustom)||'',assetName:clamp(assetName,200),desc:clamp(desc,500),
             noOfItems:clamp(noOfItems,30),yearBuilt:clamp(yearBuilt,20),
-            builderSupplier:clamp(builder,200),imageRef:clamp(cleanImageRef(imageRef),200),comments:clamp(comments,500),
+            builderSupplier:clamp(builder,200),comments:clamp(comments,500),
+            // A cell holding an Excel in-cell image reads back as the #VALUE! error, which
+            // cleanImageRef() strips to blank — so a user who used "Place in Cell" would
+            // have had the typed ref wiped as a side effect. Treat an error cell as "no
+            // text supplied" and keep what we had; a genuinely empty cell still clears.
+            imageRef:isXlErrorCell(imageRef)?((prior&&prior.imageRef)||''):clamp(cleanImageRef(imageRef),200),
             imagePath:p1,imageUrl:(prior&&prior.imagePath===p1&&prior.imageUrl)||urlForPath(p1)||'',
-            // Bump-out photo ref comes from col S when the sheet supplies one; a blank
-            // cell keeps whatever was already stored rather than wiping it.
-            image2Ref:clamp(cleanImageRef(bumpRef),200)||(prior&&prior.image2Ref)||'',
+            image2Ref:isXlErrorCell(bumpRef)?((prior&&prior.image2Ref)||''):clamp(cleanImageRef(bumpRef),200),
             image2Path:p2,image2Url:(prior&&prior.image2Path===p2&&prior.image2Url)||urlForPath(p2)||'',
+            // Signatures of the photos this workbook was carrying when it was exported.
+            // attachImportedImages() compares them against the pictures actually found
+            // in the file to decide, per slot, whether anything changed. Stripped from
+            // the asset alongside _srcRow once the image pass is done.
+            _sheetSig1:String(sheetSig1||'').trim(),_sheetSig2:String(sheetSig2||'').trim(),
             materials:[]};
           assetOrder.push(key);
         }
@@ -3203,7 +3305,7 @@ function importPlanXLS(input){
         loadJSZipThen(function(){
           extractCellImages(data,imgCols).then(function(imgMap){
             if(!imgMap.size){
-              for(const a of (plan.assets||[]))delete a._srcRow;
+              for(const a of (plan.assets||[])){delete a._srcRow;delete a._sheetSig1;delete a._sheetSig2;}
               return;
             }
             // Large batches (100s–1000s of photos) can run for several minutes,
@@ -3225,7 +3327,7 @@ function importPlanXLS(input){
               },
               isCancelled:function(){return _bulkImgCancelFlag;}
             }).then(function(res){
-              for(const a of (plan.assets||[]))delete a._srcRow;
+              for(const a of (plan.assets||[])){delete a._srcRow;delete a._sheetSig1;delete a._sheetSig2;}
               bulkImgBannerHide();
               const parts=[];
               if(res.ok)parts.push(res.ok+' attached');
@@ -3251,7 +3353,7 @@ function importPlanXLS(input){
           });
         });
       }else{
-        for(const a of (plan.assets||[]))delete a._srcRow;
+        for(const a of (plan.assets||[])){delete a._srcRow;delete a._sheetSig1;delete a._sheetSig2;}
       }
     }catch(err){
       console.error('Import error:',err);
@@ -3333,6 +3435,12 @@ async function _doExportXLS(){
     s1=replCell(s1,'B6',2,p.role||'');
     s1=replCell(s1,'D6',29,p.email||'');
     s1=replCell(s1,'B7',2,p.date||'');
+    // Department: the importer has always read D7, but nothing ever wrote it, so every
+    // XLS round-trip silently cleared it. C7/D7 are empty in the template, so the label
+    // goes in C7 and the value in D7 (restyled to match the other input cells).
+    s1=replCell(s1,'C7',1,'Department');
+    s1=replCell(s1,'D7',1,p.department||'');
+    s1=s1.replace('<c r="D7" s="1"','<c r="D7" s="2"');
     s1=replCell(s1,'B8',15,plan.lastEditedBy||p.editorName||'');
     s1=replCell(s1,'D8',15,
       plan.lastEditedAt?new Date(plan.lastEditedAt).toLocaleDateString('en-AU'):(p.date||''));
@@ -3354,13 +3462,17 @@ async function _doExportXLS(){
     // A Serial, B Asset ID, C Precinct, D Asset/Item, E Description, F Quantity (No. of items),
     // G No. of Materials (auto), H TML Ref, I Material Name, J Precinct Application, K Volume,
     // L Unit, M Expected Status, N Year built, O Actual Outcome, P Builder/supplier,
-    // Q Image Ref, R Comments, S Bump-out Photo
-    // T AO Link Key, U AO Photo 1 Path, V AO Photo 2 Path  ← hidden round-trip columns
+    // Q Image Ref, R Comments, S Bump-out Photo, T New Serial Number
+    // U AO Link Key, V AO Photo 1 Path, W AO Photo 2 Path  ← hidden round-trip columns
     // Drawing Ref is gone: it used to own R, so Comments shifts left into R and the
     // bump-out photo takes S. The template's row-16 headers for R and S are rewritten
     // below to match — everything else in the header row is left as the template has it.
     //
-    // T/U/V exist because the embedded thumbnails are floating DrawingML pictures,
+    // T exists because the New serial number (assigned at bump-out) had no column at
+    // all: the importer looked for a "new"+"serial" header that nothing ever wrote, so
+    // every round-trip cleared it — and with it the "pending bump-out" counters.
+    //
+    // U/V/W exist because the embedded thumbnails are floating DrawingML pictures,
     // which the importer cannot read back (it only understands Excel's in-cell rich
     // value images). Without a written-down link, a re-imported row had to be guessed
     // back onto its original asset by precinct/name/serial — so renaming an asset
@@ -3368,7 +3480,7 @@ async function _doExportXLS(){
     // orphaned its photos. These columns carry the link in the file itself, so
     // relinking is exact and works even on a device that has never seen the plan.
     // They are hidden below; if a user deletes them the old matching still applies.
-    const COLS=['A','B','C','D','E','F','G','H','I','J','K','L','M','N','O','P','Q','R','S','T','U','V'];
+    const COLS=['A','B','C','D','E','F','G','H','I','J','K','L','M','N','O','P','Q','R','S','T','U','V','W','X','Y'];
     const NCOL=COLS.length;
     const dataStyle=ci=>(ci===4||ci===9)?20:9;  // E (Description) and J (Precinct Application) wrap-text style
     let rowIdx=17;
@@ -3408,9 +3520,12 @@ async function _doExportXLS(){
           a.imageRef||'',             // Q Image Ref
           a.comments||'',             // R Comments
           a.image2Ref||'',            // S Bump-out Photo
-          a.id||'',                   // T AO Link Key (internal asset id)
-          a.imagePath||'',            // U AO Photo 1 Path (Storage object path)
-          a.image2Path||''            // V AO Photo 2 Path
+          a.serialNumberNew||'',      // T New Serial Number
+          a.id||'',                   // U AO Link Key (internal asset id)
+          a.imagePath||'',            // V AO Photo 1 Path (Storage object path)
+          a.image2Path||'',           // W AO Photo 2 Path
+          '',                         // X AO Photo 1 Hash  ← filled in after fetch
+          ''                          // Y AO Photo 2 Hash
         ];
         let cells='';
         for(let ci=0;ci<NCOL;ci++)cells+=ic(COLS[ci]+rowIdx,dataStyle(ci),vals[ci]);
@@ -3419,14 +3534,16 @@ async function _doExportXLS(){
       }
     }
     s1=s1.replace('</sheetData>',rowsXml+'</sheetData>');
-    s1=s1.replace(/ref="A1:[A-Z]+\d+"/,'ref="A1:V'+Math.max(16,rowIdx-1)+'"');
-    // Retitle the last two visible headers (the template still says R="Drawing Ref",
-    // S="Comments", both shared strings) and add the three hidden link headers. All
-    // are written as inline strings — safe on sheet1, which has no Excel Table.
-    // The names deliberately avoid the words the importer matches on ("image",
-    // "bump", "comments", "asset #"…) so they can never shadow a real column.
-    [['R16','Comments'],['S16','Bump-out Photo'],
-     ['T16','AO Link Key'],['U16','AO Photo 1 Path'],['V16','AO Photo 2 Path']].forEach(([ref,label])=>{
+    s1=s1.replace(/ref="A1:[A-Z]+\d+"/,'ref="A1:Y'+Math.max(16,rowIdx-1)+'"');
+    // Retitle the last two visible template headers (it still says R="Drawing Ref",
+    // S="Comments", both shared strings) and add the four new ones. All are written as
+    // inline strings — safe on sheet1, which has no Excel Table. The AO_ names
+    // deliberately avoid the words the importer matches on ("image", "bump",
+    // "comments", "asset #"…) so they can never shadow a real column, while
+    // "New Serial Number" is exactly what the importer's serialNew rule looks for.
+    [['R16','Comments'],['S16','Bump-out Photo'],['T16','New Serial Number'],
+     ['U16','AO Link Key'],['V16','AO Photo 1 Path'],['W16','AO Photo 2 Path'],
+     ['X16','AO Photo 1 Hash'],['Y16','AO Photo 2 Hash']].forEach(([ref,label])=>{
       const cell='<c r="'+ref+'" s="39" t="inlineStr"><is><t>'+label+'</t></is></c>';
       const re=new RegExp('<c r="'+ref+'"[^>]*?(?:/>|>[\\s\\S]*?</c>)');
       if(re.test(s1))s1=s1.replace(re,cell);
@@ -3438,11 +3555,13 @@ async function _doExportXLS(){
       s1=s1.replace(new RegExp('(<col min="'+n+'" max="'+n+'" width=")([\\d.]+)(")'),
         (m,pre,w,suf)=>pre+(parseFloat(w)*factor).toFixed(6)+suf);
     });
-    // Hide T:V — bookkeeping, not something anyone should be asked to maintain by hand.
-    // Excel preserves hidden columns through an edit-and-save, so the link survives.
+    // T gets a normal width; U:V:W are hidden — bookkeeping, not something anyone
+    // should be asked to maintain by hand. Excel preserves hidden columns through an
+    // edit-and-save, so the link survives a round-trip through the desktop app.
     s1=s1.replace(/<col min="20" max="16384"[^>]*\/>/,
-      '<col min="20" max="22" width="14" style="36" customWidth="1" hidden="1"/>'
-      +'<col min="23" max="16384" width="8.6328125" style="36"/>');
+      '<col min="20" max="20" width="18" style="36" customWidth="1"/>'
+      +'<col min="21" max="25" width="14" style="36" customWidth="1" hidden="1"/>'
+      +'<col min="26" max="16384" width="8.6328125" style="36"/>');
 
     // ── SHARED STRINGS — needed for sheet2 (has Excel Table, requires t="s") ──
     // t="inlineStr" is rejected inside Tables; must use shared string references.
@@ -3538,6 +3657,18 @@ async function _doExportXLS(){
     }
 
     if(embeds.length>0){
+      // Stamp each embedded photo's content signature into its row's hidden hash cell
+      // (X = photo 1, Y = photo 2). On the next upload the importer recomputes the
+      // signature of whatever picture it finds in that row and compares: equal means
+      // the workbook came back with the photo we put in it, so leave it alone; different
+      // means the user replaced it in Excel, so upload the replacement. Without this the
+      // importer has no way to tell those two cases apart.
+      embeds.forEach(function(em){
+        const col=em.col===18?'Y':'X';
+        const sig=crc32Bytes(new Uint8Array(em.buf))+':'+em.buf.byteLength;
+        const cell='<c r="'+col+em.row+'" s="9" t="inlineStr"><is><t>'+sig+'</t></is></c>';
+        s1=s1.replace(new RegExp('<c r="'+col+em.row+'"[^>]*?(?:/>|>[\\s\\S]*?</c>)'),cell);
+      });
       // Media files — named distinctly from the template's own (unused) image1.png.
       const anchors=[];
       const rels=[];
@@ -3902,6 +4033,9 @@ const ASSET_ID_TBC='TBC';
 // land in a field. The generic "image.png" placeholder is likewise not a real
 // reference. Genuinely descriptive filenames are kept.
 const XL_ERRORS=['#VALUE!','#REF!','#N/A','#NAME?','#NUM!','#DIV/0!','#NULL!','#SPILL!','#CALC!','#GETTING_DATA'];
+function isXlErrorCell(v){
+  return XL_ERRORS.indexOf(String(v||'').trim().toUpperCase())>=0;
+}
 function cleanImageRef(v){
   const s=String(v||'').trim();
   if(!s)return '';
