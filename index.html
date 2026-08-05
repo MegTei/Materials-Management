@@ -777,7 +777,7 @@ function renderTMLInfo(ref){
 
 // ── Data constructors ─────────────────────────────────────────────────────────
 function newAsset(o){
-  return Object.assign({id:uid(),expanded:false,serialNumber:'',serialNumberNew:'',assetId:'',prec:'',precCustom:'',assetName:'',desc:'',noOfItems:'',yearBuilt:'',builderSupplier:'',drawingRef:'',imageRef:'',imageUrl:'',imagePath:'',image2Ref:'',image2Url:'',image2Path:'',comments:'',materials:[newAssetMat()]},o||{});
+  return Object.assign({id:uid(),expanded:false,serialNumber:'',serialNumberNew:'',assetId:'',prec:'',precCustom:'',assetName:'',desc:'',noOfItems:'',yearBuilt:'',builderSupplier:'',imageRef:'',imageUrl:'',imagePath:'',image2Ref:'',image2Url:'',image2Path:'',comments:'',materials:[newAssetMat()]},o||{});
 }
 function newAssetMat(o){
   return Object.assign({id:uid(),cat:'',app:'',tmlRef:'',name:'',vol:'',vunit:'sqm',stat:'',outcome:''},o||{});
@@ -2192,11 +2192,15 @@ function imgDownscale(file){
 // SheetJS cannot see the bytes. They are reachable only by opening the .xlsx as a zip
 // and walking: cell vm= -> metadata.xml valueMetadata -> futureMetadata rvb
 // -> richData/rdrichvalue.xml -> richValueRel.xml -> rels -> xl/media/*.
-// Returns Map(rowNumber -> {zipFile, ext, mime}). Scans EVERY column for in-cell
-// images and keys them by row, so it does not matter which column the images sit in
-// (Q, K, or anywhere else). If a row somehow holds more than one, the one in the
-// preferred column wins, otherwise the left-most.
-async function extractCellImages(data,preferCol){
+// Returns Map(rowNumber -> {p, b}) where each is {file, ext, mime} or null:
+//   p = primary photo   (the "Image Ref" column, Q in the template)
+//   b = bump-out photo  (the "Bump-out Photo" column, S in the template)
+// Scans EVERY column for in-cell images, then routes each by the column it sits in,
+// so a row carrying both photos keeps both instead of one silently winning. An image
+// in some other column still falls back to the primary slot (left-most wins), which
+// is what happens with sheets that pre-date the two-column layout.
+// `cols` is {img:'Q', bump:'S'} — resolved from the header row, not hard-coded.
+async function extractCellImages(data,cols){
   const out=new Map();
   if(typeof JSZip==='undefined')return out;
   let zip;
@@ -2244,6 +2248,8 @@ async function extractCellImages(data,preferCol){
     while((rm=relRe.exec(relsXml))!==null)target[rm[1]]=rm[2];
 
     const MIME={png:'image/png',jpg:'image/jpeg',jpeg:'image/jpeg',gif:'image/gif',webp:'image/webp'};
+    const imgCol=(cols&&cols.img)||null;
+    const bumpCol=(cols&&cols.bump)||null;
     const chosen={};
     for(const c of cells){
       const iRc=rc[c.vm-1];        if(iRc===undefined)continue;
@@ -2254,17 +2260,19 @@ async function extractCellImages(data,preferCol){
       const path='xl/'+tgt.replace(/^\.\.\//,'').replace(/^\//,'');
       const f=zip.file(path);      if(!f)continue;
       const ext=(/\.([a-z0-9]+)$/i.exec(path)||[,'png'])[1].toLowerCase();
-      // Preferred column wins; otherwise keep the left-most image on the row.
-      const prev=chosen[c.row];
-      if(prev){
-        if(prev.col===preferCol)continue;
-        if(c.col!==preferCol&&c.col>prev.col)continue;
-      }
-      chosen[c.row]={col:c.col,file:f,ext:ext,mime:MIME[ext]||'image/png'};
+      const info={col:c.col,file:f,ext:ext,mime:MIME[ext]||'image/png'};
+      if(!chosen[c.row])chosen[c.row]={p:null,b:null};
+      const slot=chosen[c.row];
+      if(bumpCol&&c.col===bumpCol){ if(!slot.b)slot.b=info; continue; }
+      if(imgCol&&c.col===imgCol){ slot.p=info; continue; }
+      // Some other column: treat as the primary photo, left-most wins, but never
+      // displace one that genuinely came from the Image Ref column.
+      if(!slot.p||(slot.p.col!==imgCol&&c.col<slot.p.col))slot.p=info;
     }
+    const strip=v=>v?{file:v.file,ext:v.ext,mime:v.mime}:null;
     for(const row in chosen){
       const v=chosen[row];
-      out.set(parseInt(row,10),{file:v.file,ext:v.ext,mime:v.mime});
+      if(v.p||v.b)out.set(parseInt(row,10),{p:strip(v.p),b:strip(v.b)});
     }
   }catch(e){ console.warn('Image extraction failed:',e.message); }
   return out;
@@ -2338,10 +2346,13 @@ async function attachImportedImages(plan,imgMap,opts){
   const jobs=[];
   let skipped=0;
   for(const a of (plan.assets||[])){
-    const info=a._srcRow?imgMap.get(a._srcRow):null;
-    if(!info)continue;
-    if(a.imageUrl){skipped++;continue;} // already has a photo — see note above
-    jobs.push({asset:a,info:info});
+    const found=a._srcRow?imgMap.get(a._srcRow):null;
+    if(!found)continue;
+    // One job per filled slot, so a row carrying both an Image Ref photo and a
+    // Bump-out Photo imports both. Each slot is skipped independently if it is
+    // already populated — see the note above.
+    if(found.p){ if(a.imageUrl)skipped++; else jobs.push({asset:a,info:found.p,slot:1}); }
+    if(found.b){ if(a.image2Url)skipped++; else jobs.push({asset:a,info:found.b,slot:2}); }
   }
   if(!jobs.length)return {ok:0,failed:0,skipped:skipped,cancelled:false};
 
@@ -2365,13 +2376,16 @@ async function attachImportedImages(plan,imgMap,opts){
         const buf=await job.info.file.async('blob');
         const raw=new Blob([buf],{type:job.info.mime});
         const body=await imgDownscale(raw);
-        const name=(job.asset.assetId||'asset')+'.'+job.info.ext;
+        const F=imgSlotFields(job.slot||1);
+        // Slot suffix keeps the two photos of one asset from ever landing on the same
+        // storage path (imgPathFor's timestamp alone can collide within a millisecond).
+        const name=(job.asset.assetId||'asset')+(job.slot===2?'-bumpout':'')+'.'+job.info.ext;
         const path=imgPathFor(plan.id,job.asset.assetId,name);
         const res=await storageUploadWithRetry(path,body,body.type||job.info.mime,0); // outer loop already retries
         if(!res.ok)throw res.error;
         const { data }=sb.storage.from(STORAGE_BUCKET).getPublicUrl(path);
-        job.asset.imagePath=path;
-        job.asset.imageUrl=(data&&data.publicUrl)||'';
+        job.asset[F.path]=path;
+        job.asset[F.url]=(data&&data.publicUrl)||'';
         ok++;lastErr=null;
         break;
       }catch(err){
@@ -2568,7 +2582,7 @@ function assetCard(a,i){
   for(let j=0;j<a.materials.length;j++)_matItems.push(matRowHtml(a.id,a.materials[j],j));
   let matsHtml=foldEvery50(_matItems,'Materials');
   const isTA=TA_ROLES.includes((S.plan&&S.plan.profile&&S.plan.profile.role)||'')||(S.plan&&S.plan.roleType==='TA');
-  const hasAssetDetails=!!(a.serialNumber||a.serialNumberNew||a.assetId||a.noOfItems||a.yearBuilt||a.builderSupplier||a.drawingRef||a.imageRef||a.imageUrl||a.image2Ref||a.image2Url||a.comments);
+  const hasAssetDetails=!!(a.serialNumber||a.serialNumberNew||a.assetId||a.noOfItems||a.yearBuilt||a.builderSupplier||a.imageRef||a.imageUrl||a.image2Ref||a.image2Url||a.comments);
   const taBlock=((isTA&&S.plan&&S.plan.imported)||hasAssetDetails)?`
       <div class="fold-sec" style="margin:0 0 12px;border:1px solid #dde2e8;border-radius:8px;overflow:hidden">
         <button type="button" onclick="toggleFold(this)" data-open="0" style="width:100%;text-align:left;padding:9px 12px;background:#EDEEEF;border:none;cursor:pointer;font-weight:700;font-size:12px;color:#003A5D;display:flex;justify-content:space-between;align-items:center;font-family:inherit"><span>Asset details</span><span class="fold-chev" style="font-size:11px;color:#888">&#9660;</span></button>
@@ -2586,7 +2600,6 @@ function assetCard(a,i){
               <div class="fg"><label>Year built</label><input type="text" data-aid="${a.id}" data-f="yearBuilt" value="${esc(a.yearBuilt||'')}" placeholder="e.g. 2023" onblur="upAsset(this)"></div>
               <div class="fg"><label>Builder / supplier</label><input type="text" data-aid="${a.id}" data-f="builderSupplier" value="${esc(a.builderSupplier||'')}" onblur="upAsset(this)"></div>
             </div>
-            <div class="fg"><label>Drawing ref</label><input type="text" data-aid="${a.id}" data-f="drawingRef" value="${esc(a.drawingRef||'')}" onblur="upAsset(this)"></div>
             ${assetImageBlock(a)}
             <div class="fg"><label>Comments</label><textarea data-aid="${a.id}" data-f="comments" rows="2" onblur="upAsset(this)">${esc(a.comments||'')}</textarea></div>
           </div>
@@ -2902,8 +2915,12 @@ function importPlanXLS(input){
         yearBuilt:findCol(['year built'])||findCol(['year']),
         outcome:  findCol(['actual outcome'])||findCol(['outcome']),
         builder:  findCol(['builder'])||findCol(['supplier']),
-        drawing:  findCol(['drawing']),
+        // 'image' matches the "Image Ref" header (col Q in the template); 'bumpPhoto'
+        // matches "Bump-out Photo" (col S). Both are resolved from the header text, so
+        // neither breaks if the columns are ever moved. Nothing else in the header row
+        // contains "image" or "bump", so there is no ambiguity.
         image:    findCol(['image']),
+        bumpPhoto:findCol(['bump']),
         comments: findCol(['comments'])
       };
       const cv=function(key,rr){const c=COL[key];return c?gv(c+rr):'';};
@@ -2950,8 +2967,8 @@ function importPlanXLS(input){
         const yearBuilt   =cv('yearBuilt',r);
         const outcome     =cv('outcome',r);
         const builder     =cv('builder',r);
-        const drawing     =cv('drawing',r);
         const imageRef    =cv('image',r);
+        const bumpRef     =cv('bumpPhoto',r);
         const comments    =cv('comments',r);
 
         const hasContent=!!(serialNumber||serialNew||assetNumRaw||precRaw||assetName||matName||desc||app||volRaw||vunit||stat||yearBuilt||outcome||noOfItems);
@@ -2969,12 +2986,15 @@ function importPlanXLS(input){
           assetMap[key]={id:(prior&&prior.id)||uid(),expanded:(prior&&prior.expanded)||false,_srcRow:r,serialNumber:clamp(serialNumber,1000),serialNumberNew:clamp(serialNew,1000),assetId:clamp(assetNumRaw,100),
             prec:clamp(prec,100),precCustom:(prior&&prior.precCustom)||'',assetName:clamp(assetName,200),desc:clamp(desc,500),
             noOfItems:clamp(noOfItems,30),yearBuilt:clamp(yearBuilt,20),
-            builderSupplier:clamp(builder,200),drawingRef:clamp(drawing,100),imageRef:clamp(cleanImageRef(imageRef),200),comments:clamp(comments,500),
+            builderSupplier:clamp(builder,200),imageRef:clamp(cleanImageRef(imageRef),200),comments:clamp(comments,500),
             // Carry over previously-uploaded photos so a routine spreadsheet update can
             // never silently disconnect them (they're only ever set via browser upload,
             // or below by attachImportedImages() if the sheet has a fresh embedded image).
             imageUrl:(prior&&prior.imageUrl)||'',imagePath:(prior&&prior.imagePath)||'',
-            image2Ref:(prior&&prior.image2Ref)||'',image2Url:(prior&&prior.image2Url)||'',image2Path:(prior&&prior.image2Path)||'',
+            // Bump-out photo ref comes from col S when the sheet supplies one; a blank
+            // cell keeps whatever was already stored rather than wiping it.
+            image2Ref:clamp(cleanImageRef(bumpRef),200)||(prior&&prior.image2Ref)||'',
+            image2Url:(prior&&prior.image2Url)||'',image2Path:(prior&&prior.image2Path)||'',
             materials:[]};
           assetOrder.push(key);
         }
@@ -3036,10 +3056,10 @@ function importPlanXLS(input){
       // Runs after the import has already succeeded, so a storage problem can
       // never cost the user their asset data. JSZip is lazily loaded for export;
       // make sure it's present before opening the workbook as a zip.
-      const imgCol=COL.image;
+      const imgCols={img:COL.image,bump:COL.bumpPhoto};
       if(sb){
         loadJSZipThen(function(){
-          extractCellImages(data,imgCol).then(function(imgMap){
+          extractCellImages(data,imgCols).then(function(imgMap){
             if(!imgMap.size){
               for(const a of (plan.assets||[]))delete a._srcRow;
               return;
@@ -3192,7 +3212,10 @@ async function _doExportXLS(){
     // A Serial, B Asset ID, C Precinct, D Asset/Item, E Description, F Quantity (No. of items),
     // G No. of Materials (auto), H TML Ref, I Material Name, J Precinct Application, K Volume,
     // L Unit, M Expected Status, N Year built, O Actual Outcome, P Builder/supplier,
-    // Q Image Ref, R Drawing Ref, S Comments
+    // Q Image Ref, R Comments, S Bump-out Photo
+    // Drawing Ref is gone: it used to own R, so Comments shifts left into R and the
+    // bump-out photo takes S. The template's row-16 headers for R and S are rewritten
+    // below to match — everything else in the header row is left as the template has it.
     const COLS=['A','B','C','D','E','F','G','H','I','J','K','L','M','N','O','P','Q','R','S'];
     const dataStyle=ci=>(ci===4||ci===9)?20:9;  // E (Description) and J (Precinct Application) wrap-text style
     let rowIdx=17;
@@ -3205,11 +3228,11 @@ async function _doExportXLS(){
       const mats=a.materials||[];
       const matCount=mats.length;
       const assetStartRow=rowIdx;
-      // Primary photo anchors directly on column Q (Image Ref) rather than a
-      // separate new column — the thumbnail sits over the existing Image Ref
-      // cell instead of needing its own header/column.
+      // Each photo anchors on its own column (0-based): Q=16 Image Ref,
+      // S=18 Bump-out Photo. The thumbnail sits over the cell holding that
+      // slot's text ref, so neither photo needs an extra column of its own.
       if(a.imageUrl) imageJobs.push({row:assetStartRow,col:16,url:a.imageUrl,path:a.imagePath});
-      if(a.image2Url) imageJobs.push({row:assetStartRow,col:19,url:a.image2Url,path:a.image2Path});
+      if(a.image2Url) imageJobs.push({row:assetStartRow,col:18,url:a.image2Url,path:a.image2Path});
       for(let mi=0;mi<matCount;mi++){
         const m=mats[mi];
         const vals=[
@@ -3230,8 +3253,8 @@ async function _doExportXLS(){
           m.outcome||'',              // O Actual Outcome
           a.builderSupplier||'',      // P Builder / supplier
           a.imageRef||'',             // Q Image Ref
-          a.drawingRef||'',           // R Drawing Ref
-          a.comments||''              // S Comments
+          a.comments||'',             // R Comments
+          a.image2Ref||''             // S Bump-out Photo
         ];
         let cells='';
         for(let ci=0;ci<19;ci++)cells+=ic(COLS[ci]+rowIdx,dataStyle(ci),vals[ci]);
@@ -3240,19 +3263,20 @@ async function _doExportXLS(){
       }
     }
     s1=s1.replace('</sheetData>',rowsXml+'</sheetData>');
-    const hasImageJobs=imageJobs.length>0;
-    s1=s1.replace(/ref="A1:[A-Z]+\d+"/,'ref="A1:'+(hasImageJobs?'T':'S')+Math.max(16,rowIdx-1)+'"');
-    if(hasImageJobs){
-      // Only the bump-out photo needs a header for a new column (T) — the
-      // primary photo now anchors on the existing Image Ref column (Q), so no
-      // "Photo" column/header is added for it.
-      const photoHdr='<c r="T16" s="39" t="inlineStr"><is><t>Bump-out Photo</t></is></c>';
-      s1=s1.replace(/(<row r="16"[^>]*>[\s\S]*?)(<\/row>)/,'$1'+photoHdr+'$2');
-    }
-    // Widen column Q (Image Ref) by 50% so the embedded photo thumbnail fits
-    // without being clipped by the column's original text-only width.
-    s1=s1.replace(/(<col min="17" max="17" width=")([\d.]+)(")/,
-      (m,pre,w,suf)=>pre+(parseFloat(w)*1.5).toFixed(6)+suf);
+    s1=s1.replace(/ref="A1:[A-Z]+\d+"/,'ref="A1:S'+Math.max(16,rowIdx-1)+'"');
+    // Retitle the last two headers: the template still says R="Drawing Ref",
+    // S="Comments" (both shared strings), so both cells are replaced outright with
+    // inline strings — safe on sheet1, which has no Excel Table.
+    [['R16','Comments'],['S16','Bump-out Photo']].forEach(([ref,label])=>{
+      const cell='<c r="'+ref+'" s="39" t="inlineStr"><is><t>'+label+'</t></is></c>';
+      s1=s1.replace(new RegExp('<c r="'+ref+'"[^>]*?(?:/>|>[\\s\\S]*?</c>)'),cell);
+    });
+    // Widen the two photo columns so the embedded thumbnails are not clipped by the
+    // template's text-only widths: Q (Image Ref) by 50%, S (Bump-out Photo) doubled.
+    [[17,1.5],[19,2]].forEach(([n,factor])=>{
+      s1=s1.replace(new RegExp('(<col min="'+n+'" max="'+n+'" width=")([\\d.]+)(")'),
+        (m,pre,w,suf)=>pre+(parseFloat(w)*factor).toFixed(6)+suf);
+    });
 
     // ── SHARED STRINGS — needed for sheet2 (has Excel Table, requires t="s") ──
     // t="inlineStr" is rejected inside Tables; must use shared string references.
