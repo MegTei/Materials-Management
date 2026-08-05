@@ -3024,7 +3024,13 @@ function importPlanXLS(input){
           // Asset ID may be blank here; backfillAssetIds() below fills every blank
           // with the lowest unused number, so supplied IDs are never overwritten
           // and auto-assigned ones can never collide with them.
-          const prior=existingByAssetId[key]; // matched only for real 'A:<assetNum>' keys
+          // Matching a prior asset to carry forward its photos/id/expanded-state uses
+          // the Asset # itself whenever the row has one — independent of `key` above,
+          // which only controls how rows GROUP into assets (a TA file is one-row-per-
+          // asset even when Asset # repeats). Without this split, taUpload forced
+          // key='R:'+r, which never matched the 'A:'+assetNum entries in
+          // existingByAssetId, so a TA re-import silently dropped every photo, every time.
+          const prior=assetNumRaw?existingByAssetId['A:'+assetNumRaw]:existingByAssetId[key];
           assetMap[key]={id:(prior&&prior.id)||uid(),expanded:(prior&&prior.expanded)||false,_srcRow:r,serialNumber:clamp(serialNumber,1000),serialNumberNew:clamp(serialNew,1000),assetId:clamp(assetNumRaw,100),
             prec:clamp(prec,100),precCustom:(prior&&prior.precCustom)||'',assetName:clamp(assetName,200),desc:clamp(desc,500),
             noOfItems:clamp(noOfItems,30),yearBuilt:clamp(yearBuilt,20),
