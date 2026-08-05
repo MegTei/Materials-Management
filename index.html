@@ -3137,21 +3137,22 @@ function importPlanXLS(input){
               if(res.skipped)parts.push(res.skipped+' already had a photo');
               if(res.failed)parts.push(res.failed+' failed');
               if(res.cancelled)parts.push('cancelled \u2014 rerun the import to pick up where it left off');
-              const summary=parts.length?parts.join(', '):'No images could be attached';
-              if(res.ok||res.skipped){
-                // Final sync: attachImportedImages already checkpoints along the way,
-                // but this refreshes S.plans/S._unsaved so the UI reflects the
-                // authoritative save state (cloud vs local-only) once the batch ends.
-                planDB.save(plan).then(function(saveRes){
-                  const k=S.plans.findIndex(p=>p.id===plan.id);
-                  if(k>=0)S.plans[k]=JSON.parse(JSON.stringify(plan));
-                  S._unsaved=!(saveRes&&saveRes.ok&&saveRes.source==='cloud');
-                  render();
-                  showToast(summary+((saveRes&&saveRes.source==='cloud')?' \u2014 saved to cloud':' \u2014 saved locally'));
-                });
-              }else{
-                showToast(summary+' \u2014 see console');
-              }
+              const summary=parts.length?parts.join(', '):'No images to attach';
+              // Save the plan regardless of how the photo attach step went. The
+              // asset/material data (the vast majority of the value in a large
+              // import) must never be silently discarded just because photo
+              // uploads failed — a network blip on 7 photos shouldn't cost 498
+              // assets. attachImportedImages already checkpoints along the way;
+              // this is the final sync so S.plans/S._unsaved reflect the true
+              // save state once the batch ends.
+              planDB.save(plan).then(function(saveRes){
+                const k=S.plans.findIndex(p=>p.id===plan.id);
+                if(k>=0)S.plans[k]=JSON.parse(JSON.stringify(plan));
+                S._unsaved=!(saveRes&&saveRes.ok&&saveRes.source==='cloud');
+                render();
+                const savedWhere=(saveRes&&saveRes.source==='cloud')?' \u2014 saved to cloud':' \u2014 saved locally';
+                showToast(res.failed?summary+savedWhere+' (retry the import to attach the rest)':summary+savedWhere);
+              });
             });
           });
         });
