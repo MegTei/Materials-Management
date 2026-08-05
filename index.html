@@ -2154,10 +2154,35 @@ function imgSlug(s,max){
     .toLowerCase();
 }
 // Storage keys must be URL-safe: no spaces, quotes, separators or traversal.
-function imgPathFor(planId,assetId,fileName){
-  const stamp=Date.now().toString(36);
-  const base=imgSlug(String(fileName||'').replace(/\.[^.]*$/,''),40)||'image';
-  return 'plans/'+imgSlug(planId,40)+'/'+(imgSlug(assetId,20)||'asset')+'-'+stamp+'-'+base+'.'+imgSafeExt(fileName);
+// Content-addressed: keyed on a hash of the (downscaled) image bytes rather than
+// a timestamp, so the same photo re-uploaded — via a re-import, a retry, or a
+// manual re-attach — always resolves to the same object instead of a fresh copy.
+function imgPathFor(planId,assetId,hash,fileName){
+  return 'plans/'+imgSlug(planId,40)+'/'+(imgSlug(assetId,20)||'asset')+'-'+hash.slice(0,16)+'.'+imgSafeExt(fileName);
+}
+
+// SHA-256 of a Blob's bytes, as lowercase hex. Hashing happens AFTER downscaling
+// so the hash matches what actually gets uploaded.
+async function sha256Hex(blob){
+  const buf=await blob.arrayBuffer();
+  const digest=await crypto.subtle.digest('SHA-256',buf);
+  return Array.from(new Uint8Array(digest)).map(b=>b.toString(16).padStart(2,'0')).join('');
+}
+
+// True if an object already exists at `path` in the bucket — checked via a
+// cheap list() rather than downloading it — so identical content is never
+// uploaded twice. Any error (e.g. offline) is treated as "not found", so the
+// caller falls through to a normal upload attempt rather than silently skipping it.
+async function storageObjectExists(path){
+  if(!sb)return false;
+  const slash=path.lastIndexOf('/');
+  const folder=path.slice(0,slash);
+  const filename=path.slice(slash+1);
+  try{
+    const{data,error}=await sb.storage.from(STORAGE_BUCKET).list(folder,{search:filename});
+    if(error)return false;
+    return !!(data&&data.some(f=>f.name===filename));
+  }catch(e){return false;}
 }
 
 // Downscale oversized images in the browser before upload. Falls back to the
@@ -2365,9 +2390,13 @@ async function attachImportedImages(plan,imgMap,opts){
         const buf=await job.info.file.async('blob');
         const raw=new Blob([buf],{type:job.info.mime});
         const body=await imgDownscale(raw);
+        const hash=await sha256Hex(body);
         const name=(job.asset.assetId||'asset')+'.'+job.info.ext;
-        const path=imgPathFor(plan.id,job.asset.assetId,name);
-        const res=await storageUploadWithRetry(path,body,body.type||job.info.mime,0); // outer loop already retries
+        const path=imgPathFor(plan.id,job.asset.assetId,hash,name);
+        // Identical content already stored under this path? Skip the upload entirely.
+        const res=(await storageObjectExists(path))
+          ? {ok:true}
+          : await storageUploadWithRetry(path,body,body.type||job.info.mime,0); // outer loop already retries
         if(!res.ok)throw res.error;
         const { data }=sb.storage.from(STORAGE_BUCKET).getPublicUrl(path);
         job.asset.imagePath=path;
@@ -2458,8 +2487,12 @@ async function uploadAssetImage(input,aid,slot){
   if(stat)stat.textContent='Uploading\u2026';
   try{
     const body=await imgDownscale(file);
-    const path=imgPathFor(S.plan.id,a.assetId,file.name);
-    const res=await storageUploadWithRetry(path,body,body.type||file.type,1); // 1 retry for a single manual upload
+    const hash=await sha256Hex(body);
+    const path=imgPathFor(S.plan.id,a.assetId,hash,file.name);
+    // Identical content already stored under this path? Skip the upload entirely.
+    const res=(await storageObjectExists(path))
+      ? {ok:true}
+      : await storageUploadWithRetry(path,body,body.type||file.type,1); // 1 retry for a single manual upload
     if(!res.ok)throw res.error;
     const { data }=sb.storage.from(STORAGE_BUCKET).getPublicUrl(path);
 
