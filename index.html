@@ -2154,10 +2154,35 @@ function imgSlug(s,max){
     .toLowerCase();
 }
 // Storage keys must be URL-safe: no spaces, quotes, separators or traversal.
-function imgPathFor(planId,assetId,fileName){
-  const stamp=Date.now().toString(36);
-  const base=imgSlug(String(fileName||'').replace(/\.[^.]*$/,''),40)||'image';
-  return 'plans/'+imgSlug(planId,40)+'/'+(imgSlug(assetId,20)||'asset')+'-'+stamp+'-'+base+'.'+imgSafeExt(fileName);
+// Content-addressed: keyed on a hash of the (downscaled) image bytes rather than
+// a timestamp, so the same photo re-uploaded — via a re-import, a retry, or a
+// manual re-attach — always resolves to the same object instead of a fresh copy.
+function imgPathFor(planId,assetId,hash,fileName){
+  return 'plans/'+imgSlug(planId,40)+'/'+(imgSlug(assetId,20)||'asset')+'-'+hash.slice(0,16)+'.'+imgSafeExt(fileName);
+}
+
+// SHA-256 of a Blob's bytes, as lowercase hex. Hashing happens AFTER downscaling
+// so the hash matches what actually gets uploaded.
+async function sha256Hex(blob){
+  const buf=await blob.arrayBuffer();
+  const digest=await crypto.subtle.digest('SHA-256',buf);
+  return Array.from(new Uint8Array(digest)).map(b=>b.toString(16).padStart(2,'0')).join('');
+}
+
+// True if an object already exists at `path` in the bucket — checked via a
+// cheap list() rather than downloading it — so identical content is never
+// uploaded twice. Any error (e.g. offline) is treated as "not found", so the
+// caller falls through to a normal upload attempt rather than silently skipping it.
+async function storageObjectExists(path){
+  if(!sb)return false;
+  const slash=path.lastIndexOf('/');
+  const folder=path.slice(0,slash);
+  const filename=path.slice(slash+1);
+  try{
+    const{data,error}=await sb.storage.from(STORAGE_BUCKET).list(folder,{search:filename});
+    if(error)return false;
+    return !!(data&&data.some(f=>f.name===filename));
+  }catch(e){return false;}
 }
 
 // Downscale oversized images in the browser before upload. Falls back to the
@@ -2192,11 +2217,11 @@ function imgDownscale(file){
 // SheetJS cannot see the bytes. They are reachable only by opening the .xlsx as a zip
 // and walking: cell vm= -> metadata.xml valueMetadata -> futureMetadata rvb
 // -> richData/rdrichvalue.xml -> richValueRel.xml -> rels -> xl/media/*.
-// Returns Map(rowNumber -> {zipFile, ext, mime}). Scans EVERY column for in-cell
-// images and keys them by row, so it does not matter which column the images sit in
-// (Q, K, or anywhere else). If a row somehow holds more than one, the one in the
-// preferred column wins, otherwise the left-most.
-async function extractCellImages(data,preferCol){
+// Returns Map(rowNumber -> Map(columnLetter -> {zipFile, ext, mime})). Scans EVERY
+// column for in-cell images and keeps ALL of them, keyed by their actual column —
+// so a photo in the "Image" column and a photo in the "Bump-out Photo" column on
+// the same row are kept distinct instead of one silently winning over the other.
+async function extractCellImages(data){
   const out=new Map();
   if(typeof JSZip==='undefined')return out;
   let zip;
@@ -2244,7 +2269,6 @@ async function extractCellImages(data,preferCol){
     while((rm=relRe.exec(relsXml))!==null)target[rm[1]]=rm[2];
 
     const MIME={png:'image/png',jpg:'image/jpeg',jpeg:'image/jpeg',gif:'image/gif',webp:'image/webp'};
-    const chosen={};
     for(const c of cells){
       const iRc=rc[c.vm-1];        if(iRc===undefined)continue;
       const iRvb=rvb[iRc];         if(iRvb===undefined)continue;
@@ -2254,17 +2278,8 @@ async function extractCellImages(data,preferCol){
       const path='xl/'+tgt.replace(/^\.\.\//,'').replace(/^\//,'');
       const f=zip.file(path);      if(!f)continue;
       const ext=(/\.([a-z0-9]+)$/i.exec(path)||[,'png'])[1].toLowerCase();
-      // Preferred column wins; otherwise keep the left-most image on the row.
-      const prev=chosen[c.row];
-      if(prev){
-        if(prev.col===preferCol)continue;
-        if(c.col!==preferCol&&c.col>prev.col)continue;
-      }
-      chosen[c.row]={col:c.col,file:f,ext:ext,mime:MIME[ext]||'image/png'};
-    }
-    for(const row in chosen){
-      const v=chosen[row];
-      out.set(parseInt(row,10),{file:v.file,ext:v.ext,mime:v.mime});
+      if(!out.has(c.row))out.set(c.row,new Map());
+      out.get(c.row).set(c.col,{file:f,ext:ext,mime:MIME[ext]||'image/png'});
     }
   }catch(e){ console.warn('Image extraction failed:',e.message); }
   return out;
@@ -2328,20 +2343,33 @@ async function storageUploadWithRetry(path,body,contentType,retries){
   return {ok:false,error:lastErr};
 }
 
-async function attachImportedImages(plan,imgMap,opts){
+async function attachImportedImages(plan,imgMap,cols,opts){
   const options=opts||{};
   const onProgress=options.onProgress||function(){};
   const isCancelled=options.isCancelled||function(){return false;};
 
   if(!imgMap||!imgMap.size||!sb)return {ok:0,failed:0,skipped:0,cancelled:false};
 
+  // Two independent slots per asset: the "Image" column feeds imagePath/imageUrl,
+  // the "Bump-out Photo" column feeds image2Path/image2Url. Each is only queued if
+  // that column was actually found in the sheet, the row has a photo in it, and the
+  // matching slot on the asset isn't already filled (see the carry-forward note at
+  // the asset-merge step above — an existing photo always wins over the sheet).
   const jobs=[];
   let skipped=0;
   for(const a of (plan.assets||[])){
-    const info=a._srcRow?imgMap.get(a._srcRow):null;
-    if(!info)continue;
-    if(a.imageUrl){skipped++;continue;} // already has a photo — see note above
-    jobs.push({asset:a,info:info});
+    const rowImgs=a._srcRow?imgMap.get(a._srcRow):null;
+    if(!rowImgs)continue;
+    const imgInfo=cols.image?rowImgs.get(cols.image):null;
+    const bumpInfo=cols.bumpOut?rowImgs.get(cols.bumpOut):null;
+    if(imgInfo){
+      if(a.imageUrl)skipped++;
+      else jobs.push({asset:a,info:imgInfo,slot:1});
+    }
+    if(bumpInfo){
+      if(a.image2Url)skipped++;
+      else jobs.push({asset:a,info:bumpInfo,slot:2});
+    }
   }
   if(!jobs.length)return {ok:0,failed:0,skipped:skipped,cancelled:false};
 
@@ -2365,13 +2393,22 @@ async function attachImportedImages(plan,imgMap,opts){
         const buf=await job.info.file.async('blob');
         const raw=new Blob([buf],{type:job.info.mime});
         const body=await imgDownscale(raw);
-        const name=(job.asset.assetId||'asset')+'.'+job.info.ext;
-        const path=imgPathFor(plan.id,job.asset.assetId,name);
-        const res=await storageUploadWithRetry(path,body,body.type||job.info.mime,0); // outer loop already retries
+        const hash=await sha256Hex(body);
+        const name=(job.asset.assetId||'asset')+(job.slot===2?'-bumpout':'')+'.'+job.info.ext;
+        const path=imgPathFor(plan.id,job.asset.assetId,hash,name);
+        // Identical content already stored under this path? Skip the upload entirely.
+        const res=(await storageObjectExists(path))
+          ? {ok:true}
+          : await storageUploadWithRetry(path,body,body.type||job.info.mime,0); // outer loop already retries
         if(!res.ok)throw res.error;
         const { data }=sb.storage.from(STORAGE_BUCKET).getPublicUrl(path);
-        job.asset.imagePath=path;
-        job.asset.imageUrl=(data&&data.publicUrl)||'';
+        if(job.slot===2){
+          job.asset.image2Path=path;
+          job.asset.image2Url=(data&&data.publicUrl)||'';
+        }else{
+          job.asset.imagePath=path;
+          job.asset.imageUrl=(data&&data.publicUrl)||'';
+        }
         ok++;lastErr=null;
         break;
       }catch(err){
@@ -2458,8 +2495,12 @@ async function uploadAssetImage(input,aid,slot){
   if(stat)stat.textContent='Uploading\u2026';
   try{
     const body=await imgDownscale(file);
-    const path=imgPathFor(S.plan.id,a.assetId,file.name);
-    const res=await storageUploadWithRetry(path,body,body.type||file.type,1); // 1 retry for a single manual upload
+    const hash=await sha256Hex(body);
+    const path=imgPathFor(S.plan.id,a.assetId,hash,file.name);
+    // Identical content already stored under this path? Skip the upload entirely.
+    const res=(await storageObjectExists(path))
+      ? {ok:true}
+      : await storageUploadWithRetry(path,body,body.type||file.type,1); // 1 retry for a single manual upload
     if(!res.ok)throw res.error;
     const { data }=sb.storage.from(STORAGE_BUCKET).getPublicUrl(path);
 
@@ -2532,13 +2573,30 @@ async function removeAssetImage(aid,slot){
 function assetImageBlock(a){
   return imgSlotBlock(a,1,'Image')+imgSlotBlock(a,2,'Bump-out photo');
 }
+// A thumbnail failed to load (network, permissions, or the object being
+// briefly unavailable) — NEVER clear a.imageUrl/a.imagePath here. This is a
+// display-only fallback: the stored reference is left exactly as it was, so
+// if the URL starts working again later the same reference just renders
+// normally next time, with no re-upload required. The link (still pointing
+// at the real URL) stays clickable so you can open it directly to see the
+// browser's own error (403 = permissions/RLS, 404 = the object is gone).
+function imgLoadFailed(img){
+  if(img.dataset.failed)return; // guard against the fallback itself re-triggering
+  img.dataset.failed='1';
+  img.style.display='none';
+  const box=document.createElement('div');
+  box.title='Could not load this image right now — the saved reference is untouched. Click the thumbnail area to open the file link directly.';
+  box.style.cssText='width:74px;height:74px;border-radius:8px;border:1.5px dashed #e3b3b3;background:#fdf4f4;display:flex;align-items:center;justify-content:center;color:#b56767;font-size:10px;text-align:center;line-height:1.3;padding:4px;box-sizing:border-box;flex-shrink:0';
+  box.textContent='Image unavailable';
+  img.parentNode.insertBefore(box,img.nextSibling);
+}
 function imgSlotBlock(a,slot,label){
   const F=imgSlotFields(slot);
   const url=a[F.url],ref=a[F.ref];
   const hasImg=!!url;
   const thumb=hasImg
     ? '<a href="'+esc(url)+'" target="_blank" rel="noopener" style="flex-shrink:0;display:block">'
-      +'<img src="'+esc(url)+'" alt="'+esc(ref||label)+'" '
+      +'<img src="'+esc(url)+'" alt="'+esc(ref||label)+'" onerror="imgLoadFailed(this)" '
       +'style="width:74px;height:74px;object-fit:cover;border-radius:8px;border:1px solid #dde2e8;display:block"></a>'
     : '<div style="width:74px;height:74px;border-radius:8px;border:1.5px dashed #d0cdc7;background:#faf9f7;display:flex;align-items:center;justify-content:center;color:#c4c0b8;font-size:22px;flex-shrink:0">&#9634;</div>';
   const btnStyle='font-size:11.5px;font-weight:600;padding:6px 12px;border-radius:7px;cursor:pointer;border:1px solid #d0cdc7;background:#fff;color:#555;font-family:inherit;width:auto';
@@ -2904,6 +2962,7 @@ function importPlanXLS(input){
         builder:  findCol(['builder'])||findCol(['supplier']),
         drawing:  findCol(['drawing']),
         image:    findCol(['image']),
+        bumpOut:  findCol(['bump','photo']),
         comments: findCol(['comments'])
       };
       const cv=function(key,rr){const c=COL[key];return c?gv(c+rr):'';};
@@ -3036,10 +3095,10 @@ function importPlanXLS(input){
       // Runs after the import has already succeeded, so a storage problem can
       // never cost the user their asset data. JSZip is lazily loaded for export;
       // make sure it's present before opening the workbook as a zip.
-      const imgCol=COL.image;
+      const imgCols={image:COL.image,bumpOut:COL.bumpOut};
       if(sb){
         loadJSZipThen(function(){
-          extractCellImages(data,imgCol).then(function(imgMap){
+          extractCellImages(data).then(function(imgMap){
             if(!imgMap.size){
               for(const a of (plan.assets||[]))delete a._srcRow;
               return;
@@ -3050,10 +3109,12 @@ function importPlanXLS(input){
             // checkpoints to local storage + Supabase every ~20 images, so a
             // closed tab, dropped connection, or Cancel click only loses progress
             // back to the last checkpoint, not the whole batch.
+            let totalFound=0;
+            imgMap.forEach(function(rowMap){totalFound+=rowMap.size;});
             _bulkImgCancelFlag=false;
             bulkImgBannerShow();
-            bulkImgBannerUpdate('Found '+imgMap.size+' image'+(imgMap.size===1?'':'s')+' \u2014 starting\u2026');
-            attachImportedImages(plan,imgMap,{
+            bulkImgBannerUpdate('Found '+totalFound+' image'+(totalFound===1?'':'s')+' \u2014 starting\u2026');
+            attachImportedImages(plan,imgMap,imgCols,{
               onProgress:function(p){
                 const now=Date.now();
                 if(now-_bulkImgLastRender<250&&p.done<p.total)return; // throttle DOM writes
