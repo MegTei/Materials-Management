@@ -2187,94 +2187,175 @@ function imgDownscale(file){
   });
 }
 
-// ── Excel "image in cell" extraction ──────────────────────────────────────────
-// Excel stores in-cell images as rich values, so the cell reads back as #VALUE! and
-// SheetJS cannot see the bytes. They are reachable only by opening the .xlsx as a zip
-// and walking: cell vm= -> metadata.xml valueMetadata -> futureMetadata rvb
-// -> richData/rdrichvalue.xml -> richValueRel.xml -> rels -> xl/media/*.
-// Returns Map(rowNumber -> {p, b}) where each is {file, ext, mime} or null:
+// ── Embedded image extraction ─────────────────────────────────────────────────
+// A workbook can carry photos in two completely different ways, and a round-trip
+// through this app involves both:
+//
+//  1. "Image in cell" (rich values). Excel stores these outside the cell, which
+//     reads back as #VALUE!, so SheetJS cannot see the bytes. They are reachable
+//     only by walking: cell vm= -> metadata.xml valueMetadata -> futureMetadata
+//     rvb -> richData/rdrichvalue.xml -> richValueRel.xml -> rels -> xl/media/*.
+//  2. Pictures anchored to a cell (xl/drawings/drawingN.xml). This is what
+//     Insert > Picture produces, and — critically — it is also what THIS app
+//     writes on export. Reading only (1) meant an exported plan re-uploaded
+//     unchanged came back with no images at all, because the file it had just
+//     written contained no rich values whatsoever.
+//
+// Both sources are read and merged. Returns Map(rowNumber -> {p, b}), each of
+// which is {file, ext, mime} or null:
 //   p = primary photo   (the "Image Ref" column, Q in the template)
 //   b = bump-out photo  (the "Bump-out Photo" column, S in the template)
-// Scans EVERY column for in-cell images, then routes each by the column it sits in,
-// so a row carrying both photos keeps both instead of one silently winning. An image
-// in some other column still falls back to the primary slot (left-most wins), which
-// is what happens with sheets that pre-date the two-column layout.
-// `cols` is {img:'Q', bump:'S'} — resolved from the header row, not hard-coded.
+// Images are routed by the column they sit in, so a row carrying both keeps both.
+// One in any other column still falls back to the primary slot (left-most wins),
+// which is what happens with sheets pre-dating the two-column layout.
+// `cols` is {img:'Q', bump:'S'} — resolved from the header row, never hard-coded.
+
+const IMG_EXT_MIME={png:'image/png',jpg:'image/jpeg',jpeg:'image/jpeg',gif:'image/gif',webp:'image/webp'};
+
+// 0-based column index (the form drawing anchors use) -> column letter.
+function colIdxToLetter(n){
+  n=Number(n);
+  if(!isFinite(n)||n<0)return '';
+  let s='';n++;
+  while(n>0){const m=(n-1)%26;s=String.fromCharCode(65+m)+s;n=Math.floor((n-1)/26);}
+  return s;
+}
+
+// Resolve a relationship Target ("../media/x.png", "/xl/media/x.png", "media/x.png")
+// to a real path inside the zip, relative to the part that owns the .rels file.
+function zipResolve(basePart,target){
+  let rest=String(target||'').replace(/^\//,'').replace(/^\.\//,'');
+  if(/^xl\//.test(rest))return rest;
+  const parts=basePart.replace(/\/[^/]*$/,'').split('/');
+  while(/^\.\.\//.test(rest)){rest=rest.slice(3);parts.pop();}
+  return parts.concat(rest).join('/');
+}
+
+// Source 1: in-cell rich-value images.
+async function collectRichValueImages(zip,txt,sheetPath,found){
+  const rvXml=await txt('xl/richData/rdrichvalue.xml');
+  const rvrXml=await txt('xl/richData/richValueRel.xml');
+  const relsXml=await txt('xl/richData/_rels/richValueRel.xml.rels');
+  const mdXml=await txt('xl/metadata.xml');
+  if(!rvXml||!rvrXml||!relsXml||!mdXml)return;
+  const sheetXml=await txt(sheetPath);
+  if(!sheetXml)return;
+
+  const cellRe=/<c r="([A-Z]+)(\d+)"[^>]*\bvm="(\d+)"/g;
+  const cells=[];let m;
+  while((m=cellRe.exec(sheetXml))!==null)cells.push({col:m[1],row:parseInt(m[2],10),vm:parseInt(m[3],10)});
+  if(!cells.length)return;
+
+  const vmBlock=/<valueMetadata[\s\S]*?<\/valueMetadata>/.exec(mdXml);
+  const rc=vmBlock?(vmBlock[0].match(/<rc[^>]*\bv="(\d+)"/g)||[]).map(s=>parseInt(/v="(\d+)"/.exec(s)[1],10)):[];
+  const fmBlock=/<futureMetadata[^>]*name="XLRICHVALUE"[\s\S]*?<\/futureMetadata>/.exec(mdXml);
+  const rvb=fmBlock?(fmBlock[0].match(/<xlrd:rvb[^>]*\bi="(\d+)"/g)||[]).map(s=>parseInt(/i="(\d+)"/.exec(s)[1],10)):[];
+  const rvs=(rvXml.match(/<rv[^>]*>[\s\S]*?<\/rv>/g)||[]).map(b=>{const v=/<v>(\d+)<\/v>/.exec(b);return v?parseInt(v[1],10):-1;});
+  const relIds=(rvrXml.match(/<rel[^>]*r:id="[^"]+"/g)||[]).map(s=>/r:id="([^"]+)"/.exec(s)[1]);
+  const target={};const relRe=/Id="([^"]+)"[^>]*Target="([^"]+)"/g;let rm;
+  while((rm=relRe.exec(relsXml))!==null)target[rm[1]]=rm[2];
+
+  for(const c of cells){
+    const iRc=rc[c.vm-1];        if(iRc===undefined)continue;
+    const iRvb=rvb[iRc];         if(iRvb===undefined)continue;
+    const iRel=rvs[iRvb];        if(iRel===undefined||iRel<0)continue;
+    const rid=relIds[iRel];      if(!rid)continue;
+    const tgt=target[rid];       if(!tgt)continue;
+    const path=zipResolve('xl/richData/richValueRel.xml',tgt);
+    const f=zip.file(path);      if(!f)continue;
+    const ext=(/\.([a-z0-9]+)$/i.exec(path)||[,'png'])[1].toLowerCase();
+    found.push({col:c.col,row:c.row,file:f,ext:ext,mime:IMG_EXT_MIME[ext]||'image/png'});
+  }
+}
+
+// Source 2: pictures anchored to a cell via the sheet's drawing part.
+async function collectDrawingImages(zip,txt,sheetPath,found){
+  const sheetRels=await txt(sheetPath.replace(/([^/]+)$/,'_rels/$1.rels'));
+  if(!sheetRels)return;
+  const drawRe=/<Relationship[^>]*>/g;let rm;
+  const drawings=[];
+  while((rm=drawRe.exec(sheetRels))!==null){
+    if(!/Type="[^"]*\/drawing"/.test(rm[0]))continue;
+    const t=/Target="([^"]+)"/.exec(rm[0]);
+    if(t)drawings.push(zipResolve(sheetPath,t[1]));
+  }
+  for(const drawPath of drawings){
+    const drawXml=await txt(drawPath);
+    if(!drawXml)continue;
+    const dRels=await txt(drawPath.replace(/([^/]+)$/,'_rels/$1.rels'));
+    // Relationship ids are arbitrary strings, not necessarily rId+digits — this app's
+    // own export writes "rIdImg1", so anchoring on \d+ here found nothing at all.
+    const media={};const mRe=/Id="([^"]+)"[^>]*Target="([^"]+)"/g;let mm;
+    while((mm=mRe.exec(dRels||''))!==null)media[mm[1]]=zipResolve(drawPath,mm[2]);
+    // oneCellAnchor and twoCellAnchor both carry <from><col>/<row>; absoluteAnchor
+    // has no cell reference at all, so it is skipped.
+    ['oneCellAnchor','twoCellAnchor'].forEach(function(tag){
+      const re=new RegExp('<(?:\\w+:)?'+tag+'\\b[\\s\\S]*?<\\/(?:\\w+:)?'+tag+'>','g');
+      let am;
+      while((am=re.exec(drawXml))!==null){
+        const blk=am[0];
+        const from=/<(?:\w+:)?from>([\s\S]*?)<\/(?:\w+:)?from>/.exec(blk);
+        const embed=/r:embed="([^"]+)"/.exec(blk);
+        if(!from||!embed)continue;
+        const cIdx=/<(?:\w+:)?col>(\d+)<\/(?:\w+:)?col>/.exec(from[1]);
+        const rIdx=/<(?:\w+:)?row>(\d+)<\/(?:\w+:)?row>/.exec(from[1]);
+        if(!cIdx||!rIdx)continue;
+        const path=media[embed[1]];
+        const f=path&&zip.file(path);
+        if(!f)continue;
+        const ext=(/\.([a-z0-9]+)$/i.exec(path)||[,'png'])[1].toLowerCase();
+        // Anchor indices are 0-based; sheet rows are 1-based.
+        found.push({col:colIdxToLetter(parseInt(cIdx[1],10)),row:parseInt(rIdx[1],10)+1,
+                    file:f,ext:ext,mime:IMG_EXT_MIME[ext]||'image/png'});
+      }
+    });
+  }
+}
+
 async function extractCellImages(data,cols){
   const out=new Map();
   if(typeof JSZip==='undefined')return out;
   let zip;
   try{ zip=await JSZip.loadAsync(data); }catch(e){ return out; }
   const txt=async(p)=>{const f=zip.file(p);return f?await f.async('string'):'';};
+
+  // Resolve the first worksheet part rather than assuming sheet1.xml
+  let sheetPath='xl/worksheets/sheet1.xml';
   try{
-    const rvXml=await txt('xl/richData/rdrichvalue.xml');
-    const rvrXml=await txt('xl/richData/richValueRel.xml');
-    const relsXml=await txt('xl/richData/_rels/richValueRel.xml.rels');
-    const mdXml=await txt('xl/metadata.xml');
-    if(!rvXml||!rvrXml||!relsXml||!mdXml)return out;
-
-    // Resolve the first worksheet part rather than assuming sheet1.xml
-    let sheetPath='xl/worksheets/sheet1.xml';
-    try{
-      const wbXml=await txt('xl/workbook.xml');
-      const wbRels=await txt('xl/_rels/workbook.xml.rels');
-      const first=/<sheet[^>]*r:id="([^"]+)"/.exec(wbXml);
-      if(first&&wbRels){
-        const m=new RegExp('Id="'+first[1]+'"[^>]*Target="([^"]+)"').exec(wbRels);
-        if(m){
-          const t=m[1].replace(/^\/?xl\//,'').replace(/^\.\//,'');
-          if(zip.file('xl/'+t))sheetPath='xl/'+t;
-        }
-      }
-    }catch(e){}
-
-    const sheetXml=await txt(sheetPath);
-    if(!sheetXml)return out;
-
-    const cellRe=/<c r="([A-Z]+)(\d+)"[^>]*\bvm="(\d+)"/g;
-    const cells=[];let m;
-    while((m=cellRe.exec(sheetXml))!==null){
-      cells.push({col:m[1],row:parseInt(m[2],10),vm:parseInt(m[3],10)});
+    const wbXml=await txt('xl/workbook.xml');
+    const wbRels=await txt('xl/_rels/workbook.xml.rels');
+    const first=/<sheet[^>]*r:id="([^"]+)"/.exec(wbXml);
+    if(first&&wbRels){
+      const m=new RegExp('Id="'+first[1]+'"[^>]*Target="([^"]+)"').exec(wbRels);
+      if(m){const p=zipResolve('xl/workbook.xml',m[1]);if(zip.file(p))sheetPath=p;}
     }
-    if(!cells.length)return out;
+  }catch(e){}
 
-    const vmBlock=/<valueMetadata[\s\S]*?<\/valueMetadata>/.exec(mdXml);
-    const rc=vmBlock?(vmBlock[0].match(/<rc[^>]*\bv="(\d+)"/g)||[]).map(s=>parseInt(/v="(\d+)"/.exec(s)[1],10)):[];
-    const fmBlock=/<futureMetadata[^>]*name="XLRICHVALUE"[\s\S]*?<\/futureMetadata>/.exec(mdXml);
-    const rvb=fmBlock?(fmBlock[0].match(/<xlrd:rvb[^>]*\bi="(\d+)"/g)||[]).map(s=>parseInt(/i="(\d+)"/.exec(s)[1],10)):[];
-    const rvs=(rvXml.match(/<rv[^>]*>[\s\S]*?<\/rv>/g)||[]).map(b=>{const v=/<v>(\d+)<\/v>/.exec(b);return v?parseInt(v[1],10):-1;});
-    const relIds=(rvrXml.match(/<rel[^>]*r:id="(rId\d+)"/g)||[]).map(s=>/r:id="(rId\d+)"/.exec(s)[1]);
-    const target={};const relRe=/Id="(rId\d+)"[^>]*Target="([^"]+)"/g;let rm;
-    while((rm=relRe.exec(relsXml))!==null)target[rm[1]]=rm[2];
+  const found=[];
+  try{ await collectRichValueImages(zip,txt,sheetPath,found); }
+  catch(e){ console.warn('In-cell image extraction failed:',(e&&e.message)||e); }
+  try{ await collectDrawingImages(zip,txt,sheetPath,found); }
+  catch(e){ console.warn('Anchored image extraction failed:',(e&&e.message)||e); }
+  if(!found.length)return out;
 
-    const MIME={png:'image/png',jpg:'image/jpeg',jpeg:'image/jpeg',gif:'image/gif',webp:'image/webp'};
-    const imgCol=(cols&&cols.img)||null;
-    const bumpCol=(cols&&cols.bump)||null;
-    const chosen={};
-    for(const c of cells){
-      const iRc=rc[c.vm-1];        if(iRc===undefined)continue;
-      const iRvb=rvb[iRc];         if(iRvb===undefined)continue;
-      const iRel=rvs[iRvb];        if(iRel===undefined||iRel<0)continue;
-      const rid=relIds[iRel];      if(!rid)continue;
-      const tgt=target[rid];       if(!tgt)continue;
-      const path='xl/'+tgt.replace(/^\.\.\//,'').replace(/^\//,'');
-      const f=zip.file(path);      if(!f)continue;
-      const ext=(/\.([a-z0-9]+)$/i.exec(path)||[,'png'])[1].toLowerCase();
-      const info={col:c.col,file:f,ext:ext,mime:MIME[ext]||'image/png'};
-      if(!chosen[c.row])chosen[c.row]={p:null,b:null};
-      const slot=chosen[c.row];
-      if(bumpCol&&c.col===bumpCol){ if(!slot.b)slot.b=info; continue; }
-      if(imgCol&&c.col===imgCol){ slot.p=info; continue; }
-      // Some other column: treat as the primary photo, left-most wins, but never
-      // displace one that genuinely came from the Image Ref column.
-      if(!slot.p||(slot.p.col!==imgCol&&c.col<slot.p.col))slot.p=info;
-    }
-    const strip=v=>v?{file:v.file,ext:v.ext,mime:v.mime}:null;
-    for(const row in chosen){
-      const v=chosen[row];
-      if(v.p||v.b)out.set(parseInt(row,10),{p:strip(v.p),b:strip(v.b)});
-    }
-  }catch(e){ console.warn('Image extraction failed:',e.message); }
+  const imgCol=(cols&&cols.img)||null;
+  const bumpCol=(cols&&cols.bump)||null;
+  const chosen={};
+  for(const info of found){
+    if(!info.row)continue;
+    if(!chosen[info.row])chosen[info.row]={p:null,b:null};
+    const slot=chosen[info.row];
+    if(bumpCol&&info.col===bumpCol){ if(!slot.b)slot.b=info; continue; }
+    if(imgCol&&info.col===imgCol){ if(!slot.p||slot.p.col!==imgCol)slot.p=info; continue; }
+    // Some other column: treat as the primary photo, left-most wins, but never
+    // displace one that genuinely came from the Image Ref column.
+    if(!slot.p||(slot.p.col!==imgCol&&info.col<slot.p.col))slot.p=info;
+  }
+  const strip=v=>v?{file:v.file,ext:v.ext,mime:v.mime}:null;
+  for(const row in chosen){
+    const v=chosen[row];
+    if(v.p||v.b)out.set(parseInt(row,10),{p:strip(v.p),b:strip(v.b)});
+  }
   return out;
 }
 
@@ -2921,6 +3002,12 @@ function importPlanXLS(input){
         // contains "image" or "bump", so there is no ambiguity.
         image:    findCol(['image']),
         bumpPhoto:findCol(['bump']),
+        // Hidden round-trip columns written by this app's own export (T/U/V). Named so
+        // they cannot shadow a real column, and absent from older files — in which case
+        // these are null and the legacy identity matching below takes over unchanged.
+        linkKey:  findCol(['ao link']),
+        photo1:   findCol(['ao photo 1']),
+        photo2:   findCol(['ao photo 2']),
         comments: findCol(['comments'])
       };
       const cv=function(key,rr){const c=COL[key];return c?gv(c+rr):'';};
@@ -2928,19 +3015,55 @@ function importPlanXLS(input){
 
       // ── Preserve identity across a self-service "update from XLS" re-import ──────
       // plan.assets here is still the PRE-import array (it isn't replaced until
-      // backfillAssetIds() below). An asset's images, expanded state, and internal id
-      // are never round-tripped through the spreadsheet — they only ever exist because
-      // someone uploaded them in the browser. Without this lookup, every re-import
-      // rebuilt every asset from scratch with a brand-new id, which silently orphaned
-      // any photo already uploaded (the file stayed in Storage, but the plan lost the
-      // link to it). Matching by Asset # (the same key used to group rows below) lets
-      // an update only change the fields that actually changed in the sheet, while a
-      // row with no Asset # (one-off items) still gets a fresh asset, same as before.
-      const existingByAssetId={};
-      (plan.assets||[]).forEach(function(ea){
-        const k=String(ea.assetId||'').trim();
-        if(k)existingByAssetId['A:'+k]=ea;
+      // backfillAssetIds() below). An asset's images and internal id are not written
+      // into every sheet, so without this lookup a re-import rebuilds each asset from
+      // scratch and orphans its photos (the file stays in Storage, the plan loses the
+      // link). Matching is tried in three passes, each prior asset consumed at most once:
+      //   0. AO Link Key — the asset's own id, written into the file by our own export
+      //      (hidden col T). Exact, and survives any offline edit to the visible fields;
+      //   1. real Asset # — the reliable key when the user has actually set one;
+      //   2. identity signature (precinct | asset name | serial) — the fallback for
+      //      assets left on the 'TBC' placeholder, which is NOT an identity: every
+      //      such asset carries the same literal string, so keying on it collapsed
+      //      them all onto one entry and handed that entry the last one's photos.
+      // Deliberately no positional fallback: attaching the wrong photo to the wrong
+      // asset is worse than not attaching one.
+      const priorAssets=(plan.assets||[]).slice();
+      const priorUsed={};
+      const realAssetId=v=>{const s=String(v||'').trim();return (!s||s.toUpperCase()===ASSET_ID_TBC)?'':s;};
+      const identSig=(pc,nm,sn)=>[pc,nm,sn].map(v=>String(v||'').trim().toLowerCase()).join('|');
+      const priorById={},priorByNum={},priorBySig={};
+      priorAssets.forEach(function(ea,i){
+        const lk=String(ea.id||'').trim();
+        if(lk&&priorById[lk]===undefined)priorById[lk]=i;
+        const k=realAssetId(ea.assetId);
+        if(k&&priorByNum[k]===undefined)priorByNum[k]=i;
+        const s=identSig(ea.prec,ea.assetName,ea.serialNumber);
+        if(s!=='||'&&priorBySig[s]===undefined)priorBySig[s]=i;
       });
+      const takePrior=function(linkKey,assetNum,pc,nm,sn){
+        const lk=String(linkKey||'').trim();
+        const k=realAssetId(assetNum);
+        const s=identSig(pc,nm,sn);
+        let i=(lk&&priorById[lk]!==undefined&&!priorUsed[priorById[lk]])?priorById[lk]:-1;
+        if(i<0&&k&&priorByNum[k]!==undefined&&!priorUsed[priorByNum[k]])i=priorByNum[k];
+        if(i<0&&s!=='||'&&priorBySig[s]!==undefined&&!priorUsed[priorBySig[s]])i=priorBySig[s];
+        if(i<0)return null;
+        priorUsed[i]=true;
+        return priorAssets[i];
+      };
+      // Rebuild a public URL from a Storage object path carried in the sheet (hidden
+      // cols U/V). This is what lets photos survive an upload from a device that has
+      // never held this plan: the path alone is enough, no prior record needed. Pure
+      // string formatting on the client — no network call, so it costs nothing.
+      const urlForPath=function(p){
+        const path=String(p||'').trim();
+        if(!path||!sb)return '';
+        try{
+          const { data }=sb.storage.from(STORAGE_BUCKET).getPublicUrl(path);
+          return (data&&data.publicUrl)||'';
+        }catch(e){ return ''; }
+      };
 
       // ── Parse asset rows (data from row 17). Blank Asset# => each row is its own asset. ──
       const assetMap={};
@@ -2948,6 +3071,11 @@ function importPlanXLS(input){
       let r=17;
       let emptyStreak=0;
       let lastPrec=''; // forward-fill: precinct is entered once per visual group, blank on rows below
+      // Grouping run for rows with no usable Asset #: the export repeats an asset's
+      // identity fields on every one of its material rows, so consecutive rows sharing
+      // a signature belong to the same asset. Without this, treating 'TBC' as blank
+      // would split a multi-material asset into one asset per material row.
+      let runSig='',runKey='';
       while(r<6000){
         const serialNumber=cv('serial',r);
         const serialNew  =cv('serialNew',r);
@@ -2970,31 +3098,45 @@ function importPlanXLS(input){
         const imageRef    =cv('image',r);
         const bumpRef     =cv('bumpPhoto',r);
         const comments    =cv('comments',r);
+        const linkKey     =cv('linkKey',r);
+        const photo1Path  =cv('photo1',r);
+        const photo2Path  =cv('photo2',r);
 
         const hasContent=!!(serialNumber||serialNew||assetNumRaw||precRaw||assetName||matName||desc||app||volRaw||vunit||stat||yearBuilt||outcome||noOfItems);
         if(!hasContent){emptyStreak++;if(emptyStreak>=3&&r>20)break;r++;continue;}
         emptyStreak=0;
 
-        // Real Asset# groups multiple material rows; blank Asset# => one asset per row
-        // TA migration: one row = one asset (flat inventory). Round-trip: group by Asset#.
-        const key=(taUpload||!assetNumRaw)?('R:'+r):('A:'+assetNumRaw);
+        // AO Link Key groups an asset's material rows exactly when our own export
+        // wrote it. Real Asset# is the next best key. With neither ('TBC' or blank)
+        // fall back to grouping consecutive rows that repeat the same asset identity.
+        // TA migration: one row = one asset (flat inventory).
+        const realNum=realAssetId(assetNumRaw);
+        const rowSig=identSig(prec,assetName,serialNumber)+'|'+String(desc||'').trim().toLowerCase();
+        let key;
+        if(taUpload){key='R:'+r;runSig='';runKey='';}
+        else if(linkKey){key='K:'+linkKey;runSig='';runKey='';}
+        else if(realNum){key='A:'+realNum;runSig='';runKey='';}
+        else if(runKey&&rowSig===runSig&&rowSig!=='|||'){key=runKey;}
+        else {key='R:'+r;runSig=rowSig;runKey=(rowSig==='|||')?'':key;}
         if(!assetMap[key]){
-          // Asset ID may be blank here; backfillAssetIds() below fills every blank
-          // with the lowest unused number, so supplied IDs are never overwritten
-          // and auto-assigned ones can never collide with them.
-          const prior=existingByAssetId[key]; // matched only for real 'A:<assetNum>' keys
-          assetMap[key]={id:(prior&&prior.id)||uid(),expanded:(prior&&prior.expanded)||false,_srcRow:r,serialNumber:clamp(serialNumber,1000),serialNumberNew:clamp(serialNew,1000),assetId:clamp(assetNumRaw,100),
+          // Asset ID may be blank here; backfillAssetIds() below stamps every blank
+          // with the 'TBC' placeholder.
+          const prior=takePrior(linkKey,assetNumRaw,prec,assetName,serialNumber);
+          // Photo linkage, in order of reliability: the Storage path carried in the
+          // file wins, because it is the only source that works with no prior record
+          // at all; otherwise fall back to whatever the existing plan holds. Either
+          // way a routine spreadsheet update can never silently disconnect a photo.
+          const p1=String(photo1Path||'').trim()||(prior&&prior.imagePath)||'';
+          const p2=String(photo2Path||'').trim()||(prior&&prior.image2Path)||'';
+          assetMap[key]={id:(prior&&prior.id)||String(linkKey||'').trim()||uid(),expanded:(prior&&prior.expanded)||false,_srcRow:r,serialNumber:clamp(serialNumber,1000),serialNumberNew:clamp(serialNew,1000),assetId:clamp(assetNumRaw,100),
             prec:clamp(prec,100),precCustom:(prior&&prior.precCustom)||'',assetName:clamp(assetName,200),desc:clamp(desc,500),
             noOfItems:clamp(noOfItems,30),yearBuilt:clamp(yearBuilt,20),
             builderSupplier:clamp(builder,200),imageRef:clamp(cleanImageRef(imageRef),200),comments:clamp(comments,500),
-            // Carry over previously-uploaded photos so a routine spreadsheet update can
-            // never silently disconnect them (they're only ever set via browser upload,
-            // or below by attachImportedImages() if the sheet has a fresh embedded image).
-            imageUrl:(prior&&prior.imageUrl)||'',imagePath:(prior&&prior.imagePath)||'',
+            imagePath:p1,imageUrl:(prior&&prior.imagePath===p1&&prior.imageUrl)||urlForPath(p1)||'',
             // Bump-out photo ref comes from col S when the sheet supplies one; a blank
             // cell keeps whatever was already stored rather than wiping it.
             image2Ref:clamp(cleanImageRef(bumpRef),200)||(prior&&prior.image2Ref)||'',
-            image2Url:(prior&&prior.image2Url)||'',image2Path:(prior&&prior.image2Path)||'',
+            image2Path:p2,image2Url:(prior&&prior.image2Path===p2&&prior.image2Url)||urlForPath(p2)||'',
             materials:[]};
           assetOrder.push(key);
         }
@@ -3213,10 +3355,21 @@ async function _doExportXLS(){
     // G No. of Materials (auto), H TML Ref, I Material Name, J Precinct Application, K Volume,
     // L Unit, M Expected Status, N Year built, O Actual Outcome, P Builder/supplier,
     // Q Image Ref, R Comments, S Bump-out Photo
+    // T AO Link Key, U AO Photo 1 Path, V AO Photo 2 Path  ← hidden round-trip columns
     // Drawing Ref is gone: it used to own R, so Comments shifts left into R and the
     // bump-out photo takes S. The template's row-16 headers for R and S are rewritten
     // below to match — everything else in the header row is left as the template has it.
-    const COLS=['A','B','C','D','E','F','G','H','I','J','K','L','M','N','O','P','Q','R','S'];
+    //
+    // T/U/V exist because the embedded thumbnails are floating DrawingML pictures,
+    // which the importer cannot read back (it only understands Excel's in-cell rich
+    // value images). Without a written-down link, a re-imported row had to be guessed
+    // back onto its original asset by precinct/name/serial — so renaming an asset
+    // offline, or uploading from a device with no local copy of the plan, silently
+    // orphaned its photos. These columns carry the link in the file itself, so
+    // relinking is exact and works even on a device that has never seen the plan.
+    // They are hidden below; if a user deletes them the old matching still applies.
+    const COLS=['A','B','C','D','E','F','G','H','I','J','K','L','M','N','O','P','Q','R','S','T','U','V'];
+    const NCOL=COLS.length;
     const dataStyle=ci=>(ci===4||ci===9)?20:9;  // E (Description) and J (Precinct Application) wrap-text style
     let rowIdx=17;
     let rowsXml='';
@@ -3254,22 +3407,30 @@ async function _doExportXLS(){
           a.builderSupplier||'',      // P Builder / supplier
           a.imageRef||'',             // Q Image Ref
           a.comments||'',             // R Comments
-          a.image2Ref||''             // S Bump-out Photo
+          a.image2Ref||'',            // S Bump-out Photo
+          a.id||'',                   // T AO Link Key (internal asset id)
+          a.imagePath||'',            // U AO Photo 1 Path (Storage object path)
+          a.image2Path||''            // V AO Photo 2 Path
         ];
         let cells='';
-        for(let ci=0;ci<19;ci++)cells+=ic(COLS[ci]+rowIdx,dataStyle(ci),vals[ci]);
-        rowsXml+='<row r="'+rowIdx+'" spans="1:19" x14ac:dyDescent="0.35">'+cells+'</row>';
+        for(let ci=0;ci<NCOL;ci++)cells+=ic(COLS[ci]+rowIdx,dataStyle(ci),vals[ci]);
+        rowsXml+='<row r="'+rowIdx+'" spans="1:'+NCOL+'" x14ac:dyDescent="0.35">'+cells+'</row>';
         rowIdx++;
       }
     }
     s1=s1.replace('</sheetData>',rowsXml+'</sheetData>');
-    s1=s1.replace(/ref="A1:[A-Z]+\d+"/,'ref="A1:S'+Math.max(16,rowIdx-1)+'"');
-    // Retitle the last two headers: the template still says R="Drawing Ref",
-    // S="Comments" (both shared strings), so both cells are replaced outright with
-    // inline strings — safe on sheet1, which has no Excel Table.
-    [['R16','Comments'],['S16','Bump-out Photo']].forEach(([ref,label])=>{
+    s1=s1.replace(/ref="A1:[A-Z]+\d+"/,'ref="A1:V'+Math.max(16,rowIdx-1)+'"');
+    // Retitle the last two visible headers (the template still says R="Drawing Ref",
+    // S="Comments", both shared strings) and add the three hidden link headers. All
+    // are written as inline strings — safe on sheet1, which has no Excel Table.
+    // The names deliberately avoid the words the importer matches on ("image",
+    // "bump", "comments", "asset #"…) so they can never shadow a real column.
+    [['R16','Comments'],['S16','Bump-out Photo'],
+     ['T16','AO Link Key'],['U16','AO Photo 1 Path'],['V16','AO Photo 2 Path']].forEach(([ref,label])=>{
       const cell='<c r="'+ref+'" s="39" t="inlineStr"><is><t>'+label+'</t></is></c>';
-      s1=s1.replace(new RegExp('<c r="'+ref+'"[^>]*?(?:/>|>[\\s\\S]*?</c>)'),cell);
+      const re=new RegExp('<c r="'+ref+'"[^>]*?(?:/>|>[\\s\\S]*?</c>)');
+      if(re.test(s1))s1=s1.replace(re,cell);
+      else s1=s1.replace(/(<row r="16"[^>]*>[\s\S]*?)(<\/row>)/,'$1'+cell+'$2');
     });
     // Widen the two photo columns so the embedded thumbnails are not clipped by the
     // template's text-only widths: Q (Image Ref) by 50%, S (Bump-out Photo) doubled.
@@ -3277,6 +3438,11 @@ async function _doExportXLS(){
       s1=s1.replace(new RegExp('(<col min="'+n+'" max="'+n+'" width=")([\\d.]+)(")'),
         (m,pre,w,suf)=>pre+(parseFloat(w)*factor).toFixed(6)+suf);
     });
+    // Hide T:V — bookkeeping, not something anyone should be asked to maintain by hand.
+    // Excel preserves hidden columns through an edit-and-save, so the link survives.
+    s1=s1.replace(/<col min="20" max="16384"[^>]*\/>/,
+      '<col min="20" max="22" width="14" style="36" customWidth="1" hidden="1"/>'
+      +'<col min="23" max="16384" width="8.6328125" style="36"/>');
 
     // ── SHARED STRINGS — needed for sheet2 (has Excel Table, requires t="s") ──
     // t="inlineStr" is rejected inside Tables; must use shared string references.
