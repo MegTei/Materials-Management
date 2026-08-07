@@ -46,17 +46,24 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .fg label{display:block;font-size:12px;color:#666;margin-bottom:3px}
 .fhint{font-size:11px;color:#aaa;margin-top:2px}
 input,select,textarea{width:100%;padding:7px 10px;border:1px solid #ddd;border-radius:7px;font-size:13px;font-family:inherit;background:#fff;color:#1a1a1a;outline:none;transition:border-color .2s}
-input:focus,select:focus,textarea:focus{border-color:#0091D2}
+input:focus,select:focus,textarea:focus{border-color:#0091D2;box-shadow:0 0 0 3px rgba(0,145,210,.15)}
 textarea{resize:vertical}
 button{padding:8px 16px;border:1px solid #ccc;border-radius:7px;font-size:13px;font-family:inherit;background:#fff;color:#1a1a1a;cursor:pointer;transition:background .15s,border-color .15s}
 button:hover{background:#f5f5f3;border-color:#aaa}
 button:active{background:#eee}
+/* Keyboard-only focus ring. :focus-visible keeps it from showing on a plain mouse
+   click (matches how the rest of the app already behaves) while still giving
+   keyboard/switch users a clear, consistent indicator on every interactive
+   element — including ones styled entirely via inline styles, since this rule
+   only adds the "outline" property, which nothing else in the app sets. */
+button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible{
+  outline:2px solid #0091D2;outline-offset:2px}
 
 /* Asset cards */
 .acard{background:#fff;border:1px solid #e8e5de;border-radius:10px;margin-bottom:10px;overflow:hidden}
 .acard-hd{display:flex;align-items:center;flex-wrap:wrap;gap:7px;padding:10px 13px;cursor:pointer;transition:background .15s}
-.acard-hd:hover{background:#f9f8f6}
-.acard-bd{padding:14px 14px 8px;border-top:1px solid #e8e5de;background:#f9f8f6;border-left:3px solid #0091D2}
+.acard-hd:hover{background:#EFF4F5}
+.acard-bd{padding:14px 14px 8px;border-top:1px solid #e8e5de;background:#EFF4F5;border-left:3px solid #0091D2}
 .aref{font-size:11px;color:#aaa;font-weight:700;flex-shrink:0}
 .aname{flex:0 1 auto;font-size:13px;font-weight:600;color:#1a1a1a;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
 
@@ -161,7 +168,7 @@ button:active{background:#eee}
 .admin-hero h2{font-size:20px;font-weight:800;margin-bottom:.4rem;letter-spacing:-.02em}
 .admin-hero p{font-size:12px;line-height:1.6;opacity:.8}
 .admin-section{background:#fff;margin:0 -1rem;padding:1.25rem 1rem;border-bottom:1px solid #e8e5de}
-.admin-section.alt{background:#f8f7f5}
+.admin-section.alt{background:#CFE7E9}
 .insight-card{background:#fff;border:1px solid #e8e5de;border-radius:10px;padding:14px 16px}
 .insight-label{font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.07em;margin-bottom:10px}
 .insight-row{display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid #f0ede8;font-size:12px}
@@ -189,7 +196,7 @@ button:active{background:#eee}
 
 /* Tab navigation */
 .tab-nav{background:#fff;border-bottom:2px solid #e0ddd6;position:sticky;top:68px;z-index:90;box-shadow:0 1px 6px rgba(0,0,0,.06)}.tab-nav-inner{max-width:700px;margin:0 auto;display:flex;padding-left:1.25rem}
-.tab-btn{padding:11px 16px;font-size:12px;font-weight:700;background:none;border:none;border-bottom:3px solid transparent;margin-bottom:-2px;cursor:pointer;color:#888;border-radius:0;transition:color .15s,border-color .15s;letter-spacing:.02em}
+.tab-btn{padding:11px 16px;font-size:12px;font-weight:700;background:none;border:none;border-bottom:3px solid transparent;margin-bottom:-2px;cursor:pointer;color:#5C7B82;border-radius:0;transition:color .15s,border-color .15s;letter-spacing:.02em}
 .tab-btn:hover{color:#0091D2;background:none}
 .tab-btn.active{color:#0091D2;border-bottom-color:#0091D2}
 
@@ -200,15 +207,15 @@ button:active{background:#eee}
 .purpose-hero .tag{display:inline-block;background:rgba(10,230,255,.18);border:1px solid rgba(10,230,255,.45);color:#0AE6FF;padding:3px 11px;border-radius:99px;font-size:10px;font-weight:700;letter-spacing:.08em;margin-bottom:.85rem;text-transform:uppercase}
 
 .section-panel{background:#fff;margin:0 -1rem;padding:1.5rem 1rem;border-bottom:1px solid #e8e5de}
-.section-panel.alt{background:#f8f7f5}
+.section-panel.alt{background:#CFE7E9}
 
 .why-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:.25rem}
-.why-card{background:#f8f7f5;border:1px solid #ebe8e0;border-radius:10px;padding:13px}
+.why-card{background:#CFE7E9;border:1px solid #ebe8e0;border-radius:10px;padding:13px}
 .why-card .icon{font-size:20px;margin-bottom:6px}
 .why-card h4{font-size:12.5px;font-weight:700;color:#003A5D;margin-bottom:4px}
 .why-card p{font-size:11.5px;color:#666;line-height:1.55}
 
-.hierarchy{background:#f8f7f5;border:1px solid #ebe8e0;border-radius:10px;overflow:hidden;margin-bottom:.25rem}
+.hierarchy{background:#CFE7E9;border:1px solid #ebe8e0;border-radius:10px;overflow:hidden;margin-bottom:.25rem}
 .hier-row{display:flex;align-items:center;gap:12px;padding:10px 14px;border-bottom:1px solid #ebe8e0;transition:background .15s}
 .hier-row:hover{background:#EDEEEF}
 .hier-row:last-child{border-bottom:none}
@@ -216,7 +223,7 @@ button:active{background:#eee}
 .hier-lbl{font-size:13px;color:#003A5D;font-weight:600}
 .hier-sub{font-size:11.5px;color:#777;margin-top:1px}
 
-.resp-card{background:#f8f7f5;border:1px solid #ebe8e0;border-radius:10px;padding:13px 15px;margin-bottom:8px}
+.resp-card{background:#CFE7E9;border:1px solid #ebe8e0;border-radius:10px;padding:13px 15px;margin-bottom:8px}
 .resp-card h4{font-size:13px;font-weight:700;color:#003A5D;margin-bottom:5px;display:flex;align-items:center;gap:7px}
 .resp-card p{font-size:12.5px;color:#555;line-height:1.65}
 
@@ -238,7 +245,7 @@ button:active{background:#eee}
 
 /* Plans section */
 .plans-section{background:#fff;margin:0 -1rem;padding:1.25rem 1rem;border-bottom:1px solid #e8e5de}
-.pitem{display:flex;align-items:center;gap:10px;padding:12px 14px;background:#f8f7f5;border:1px solid #ebe8e0;border-radius:10px;margin-bottom:8px;cursor:pointer;transition:border-color .2s,background .15s}
+.pitem{display:flex;align-items:center;gap:10px;padding:12px 14px;background:#CFE7E9;border:1px solid #ebe8e0;border-radius:10px;margin-bottom:8px;cursor:pointer;transition:border-color .2s,background .15s}
 .pitem:hover{border-color:#0091D2;background:#EEF5FF}
 .pav{width:36px;height:36px;border-radius:50%;background:#E1F5EE;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#0F6E56;flex-shrink:0}
 
@@ -279,7 +286,7 @@ button:active{background:#eee}
 
 /* How steps horizontal */
 .how-steps-h{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:10px;margin-bottom:1.25rem}
-.how-step-card{background:#f8f7f5;border:1px solid #ebe8e0;border-radius:10px;padding:14px 13px;position:relative}
+.how-step-card{background:#CFE7E9;border:1px solid #ebe8e0;border-radius:10px;padding:14px 13px;position:relative}
 .how-step-card .step-n{width:28px;height:28px;border-radius:50%;background:#0091D2;color:#fff;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;margin-bottom:10px}
 .how-step-card h4{font-size:12px;font-weight:700;color:#003A5D;margin-bottom:4px;text-transform:uppercase;letter-spacing:.04em;line-height:1.3}
 .how-step-card p{font-size:11px;color:#666;line-height:1.5}
@@ -296,7 +303,7 @@ button:active{background:#eee}
 .admin-stat{display:inline-block;padding:2px 8px;border-radius:99px;font-size:10px;font-weight:700}
 
 /* Audit trail */
-.audit-log{background:#f8f7f5;border:1px solid #ebe8e0;border-radius:8px;padding:10px 13px;margin-bottom:10px}
+.audit-log{background:#CFE7E9;border:1px solid #ebe8e0;border-radius:8px;padding:10px 13px;margin-bottom:10px}
 .audit-row{display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid #f0ede8;font-size:11.5px}
 .audit-row:last-child{border-bottom:none}
 .audit-dot{width:7px;height:7px;border-radius:50%;background:#0091D2;flex-shrink:0}
@@ -318,7 +325,7 @@ button:active{background:#eee}
 .retrieve-row{display:flex;gap:8px}
 .retrieve-row input{flex:1;font-family:monospace;font-size:14px;letter-spacing:.05em}
 .retrieve-row button{white-space:nowrap;padding:8px 18px;background:#0091D2;color:#fff;border-color:#0091D2;font-weight:700;border-radius:8px}
-.backend-notice{background:#f8f7f5;border-left:3px solid #0091D2;padding:10px 14px;border-radius:0 8px 8px 0;font-size:12px;color:#555;line-height:1.6;margin-top:1rem}
+.backend-notice{background:#CFE7E9;border-left:3px solid #0091D2;padding:10px 14px;border-radius:0 8px 8px 0;font-size:12px;color:#555;line-height:1.6;margin-top:1rem}
 
 /* ── Plan tab step layout ──────────────────────────────────────── */
 .step-hd{display:flex;align-items:center;gap:10px;margin-bottom:1rem}
@@ -1116,7 +1123,7 @@ function renderPlanTab(){
   const egSc=calcScore(egAssets);
   const egCl=fillClr(egSc.pct);
   const egAllMats=egAssets.flatMap(a=>a.materials);
-  h+='<div class="plans-section" style="background:#f8f7f5">';
+  h+='<div class="plans-section" style="background:#CFE7E9">';
   h+='<div class="sechd sechd-first">Example plan</div>';
   h+='<div style="background:#fff;border:1.5px solid #dde8f5;border-radius:12px;overflow:hidden">';
   h+='<div style="background:linear-gradient(135deg,#EEF5FF 0%,#E6F4F1 100%);padding:16px;display:flex;justify-content:space-between;align-items:flex-start;gap:12px">';
@@ -2060,7 +2067,7 @@ function foldEvery50(items,label){
     const end=Math.min(f+50,items.length);
     const open=f===0;
     h+='<div class="fold-sec" style="margin-bottom:10px;border:1px solid #dde2e8;border-radius:8px;overflow:hidden">';
-    h+='<button type="button" onclick="toggleFold(this)" data-open="'+(open?'1':'0')+'" style="width:100%;text-align:left;padding:10px 14px;background:#EDEEEF;border:none;cursor:pointer;font-weight:700;font-size:13px;color:#003A5D;display:flex;justify-content:space-between;align-items:center;font-family:inherit">';
+    h+='<button type="button" onclick="toggleFold(this)" data-open="'+(open?'1':'0')+'" aria-expanded="'+(open?'true':'false')+'" style="width:100%;text-align:left;padding:10px 14px;background:#EDEEEF;border:none;cursor:pointer;font-weight:700;font-size:13px;color:#003A5D;display:flex;justify-content:space-between;align-items:center;font-family:inherit">';
     h+='<span>'+label+' '+(f+1)+'&ndash;'+end+'</span><span class="fold-chev" style="font-size:11px;color:#888">'+(open?'&#9650;':'&#9660;')+'</span></button>';
     h+='<div class="fold-body" style="display:'+(open?'block':'none')+';padding:'+(open?'10px':'0')+'">'+items.slice(f,end).join('')+'</div>';
     h+='</div>';
@@ -2081,7 +2088,7 @@ function foldByApp(assets,items,label){
   for(let gi=0;gi<order.length;gi++){
     const k=order[gi];const open=false;
     h+='<div class="fold-sec" style="margin-bottom:10px;border:1px solid #dde2e8;border-radius:8px;overflow:hidden">';
-    h+='<button type="button" onclick="toggleFold(this)" data-open="'+(open?'1':'0')+'" style="width:100%;text-align:left;padding:10px 14px;background:#EDEEEF;border:none;cursor:pointer;font-weight:700;font-size:13px;color:#003A5D;display:flex;justify-content:space-between;align-items:center;font-family:inherit">';
+    h+='<button type="button" onclick="toggleFold(this)" data-open="'+(open?'1':'0')+'" aria-expanded="'+(open?'true':'false')+'" style="width:100%;text-align:left;padding:10px 14px;background:#EDEEEF;border:none;cursor:pointer;font-weight:700;font-size:13px;color:#003A5D;display:flex;justify-content:space-between;align-items:center;font-family:inherit">';
     h+='<span>'+esc(k)+' <span style="color:#888;font-weight:400">('+groups[k].length+')</span></span><span class="fold-chev" style="font-size:11px;color:#888">'+(open?'&#9650;':'&#9660;')+'</span></button>';
     h+='<div class="fold-body" style="display:'+(open?'block':'none')+';padding:'+(open?'10px':'0')+'">'+groups[k].join('')+'</div>';
     h+='</div>';
@@ -2092,6 +2099,7 @@ function foldByApp(assets,items,label){
 function toggleFold(btn){
   const open=btn.dataset.open==='1';
   btn.dataset.open=open?'0':'1';
+  btn.setAttribute('aria-expanded',open?'false':'true');
   const body=btn.nextElementSibling;
   if(body){body.style.display=open?'none':'block';body.style.padding=open?'0':'10px';}
   const chev=btn.querySelector('.fold-chev');
@@ -2485,9 +2493,9 @@ async function attachImportedImages(plan,imgMap,opts){
       else jobs.push({asset:a,info:found.b,slot:2,replacing:a.image2Path||''});
     }
   }
-  if(!jobs.length)return {ok:0,failed:0,skipped:skipped,cancelled:false};
+  if(!jobs.length)return {ok:0,failed:0,skipped:skipped,cancelled:false,cleanupFailed:0};
 
-  let ok=0,failed=0,done=0,cancelled=false;
+  let ok=0,failed=0,done=0,cancelled=false,cleanupFailed=0;
   let sinceCheckpoint=0,checkpointInFlight=false,localFull=false;
 
   async function checkpoint(){
@@ -2522,11 +2530,22 @@ async function attachImportedImages(plan,imgMap,opts){
         const { data }=sb.storage.from(STORAGE_BUCKET).getPublicUrl(path);
         job.asset[F.path]=path;
         job.asset[F.url]=(data&&data.publicUrl)||'';
+        // Keep the caption in step with the photo actually attached. Without this,
+        // a slot's reference text is whatever was typed into that Excel column at
+        // some point in the past (often nothing meaningful, e.g. a stray migration
+        // artifact) and never updates again, so a brand-new photo would still show
+        // old, unrelated caption text underneath it.
+        job.asset[F.ref]=name;
         // This upload replaced an earlier photo — drop the old object so a plan that is
         // updated repeatedly does not accumulate orphans in the bucket. Best effort:
-        // the new photo is already safely attached, so a failure here is not fatal.
+        // the new photo is already safely attached, so a failure here is not fatal to
+        // the import — but a failure here is exactly what produces duplicate objects
+        // in the bucket over repeated updates, most likely because the bucket's RLS
+        // policies don't grant DELETE on this path (see uploadAssetImage for the
+        // same note). Counted rather than swallowed so the batch summary reports it.
         if(job.replacing&&job.replacing!==path){
-          try{ await sb.storage.from(STORAGE_BUCKET).remove([job.replacing]); }catch(e){}
+          try{ await sb.storage.from(STORAGE_BUCKET).remove([job.replacing]); }
+          catch(e){ cleanupFailed++; console.warn('Old image cleanup failed (RLS delete policy on the bucket?):',(e&&e.message)||e,job.replacing); }
         }
         ok++;lastErr=null;        break;
       }catch(err){
@@ -2553,7 +2572,7 @@ async function attachImportedImages(plan,imgMap,opts){
 
   await checkpoint(); // final checkpoint so the tail of the batch is never left unsaved
 
-  return {ok:ok,failed:failed,skipped:skipped,cancelled:cancelled};
+  return {ok:ok,failed:failed,skipped:skipped,cancelled:cancelled,cleanupFailed:cleanupFailed};
 }
 
 // ── Bulk image progress banner ────────────────────────────────────────────────
@@ -2624,14 +2643,25 @@ async function uploadAssetImage(input,aid,slot){
     const { data }=sb.storage.from(STORAGE_BUCKET).getPublicUrl(path);
 
     // Replacing an existing image? Clean up the old object so the bucket doesn't
-    // accumulate orphans. Failure here is non-fatal — the new image is already up.
+    // accumulate orphans. Failure here is non-fatal — the new image is already up —
+    // but it must not be SILENT: a storage-side RLS policy that blocks DELETE (the
+    // built-in Supabase Storage template policies restrict by extension/"private/"
+    // prefix, which does not match this bucket's "plans/..." paths) fails every
+    // single remove() call forever, so the bucket quietly accumulates a duplicate
+    // object per replace. Surfacing it here is what makes that visible instead of
+    // only showing up as a slowly growing Storage bill.
     const oldPath=a[F.path];
     a[F.path]=path;
     a[F.url]=(data&&data.publicUrl)||'';
-    if(!a[F.ref])a[F.ref]=file.name;
+    // Always refresh the caption to the file just uploaded — previously this only
+    // filled in a blank reference, so an old/unrelated caption (e.g. leftover
+    // migration text) would sit under a brand-new photo forever, never updating on
+    // Replace.
+    a[F.ref]=file.name;
+    let cleanupFailed=false;
     if(oldPath&&oldPath!==path){
       try{ await sb.storage.from(STORAGE_BUCKET).remove([oldPath]); }
-      catch(e){ console.warn('Old image cleanup failed:',e.message); }
+      catch(e){ cleanupFailed=true; console.warn('Old image cleanup failed (RLS delete policy on the bucket?):',e.message,oldPath); }
     }
     S._unsaved=true;
     refreshAssets();
@@ -2642,9 +2672,10 @@ async function uploadAssetImage(input,aid,slot){
       if(i>=0)S.plans[i]=JSON.parse(JSON.stringify(S.plan));
       S._unsaved=!(saveRes&&saveRes.ok&&saveRes.source==='cloud');
       refreshAssets();
-      showToast((saveRes&&saveRes.source==='cloud')
+      const base=(saveRes&&saveRes.source==='cloud')
         ? 'Image uploaded and saved to cloud'
-        : 'Image uploaded \u2014 remember to save the plan');
+        : 'Image uploaded \u2014 remember to save the plan';
+      showToast(cleanupFailed?(base+' \u2014 old copy left in storage, check bucket permissions'):base);
     });
   }catch(err){
     if(stat)stat.textContent='';
@@ -2665,7 +2696,7 @@ async function removeAssetImage(aid,slot){
   const a=S.plan.assets.find(x=>x.id===aid);if(!a)return;
   if(!confirm('Remove this image? This deletes it from storage and cannot be undone.'))return;
   const path=a[F.path];
-  a[F.url]='';a[F.path]='';
+  a[F.url]='';a[F.path]='';a[F.ref]='';
   S._unsaved=true;
   refreshAssets();
   if(path&&sb){
@@ -2731,7 +2762,7 @@ function assetCard(a,i){
   const hasAssetDetails=!!(a.serialNumber||a.serialNumberNew||a.assetId||a.noOfItems||a.yearBuilt||a.builderSupplier||a.imageRef||a.imageUrl||a.image2Ref||a.image2Url||a.comments);
   const taBlock=((isTA&&S.plan&&S.plan.imported)||hasAssetDetails)?`
       <div class="fold-sec" style="margin:0 0 12px;border:1px solid #dde2e8;border-radius:8px;overflow:hidden">
-        <button type="button" onclick="toggleFold(this)" data-open="0" style="width:100%;text-align:left;padding:9px 12px;background:#EDEEEF;border:none;cursor:pointer;font-weight:700;font-size:12px;color:#003A5D;display:flex;justify-content:space-between;align-items:center;font-family:inherit"><span>Asset details</span><span class="fold-chev" style="font-size:11px;color:#888">&#9660;</span></button>
+        <button type="button" onclick="toggleFold(this)" data-open="0" aria-expanded="false" style="width:100%;text-align:left;padding:9px 12px;background:#CFE7E9;border:none;cursor:pointer;font-weight:700;font-size:12px;color:#003A5D;display:flex;justify-content:space-between;align-items:center;font-family:inherit"><span>Asset details</span><span class="fold-chev" style="font-size:11px;color:#888">&#9660;</span></button>
         <div class="fold-body" style="display:none;padding:0">
           <div style="padding:12px">
             <div class="g2" style="margin-bottom:0">
@@ -2758,7 +2789,7 @@ function assetCard(a,i){
       <span class="aname">${esc(displayName)}</span>${serialBdg}
       <span style="flex:1;min-width:0"></span>
       ${assetCirc(a)}
-      <button class="del-btn" onclick="event.stopPropagation();delAsset('${a.id}')" style="background:none;border:none;cursor:pointer;color:#ccc;padding:2px 6px;font-size:16px;flex-shrink:0">&times;</button>
+      <button class="del-btn" onclick="event.stopPropagation();delAsset('${a.id}')" style="background:none;border:none;cursor:pointer;color:#ccc;padding:10px 12px;font-size:16px;border-radius:6px;flex-shrink:0" title="Delete asset">&times;</button>
       <span id="arr-${a.id}" style="font-size:10px;color:#aaa;flex-shrink:0">${a.expanded?'&#9650;':'&#9660;'}</span>
     </div>
     <div class="acard-bd" id="abd-${a.id}" ${a.expanded?'':'style="display:none"'}>
@@ -2818,7 +2849,7 @@ function matRowHtml(aid,m,idx){
     <div class="mat-row-hd">
       <span class="mat-row-num">Material ${idx+1}</span>
       <span class="mat-row-name">${esc(matLabel)}</span>
-      <button onclick="delAssetMat('${aid}','${m.id}')" style="background:none;border:none;cursor:pointer;color:#ccc;padding:1px 5px;font-size:14px;flex-shrink:0" title="Remove material">&times;</button>
+      <button onclick="delAssetMat('${aid}','${m.id}')" style="background:none;border:none;cursor:pointer;color:#ccc;padding:8px 10px;font-size:14px;border-radius:6px;flex-shrink:0" title="Remove material">&times;</button>
     </div>
     ${idx===0?`<div class="fg">
       <label>4. Precinct application *</label>
@@ -2919,7 +2950,7 @@ function stepSummary(plan){
   h+='</div>';
   // Consent notice — shown only for real plans (not example), only when a save button is present
   const consentHtml = S.plan._example ? '' :
-    '<div style="margin-top:1rem;padding:10px 14px;background:#f8f7f5;border:1px solid #e0ddd6;border-radius:8px;font-size:11.5px;color:#777;line-height:1.65">'
+    '<div style="margin-top:1rem;padding:10px 14px;background:#CFE7E9;border:1px solid #e0ddd6;border-radius:8px;font-size:11.5px;color:#777;line-height:1.65">'
     +'By clicking <strong style="color:#1a1a1a">Save plan</strong>, you consent to Tennis Australia collecting your name and email to save your materials plan. '
     +'Your data is securely routed to and stored on Australian servers and infrastructure. '
     +'We never sell your data or use it for secondary purposes without consent. '
@@ -3304,6 +3335,44 @@ function importPlanXLS(input){
       if(sb){
         loadJSZipThen(function(){
           extractCellImages(data,imgCols).then(function(imgMap){
+            // ── Photo removal detection ──────────────────────────────────────
+            // extractCellImages() reports only the rows that still carry a
+            // picture. No picture found for a slot in this file means the
+            // photo was deleted offline — but the picture object and its
+            // hidden "AO Photo Path" bookkeeping cell are two separate
+            // things, so deleting the picture in Excel never clears that
+            // cell, and the asset kept pointing at the old photo. Clear the
+            // URL/path so an empty slot actually reads as empty.
+            //
+            // This does NOT also require the Image Ref / Bump-out Photo text
+            // cell to be blank. That text is free-form and never written by
+            // the app itself (only read in from whatever the sheet holds) —
+            // it can carry old, unrelated content (an item number, a note)
+            // that has nothing to do with whether a photo exists, so gating
+            // on it being blank means real deletions never register as long
+            // as that leftover text sticks around. Only acts when the header
+            // column itself was found in this file — a missing column reads
+            // as "no picture" on every row regardless of content, so that
+            // ambiguous case is left untouched rather than treated as a
+            // removal signal for the whole sheet.
+            let removedAny=false;
+            for(const a of (plan.assets||[])){
+              if(!a._srcRow)continue;
+              const found=imgMap.get(a._srcRow);
+              if(imgCols.img&&!(found&&found.p)&&(a.imagePath||a.imageUrl)){
+                a.imagePath='';a.imageUrl='';a.imageRef='';removedAny=true;
+              }
+              if(imgCols.bump&&!(found&&found.b)&&(a.image2Path||a.image2Url)){
+                a.image2Path='';a.image2Url='';a.image2Ref='';removedAny=true;
+              }
+            }
+            if(removedAny){
+              storageSave(plan);
+              const k=S.plans.findIndex(p=>p.id===plan.id);
+              if(k>=0)S.plans[k]=JSON.parse(JSON.stringify(plan));
+              planDB.save(plan).catch(function(){});
+              render();
+            }
             if(!imgMap.size){
               for(const a of (plan.assets||[])){delete a._srcRow;delete a._sheetSig1;delete a._sheetSig2;}
               return;
@@ -3333,6 +3402,7 @@ function importPlanXLS(input){
               if(res.ok)parts.push(res.ok+' attached');
               if(res.skipped)parts.push(res.skipped+' already had a photo');
               if(res.failed)parts.push(res.failed+' failed');
+              if(res.cleanupFailed)parts.push(res.cleanupFailed+' old copies not removed \u2014 check bucket delete permissions');
               if(res.cancelled)parts.push('cancelled \u2014 rerun the import to pick up where it left off');
               const summary=parts.length?parts.join(', '):'No images could be attached';
               if(res.ok||res.skipped){
@@ -3675,6 +3745,13 @@ async function _doExportXLS(){
       // Target thumbnail size: scaled to fit within TARGET_PX on the longer side,
       // preserving the photo's real aspect ratio (no stretching either way).
       const TARGET_PX=90, EMU_PER_PX=9525;
+      // oneCellAnchor pins the image's top-left corner to a cell but — unlike a
+      // twoCellAnchor — never clips or bounds it to that cell's box. The template's
+      // row height was left at the sheet default (14.5pt ≈ 19px), so a 90px-tall
+      // thumbnail simply drew straight through the next four-plus rows: not
+      // "unanchored", just anchored to a cell far smaller than the image. Track the
+      // tallest photo landing on each row here and grow that row to fit it below.
+      const rowHeightsPx={};
       embeds.forEach(function(em,i){
         const n=i+1;
         const fname='assetphoto'+n+'.'+em.ext;
@@ -3683,6 +3760,7 @@ async function _doExportXLS(){
         const longer=Math.max(em.w,em.h)||1;
         const dispW=Math.max(1,Math.round(em.w*TARGET_PX/longer));
         const dispH=Math.max(1,Math.round(em.h*TARGET_PX/longer));
+        rowHeightsPx[em.row]=Math.max(rowHeightsPx[em.row]||0,dispH);
         // oneCellAnchor: position comes from the cell, but size is an explicit
         // EMU extent independent of row/column dimensions — this is what actually
         // prevents the stretching, since it no longer depends on guessing what
@@ -3695,6 +3773,18 @@ async function _doExportXLS(){
           +'<xdr:blipFill><a:blip xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" r:embed="rIdImg'+n+'"/><a:stretch><a:fillRect/></a:stretch></xdr:blipFill>'
           +'<xdr:spPr><a:prstGeom prst="rect"><a:avLst/></a:prstGeom></xdr:spPr></xdr:pic><xdr:clientData/></xdr:oneCellAnchor>'
         );
+      });
+      // Grow each photo row to actually contain its tallest thumbnail (px→pt at
+      // 0.75, plus a few px of breathing room) so the image reads as "in" its cell
+      // instead of spilling into the rows beneath it. Only rows that got a photo
+      // are touched; every other row keeps the sheet's default height untouched.
+      Object.keys(rowHeightsPx).forEach(function(rowNum){
+        const ht=((rowHeightsPx[rowNum]+6)*0.75).toFixed(2);
+        const re=new RegExp('(<row r="'+rowNum+'"[^>]*?)(\\sspans=)');
+        s1=s1.replace(re,function(m,pre,spans){
+          if(/\sht="/.test(pre))return m; // already has an explicit height — leave it
+          return pre+' ht="'+ht+'" customHeight="1"'+spans;
+        });
       });
 
       // New drawing part (drawing2.xml — the template's own drawing1.xml belongs
