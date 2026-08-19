@@ -2913,8 +2913,23 @@ function stepSummary(plan){
     }).join('');
     const precBdg=precLabel?'<span class="bdg bl" style="font-size:10px">'+esc(precLabel)+'</span>':'';
     const descHtml=a.desc?'<div style="font-size:12px;color:#888;margin-bottom:5px;padding-left:2px">'+esc(a.desc)+'</div>':'';
-    return '<div style="padding:10px 0;border-bottom:1px solid #e8e5de"><div style="display:flex;align-items:center;gap:7px;margin-bottom:6px"><span style="font-size:11px;color:#aaa;font-weight:700">#'+(idx2+1)+'</span>'+precBdg+'<span style="font-size:13px;font-weight:600;flex:1">'+esc(a.assetName||'Unnamed asset')+'</span>'+assetCirc(a)+'</div>'+descHtml+'<div class="smat-list">'+matList+'</div></div>';
+    const matCount=a.materials.length;
+    const matCountHtml='<span style="font-size:10px;color:#aaa;flex-shrink:0">'+matCount+' mat'+(matCount!==1?'s':'')+'</span>';
+    // Each asset is its own collapsed-by-default fold (same fold-sec/toggleFold pattern
+    // used for the category groups above and the Assets & Materials edit tab), so
+    // expanding a large category (e.g. "Gym equipment (251)") doesn't dump every
+    // asset's full material detail onto the screen at once.
+    return '<div class="fold-sec" style="margin-bottom:8px;border:1px solid #e8e5de;border-radius:8px;overflow:hidden">'
+      +'<button type="button" onclick="toggleFold(this)" data-open="0" aria-expanded="false" style="width:100%;text-align:left;padding:9px 12px;background:#fff;border:none;cursor:pointer;font-family:inherit;display:flex;align-items:center;gap:7px">'
+        +'<span style="font-size:11px;color:#aaa;font-weight:700;flex-shrink:0">#'+(idx2+1)+'</span>'+precBdg
+        +'<span style="font-size:13px;font-weight:600;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+esc(a.assetName||'Unnamed asset')+'</span>'
+        +matCountHtml+assetCirc(a)
+        +'<span class="fold-chev" style="font-size:11px;color:#888;flex-shrink:0">&#9660;</span>'
+      +'</button>'
+      +'<div class="fold-body" style="display:none;padding:0 12px 10px 12px">'+descHtml+'<div class="smat-list">'+matList+'</div></div>'
+    +'</div>';
   }),'Assets');
+
   const lastEditedHtml=plan.lastEditedBy?'<div style="margin-top:10px;padding-top:10px;border-top:1px solid #e8e5de"><div style="display:flex;justify-content:space-between;align-items:baseline"><div style="font-size:12px;color:#888">Last edited by</div><div style="font-size:11px;color:#aaa">'+(plan.lastEditedAt?fmtDate(plan.lastEditedAt):'')+'</div></div><div style="font-size:13px;font-weight:600;color:#0091D2;margin-top:2px">'+esc(plan.lastEditedBy)+'</div></div>':'';
   const storageHtml=p.storageDetails?'<div style="margin-top:10px"><div style="font-size:12px;color:#888">Storage</div><div style="font-size:13px;margin-top:2px;color:#1a1a1a">'+esc(p.storageDetails)+'</div></div>':'';
   const circBody=sc.total>0?'<div style="display:flex;justify-content:space-between;font-size:12px;color:#888;margin-bottom:4px"><span>Circularity rate</span><span style="font-weight:600;color:'+cl+'">'+pctText(sc.pctExact)+'</span></div><div class="strack"><div class="sfill" style="width:'+sc.pct+'%;background:'+cl+'"></div></div><div style="font-size:11px;color:#aaa;margin-top:3px">AO target: 10% improvement per year</div>':'<div style="font-size:13px;color:#888;margin-top:4px">Add materials with an expected status to see your score.</div>';
