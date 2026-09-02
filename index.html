@@ -584,8 +584,8 @@ function copyCode(el){
 // 2. Run the SQL from the setup guide to create the plans table
 // 3. Replace the two placeholder values below with your project credentials
 //    (Project Settings > API in the Supabase dashboard)
-const SUPABASE_URL = 'https://ybmlqersxibnsnjzrqsv.supabase.co';    // e.g. https://xxxx.supabase.co
-const SUPABASE_KEY = 'sb_publishable_EKNWTkhoLB5Odnxgd8JBvA_2MTDhO_d'; // starts with eyJ...
+const SUPABASE_URL = 'https://bksznvzjzirrznfvktuh.supabase.co';    // e.g. https://xxxx.supabase.co
+const SUPABASE_KEY = 'sb_publishable_6702k_HTnuIjqyepUh-Vjg_ZYEqGleB'; // starts with eyJ...
 
 // ── Image storage ─────────────────────────────────────────────────────────────
 // Name of the Supabase Storage bucket that holds asset images.
@@ -683,12 +683,14 @@ const planDB = {
     const normalised = code.trim().toUpperCase().replace(/\s/g,'');
     if (sb) {
       try {
-        const { data, error } = await sb
-          .from('plans')
-          .select('data')
-          .eq('plan_code', normalised)
-          .single();
-        if (data?.data) return data.data;
+        // Narrow, single-row lookup via a SECURITY DEFINER function rather than
+        // a direct table select — the plans table's SELECT policy is gated
+        // (dashboard_authed()), so a plain table select here would return
+        // nothing for an ordinary user. This RPC bypasses RLS deliberately,
+        // scoped to exactly one row matched by plan_code.
+        const { data, error } = await sb.rpc('get_plan_by_code', { p_code: normalised });
+        if (error) throw error;
+        if (data) return data;
       } catch(err) {
         console.warn('Supabase lookup failed, trying local:', err.message);
       }
@@ -1769,11 +1771,15 @@ async function checkAdminPin(){
 
   const probe=buildAdminClient(key);
   try{
-    // HEAD count request: returns a count when the gate passes, 0 rows / no
-    // error is also a pass (valid empty table). A wrong password trips the RLS
-    // policy and Supabase returns an error, which we treat as "denied".
-    const{error}=await probe.from('plans').select('id',{count:'exact',head:true});
+    // Ask the database directly whether this password is correct, via the
+    // same dashboard_authed() function the RLS policy uses. A row-count probe
+    // against `plans` can't distinguish "wrong password" from "correct
+    // password, empty table" — both return zero rows with no error, since an
+    // RLS filter isn't a Postgres error — so this checks the boolean result
+    // itself instead.
+    const{data,error}=await probe.rpc('dashboard_authed');
     if(error) throw error;
+    if(!data) throw new Error('Incorrect password.');
     // Password accepted — persist for the session and promote the admin client.
     sessionStorage.setItem(ADMIN_KEY_SS, key);
     sbAdmin=probe;
