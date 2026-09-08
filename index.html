@@ -45,6 +45,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .fg{margin-bottom:10px}
 .fg label{display:block;font-size:12px;color:#666;margin-bottom:3px}
 .fhint{font-size:11px;color:#aaa;margin-top:2px}
+.fc-page input::placeholder,.fc-page textarea::placeholder{font-style:italic}
 input,select,textarea{width:100%;padding:7px 10px;border:1px solid #ddd;border-radius:7px;font-size:13px;font-family:inherit;background:#fff;color:#1a1a1a;outline:none;transition:border-color .2s}
 input:focus,select:focus,textarea:focus{border-color:#0091D2;box-shadow:0 0 0 3px rgba(0,145,210,.15)}
 textarea{resize:vertical}
@@ -291,6 +292,15 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,te
 .how-step-card h4{font-size:12px;font-weight:700;color:#003A5D;margin-bottom:4px;text-transform:uppercase;letter-spacing:.04em;line-height:1.3}
 .how-step-card p{font-size:11px;color:#666;line-height:1.5}
 
+/* Get started (homepage 3-step row) */
+.gs-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:.25rem}
+@media(max-width:640px){.gs-grid{grid-template-columns:1fr}}
+.gs-card{display:flex;flex-direction:column;background:#fff;border:1.5px solid #e6e8ea;border-radius:12px;padding:16px;box-shadow:0 4px 14px rgba(0,58,93,.06)}
+.gs-num{font-size:11px;font-weight:800;color:#0091D2;letter-spacing:.08em;margin-bottom:8px}
+.gs-card .bdg{align-self:flex-start;margin-bottom:8px}
+.gs-card h4{font-size:14px;font-weight:800;color:#003A5D;margin-bottom:6px;letter-spacing:-.01em}
+.gs-card p{font-size:12px;color:#666;line-height:1.55;margin-bottom:14px;flex:1}
+
 /* Admin dashboard */
 .admin-panel{padding:1.25rem 1rem}
 .admin-login{background:#fff;border:1px solid #e8e5de;border-radius:12px;padding:2rem 1.5rem;max-width:340px;margin:2rem auto;box-shadow:0 4px 20px rgba(0,0,0,.08)}
@@ -339,23 +349,25 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,te
 
 @keyframes spin{to{transform:rotate(360deg)}}
 
-/* ── Ported "Top waste categories" block (scoped under .twc-wrap to avoid style conflicts) ── */
-.twc-wrap{font-family:'DM Sans',system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;--navy:#003A5D;--navy-dark:#002A44;--blue:#0091D2;--blue-dark:#007AB0;--green:#33D900;--green-dark:#1FA800;--slate-100:#f1f5f9;--slate-200:#e2e8f0;--text-light:#64748b}
-.twc-wrap .acc-item{background:white;border-radius:12px;border:1.5px solid var(--slate-200);overflow:hidden}
-.twc-wrap .acc-trigger{width:100%;background:none;border:none;padding:10px 14px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;font-family:inherit;text-align:left;transition:background .15s}
-.twc-wrap .acc-trigger:hover{background:rgba(0,58,93,.03)}
-.twc-wrap .acc-trigger-left{display:flex;align-items:center;gap:10px}
-.twc-wrap .acc-trigger-icon{width:30px;height:30px;border-radius:7px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
-.twc-wrap .acc-trigger-icon.amber{background:rgba(251,191,36,.12)}
-.twc-wrap .acc-trigger-icon.green{background:rgba(16,185,129,.1)}
-.twc-wrap .acc-trigger-icon.blue{background:rgba(0,58,93,.1)}
-.twc-wrap .acc-label{font-size:.80rem;font-weight:700;color:var(--navy)}
-.twc-wrap .acc-sublabel{font-size:.68rem;color:var(--text-light);margin-top:1px}
-.twc-wrap .acc-chevron{font-size:.85rem;color:var(--navy);transition:transform .25s;flex-shrink:0;font-weight:700}
-.twc-wrap .acc-body{display:none;padding:0 14px 14px;border-top:1px solid var(--slate-100)}
-.twc-wrap .acc-body.open{display:block}
-.twc-wrap .acc-item.open .acc-chevron{transform:rotate(180deg)}
-.twc-wrap .acc-item.open .acc-trigger{background:rgba(0,58,93,.03)}
+/* ── "AO target materials" section ── */
+.atm-sub{font-size:12.5px;color:#555;line-height:1.6;margin:14px 0 20px;max-width:640px}
+.atm-grid{display:grid;grid-template-columns:1fr 1fr;gap:24px}
+@media(max-width:640px){.atm-grid{grid-template-columns:1fr}}
+.atm-acc-body{display:none}
+.atm-acc.open .atm-acc-body{display:block}
+.atm-acc .acc-chevron{font-size:.85rem;color:#003A5D;transition:transform .25s;flex-shrink:0;font-weight:700;margin-left:auto}
+.atm-acc.open .acc-chevron{transform:rotate(180deg)}
+.atm-colhd{display:flex;align-items:center;gap:10px;margin-bottom:12px}
+.atm-icon{width:30px;height:30px;border-radius:50%;background:#003A5D;color:#fff;font-weight:800;font-size:13px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.atm-colhd h4{font-size:13px;font-weight:800;color:#003A5D;text-transform:uppercase;letter-spacing:.04em;margin:0}
+.atm-colhd .atm-colsub{font-size:11px;color:#888;display:block;margin-top:1px;font-weight:600}
+.atm-pill{display:inline-block;font-size:10.5px;font-weight:800;letter-spacing:.03em;text-transform:uppercase;padding:5px 12px;border-radius:99px;margin-bottom:12px}
+.atm-box{border-radius:12px;padding:16px}
+.atm-box+.atm-box{margin-top:12px}
+.atm-item{display:flex;gap:10px;font-size:12.5px;line-height:1.7;margin-bottom:8px}
+.atm-item:last-child{margin-bottom:0}
+.atm-item-num{font-weight:800;flex-shrink:0}
+.atm-more-link{font-size:.78rem;font-weight:700;color:#0091D2;background:rgba(2,136,204,.07);border:1.5px solid rgba(2,136,204,.22);border-radius:7px;padding:7px 14px;cursor:pointer;font-family:inherit;margin-top:14px}
 
 /* ── Material-request style CTA card (mockup-matched) ───────── */
 .mreq-card{display:flex;align-items:stretch;background:#fff;border-radius:14px;overflow:hidden;border:1px solid #e6e8ea;box-shadow:0 8px 26px rgba(0,58,93,.12);max-width:none;margin-top:.25rem}
@@ -414,8 +426,10 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,te
 <div id="tab-nav" style="display:none">
   <div class="tab-nav">
     <div class="tab-nav-inner">
-      <button class="tab-btn active" id="tab-plan" onclick="switchTab('plan')">Create a new materials plan</button>
-      <button class="tab-btn" id="tab-update" onclick="switchTab('update')">Update an existing plan</button>
+      <button class="tab-btn active" id="tab-plan" onclick="switchTab('plan')">Home</button>
+      <button class="tab-btn" id="tab-new" onclick="goCreateIntro()">New materials plan</button>
+      <button class="tab-btn" id="tab-update" onclick="switchTab('update')">Update Materials plan</button>
+      <button class="tab-btn" id="tab-forecast" onclick="switchTab('forecast')">Forecast</button>
       <button class="tab-btn" id="tab-faq" onclick="switchTab('faq')">FAQs</button>
       <button class="tab-btn" id="tab-admin" onclick="switchTab('admin')" style="color:#9ca3af;font-size:11px;margin-left:auto">Admin</button>
     </div>
@@ -445,6 +459,7 @@ const STCOL_ADMIN={'Reuse - next AO (stored by AO)':'#20A85A','Reuse - next AO (
 const ROLES=['Agency','Builder','Designer','Sub-contractor','TA PM','TA Design','TA Build','TA delivery team','Other'];
 const TA_ROLES=['TA PM','TA Design','TA Build','TA delivery team','TA Other'];
 const ROLES_EXTERNAL=['Agency','Builder','Designer','Sub-contractor'];
+const FC_ROLES=['TA PM','Agency','Builder','Sub contractor','Other'];
 const ROLES_TA=['TA PM','TA Design','TA Build','TA delivery team','TA Other'];
 const TA_DEPARTMENTS=['Accommodation','Accreditation','Activations','Archives','Ballkids','Beauty Bar','Business Ops','Childcare','Client & Product Delivery','Communication and Content','Community Relations','Court Services','Customer Experience (CX)','Food & Revenue','Functions','Government Relations','Hot Shots','Infrastructure','IT','Live Events','Logistics','Major Events','Marketing','Media Ops','Media Services','Merchandise','Miscellaneous','National Tennis Centre','Officials','Participation','Partnerships','Player Medical','Player Services','Precinct Ops','Premium Experience (PX)','Safety','Staff and Communications','Statisticians','Tournament Operations','Tournament Spaces','Transport','VIP Stakeholder Relations','Workforce'];
 const VOLS=['sqm','lm','kg','units','sheets','m\u00b3','L'];
@@ -683,14 +698,12 @@ const planDB = {
     const normalised = code.trim().toUpperCase().replace(/\s/g,'');
     if (sb) {
       try {
-        // Narrow, single-row lookup via a SECURITY DEFINER function rather than
-        // a direct table select — the plans table's SELECT policy is gated
-        // (dashboard_authed()), so a plain table select here would return
-        // nothing for an ordinary user. This RPC bypasses RLS deliberately,
-        // scoped to exactly one row matched by plan_code.
-        const { data, error } = await sb.rpc('get_plan_by_code', { p_code: normalised });
-        if (error) throw error;
-        if (data) return data;
+        const { data, error } = await sb
+          .from('plans')
+          .select('data')
+          .eq('plan_code', normalised)
+          .single();
+        if (data?.data) return data.data;
       } catch(err) {
         console.warn('Supabase lookup failed, trying local:', err.message);
       }
@@ -716,7 +729,7 @@ async function retrievePlan(){
     const plan=await planDB.loadById(code);
     if(plan){
       S.plan=JSON.parse(JSON.stringify(plan));
-      S.screen='form';S.plan.step=0;
+      S.formOrigin='update';S.screen='form';S.plan.step=0;
       showToast('Plan loaded');render();
     } else {
       if(msg){
@@ -762,6 +775,10 @@ function assetCirc(a){
   return`<span style="font-size:10px;font-weight:700;color:${cl};flex-shrink:0">${s.circular}/${s.total}&nbsp;♻</span>`;
 }
 function fillClr(pct){return pct>=80?'#33D900':pct>=50?'#EF9F27':'#E24B4A'}
+// Forecast expected/actual status tag — reuses the materials plan's green/amber/red
+// circularity colour scale (fillClr) instead of the multi-colour statBdg() palette.
+function fcStatColor(s){if(!s)return'#8A97A2';if(s==='Unsure yet'||s==='Not sure yet')return'#EF9F27';return statRating(s)==='circular'?'#33D900':'#E24B4A';}
+function fcStatTag(s){if(!s)return'';const c=fcStatColor(s);return'<span class="bdg" style="background:'+c+'22;color:'+c+';border:1px solid '+c+'66">'+esc(s)+'</span>';}
 function statBdg(s){if(!s)return'';const m={'Reuse - next AO (stored at TA warehouse)':'gr','Reuse - next AO (stored by Agency/Builder)':'gr','Reuse - other event/ client (Agency/Builder)':'tl','Recycle - we will take off site (Agency/Builder)':'bl','Recycle on site with AO Take-back program':'bl','Repurpose - keep for another use':'pu','Reuse - next AO (stored by AO)':'gr','Reuse - next AO (stored by us)':'gr','Reuse - other event/ client':'tl','Recycle on site with AO take-back program':'bl','Recycle - we will take offsite':'bl','Repurpose - we will take offsite for another use':'pu','Donate':'pu','Mixed construction waste - AO onsite bins':'re','Unsure yet':'gy','Reuse \u2013 Next AO (stored at AO)':'gr','Reuse \u2013 Next AO (stored by us)':'gr','Reuse \u2013 Other Event / Client':'tl','Recycle':'bl','Repurpose – use material in another way':'pu','Mixed construction waste \u2013 AO onsite bin':'re','Not sure yet':'gy','Other':'gy'};return`<span class="bdg ${m[s]||'gy'}">${esc(s)}</span>`}
 
 // ── TML Helpers ───────────────────────────────────────────────────────────────
@@ -922,6 +939,135 @@ function storageDel(id){
   try{localStorage.removeItem(STORAGE_PREFIX+id);return true}catch(e){return false}
 }
 
+// ── Forecast & actuals (light-touch check-in pathway) ──────────────────────────
+// Same storage pattern as plans: localStorage always, Supabase ('forecasts' table)
+// when configured, cloud-first with graceful local fallback. Treat the check-in
+// code like a password, same as a Plan ID — anyone with the code can load and
+// update that forecast.
+const FC_STORAGE_PREFIX='ao_fc_';
+function fcStorageLoadAll(){
+  try{
+    const keys=Object.keys(localStorage).filter(k=>k.startsWith(FC_STORAGE_PREFIX));
+    const fs=keys.map(k=>{try{return JSON.parse(localStorage.getItem(k))}catch(e){return null}}).filter(Boolean);
+    return fs.sort((a,b)=>(b.savedAt||0)-(a.savedAt||0));
+  }catch(e){return[]}
+}
+function fcStorageSave(fc){
+  try{fc.savedAt=Date.now();localStorage.setItem(FC_STORAGE_PREFIX+fc.id,JSON.stringify(fc));return true}catch(e){return false}
+}
+function fcCode(id){
+  if(/^AO27-FC-[A-Z0-9]{4}$/i.test(id||''))return String(id).toUpperCase();
+  const ch=(id||'').replace(/[^a-z0-9]/gi,'').toUpperCase().padEnd(4,'0');
+  return 'AO27-FC-'+ch.slice(0,4);
+}
+function findFcByCode(code){
+  const n=code.trim().toUpperCase().replace(/\s/g,'');
+  return fcStorageLoadAll().find(f=>fcCode(f.id)===n)||null;
+}
+
+// Material details list for the light-touch forecast — deliberately independent
+// of the AO Target Materials List (TML), since orgs on this pathway have not
+// set up a full plan to link against. Can be revisited to draw from TML later.
+const FC_MAT_GROUPS=[
+  {grp:'Can be recycled (single materials)',items:['Astro turf','Aluminium','Cardboard/ paper','Engineered wood (plywood/ chipboard/ formply/ melamine)','e-waste','Flooring - carpet','PVC banners (Sail track)','Textiles/ fabrics','Timber (untreated/ water-based paint)','Steel/ Metals (not attached/ bonded to anything)','Wall panels that do not have a finish','Other single recyclable material']},
+  {grp:'Composite materials ( 2 materials bonded together) can be recycled if you separate',items:['ACP (aluminium composite panel) bonded to ply/ timber sheeting – separated','Facades (timber sheets) finished with removable SAV','Other composite material we will separate to recycle']},
+  {grp:'Waste stream',items:['ACP (aluminium composite panel) bonded to ply/ timber sheeting – NOT separated','Engineered wood (MDF/ OSB/ LVL)','Facades (timber sheets) finished with SAV','Facades (timber sheets) with finishes (stucco/ renders)','Graphics - Self-adhesive vinyl (SAV)','Flooring – decking or engineered wood','Timber (treated/ solvent-based paint)','Signage – Corflute','XPS or polystyrene']}
+];
+function fcMatOptsHtml(val){
+  let h='<option value="">- Select material details -</option>';
+  FC_MAT_GROUPS.forEach(g=>{
+    h+='<optgroup label="'+esc(g.grp)+'">'+g.items.map(v=>'<option'+(v===val?' selected':'')+'>'+esc(v)+'</option>').join('')+'</optgroup>';
+  });
+  h+='<option value="Other"'+(val==='Other'?' selected':'')+'>Other</option>';
+  return h;
+}
+
+function newForecast(){
+  return{
+    id:uid(),createdAt:Date.now(),actualsLoggedAt:null,
+    profile:{org:'',role:'',project:'',eventYear:'AO27',contactName:'',contactEmail:''},
+    targets:{reuseTarget:'',wasteTarget:'',circPractices:'',reuseStoredPct:'',disposedPct:''},
+    materials:[newFcMat()],
+    notes:{largeStructures:'',feedback:''}
+  };
+}
+function newFcMat(){
+  return{
+    id:uid(),detail:'',detailOther:'',vol:'',vunit:'',stat:'',notes:'',
+    actual:{detail:'',detailOther:'',vol:'',vunit:'',stat:'',notes:'',receivingOrg:'',takeBackNote:'',evidence:'',matches:null}
+  };
+}
+// Backfill any fields a forecast was saved without (older schema, a hand-edited
+// XLS re-import, etc.) with safe defaults — same "Object.assign default covers
+// gaps on load" pattern the full plan uses (see MAINTENANCE.md §2). Without
+// this, a material missing `.actual` (e.g. saved before that field existed)
+// throws when the actuals page reads `m.actual.matches`, which aborts the
+// whole render mid-way and leaves the previous screen on display with no
+// error shown to the user — a confusing, hard-to-diagnose "load did nothing"
+// symptom. Always run a loaded forecast through this before rendering it.
+function migrateForecast(fc){
+  if(!fc)return fc;
+  fc.profile=Object.assign({org:'',role:'',project:'',eventYear:'AO27',contactName:'',contactEmail:''},fc.profile||{});
+  fc.targets=Object.assign({reuseTarget:'',wasteTarget:'',circPractices:'',reuseStoredPct:'',disposedPct:''},fc.targets||{});
+  fc.notes=Object.assign({largeStructures:'',feedback:''},fc.notes||{});
+  if(!Array.isArray(fc.materials)||!fc.materials.length)fc.materials=[newFcMat()];
+  fc.materials.forEach(m=>{
+    if(m.id==null)m.id=uid();
+    m.actual=Object.assign({detail:'',detailOther:'',vol:'',vunit:'',stat:'',notes:'',receivingOrg:'',takeBackNote:'',evidence:'',matches:null},m.actual||{});
+    // matches:false only ever means "the edit panel was open this session" — it's
+    // not a real decision worth remembering (unlike matches:true, a deliberate
+    // "forecast matches actuals" confirmation). Reset it on every fresh load so
+    // a material a user once opened but didn't finish always starts collapsed
+    // with the choice buttons again, rather than reopening straight into the
+    // edit panel forever.
+    if(m.actual.matches===false)m.actual.matches=null;
+    delete m.actual._editing;
+  });
+  if(fc.actualsLoggedAt===undefined)fc.actualsLoggedAt=null;
+  return fc;
+}
+
+// ── Forecast storage abstraction (mirrors planDB) ───────────────────────────────
+const forecastDB = {
+  async save(fc) {
+    fcStorageSave(fc);
+    if (!sb) return { ok: true, source: 'local' };
+    try {
+      const { error } = await sb.from('forecasts').upsert({
+        id:              fc.id,
+        fc_code:         fcCode(fc.id),
+        data:            fc,
+        business:        fc.profile.org || '',
+        role:            fc.profile.role || '',
+        contact_email:   fc.profile.contactEmail || '',
+        actuals_logged:  !!fc.actualsLoggedAt,
+      }, { onConflict: 'id' });
+      if (error) throw error;
+      return { ok: true, source: 'cloud' };
+    } catch(err) {
+      console.warn('Supabase forecast save failed, saved locally:', err.message);
+      return { ok: true, source: 'local', warning: err.message };
+    }
+  },
+
+  async loadById(code) {
+    const normalised = code.trim().toUpperCase().replace(/\s/g,'');
+    if (sb) {
+      try {
+        const { data, error } = await sb
+          .from('forecasts')
+          .select('data')
+          .eq('fc_code', normalised)
+          .single();
+        if (data?.data) return migrateForecast(data.data);
+      } catch(err) {
+        console.warn('Supabase forecast lookup failed, trying local:', err.message);
+      }
+    }
+    return migrateForecast(findFcByCode(normalised));
+  }
+};
+
 // Migrate old formats to current structure
 function migratePlan(p){
   // Very old: plan.materials array
@@ -962,14 +1108,24 @@ function switchTab(tab){
     return;
   }
   S.tab=tab;
+  // Leaving any modal-like screen (the "New materials plan" intro, the plan
+  // form, …) behind on every explicit tab switch. Without this, S.screen was
+  // left at whatever it was set to last (e.g. 'create-intro' from a glance at
+  // "New materials plan"), and a later bare render() call — e.g. after loading
+  // or saving a forecast — checks S.screen BEFORE S.tab and silently redrew
+  // that leftover screen instead of the forecast page the user just acted on.
+  S.screen='home';
   S.xlsUpdateTargetId=null;
   window.scrollTo({top:0,behavior:'smooth'});
   document.getElementById('tab-plan').classList.toggle('active',tab==='plan');
+  document.getElementById('tab-new').classList.toggle('active',tab==='new');
   document.getElementById('tab-update').classList.toggle('active',tab==='update');
+  document.getElementById('tab-forecast').classList.toggle('active',tab==='forecast');
   document.getElementById('tab-faq').classList.toggle('active',tab==='faq');
   document.getElementById('tab-admin').classList.toggle('active',tab==='admin');
   if(tab==='plan')renderPlanTab();
   else if(tab==='update')renderUpdateTab();
+  else if(tab==='forecast')renderForecastTab();
   else if(tab==='admin'){S.adminView='dashboard';renderAdmin();}
   else renderFAQ();
 }
@@ -981,19 +1137,29 @@ function render(){
   if(S.screen==='home'){
     if(!S.tab||S.tab==='home')S.tab='plan';
     // Sync tab active states
-    ['plan','update','faq','admin'].forEach(t=>{
+    ['plan','new','update','forecast','faq','admin'].forEach(t=>{
       const el=document.getElementById('tab-'+t);
       if(el)el.classList.toggle('active',t===S.tab);
     });
     if(S.tab==='update')renderUpdateTab();
+    else if(S.tab==='forecast')renderForecastTab();
     else if(S.tab==='faq')renderFAQ();
     else if(S.tab==='admin')renderAdmin();
     else renderPlanTab();
-  } else {
-    // Form view: keep tabs, highlight "Create a materials plan"
-    ['plan','update','faq','admin'].forEach(t=>{
+  } else if(S.screen==='create-intro'){
+    // Create-plan intro: keep tabs, highlight "New materials plan"
+    ['plan','new','update','forecast','faq','admin'].forEach(t=>{
       const el=document.getElementById('tab-'+t);
-      if(el)el.classList.toggle('active',t==='plan');
+      if(el)el.classList.toggle('active',t==='new');
+    });
+    renderCreateIntro();
+  } else {
+    // Form view: keep tabs, highlight based on how this plan was opened
+    // (new-plan flow vs. retrieving/importing an existing plan to update)
+    const formTab=S.formOrigin==='update'?'update':(S.formOrigin==='new'?'new':'plan');
+    ['plan','new','update','forecast','faq','admin'].forEach(t=>{
+      const el=document.getElementById('tab-'+t);
+      if(el)el.classList.toggle('active',t===formTab);
     });
     renderForm();
   }
@@ -1010,6 +1176,7 @@ function toggleAcc(id){
 
 const CREATE_IMG='data:image/jpeg;base64,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';
 const UPDATE_IMG='data:image/jpeg;base64,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';
+const BANNER_IMG='data:image/jpeg;base64,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';
 function focusRetrieve(){var el=document.getElementById('retrieve-input');if(el)el.focus();}
 function renderPlanTab(){
   const pb=document.getElementById('page-body-wrap');
@@ -1017,102 +1184,64 @@ function renderPlanTab(){
   let h='';
 
   // ── PAGE HERO ────────────────────────────────────────────────────
-  h+='<div class="admin-hero">';
-  h+='<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px">';
-  h+='<div>';
-  h+='<div style="font-size:10px;font-weight:800;letter-spacing:.12em;color:rgba(255,255,255,.55);text-transform:uppercase;margin-bottom:4px">AO27</div>';
-  h+='<h2 style="font-size:20px;font-weight:800;color:#fff;margin-bottom:.4rem;letter-spacing:-.02em">Start here</h2>';
-  h+='';
-  h+='</div></div></div>';
-
-  // ── STEP 1: CREATE ──────────────────────────────────────────────
-  h+='<div class="cta-section" style="text-align:left;padding-top:1.5rem">';
-  h+='<div class="sechd sechd-first">Step one — Create a materials management plan</div>';
-  h+='<p style="font-size:13px;color:#555;line-height:1.6;margin-bottom:1.25rem;max-width:480px;margin-left:0;margin-right:0">Complete a plan before the event to document assets and materials, set circularity and waste reduction targets. You\'ll need your AO27 scope and the Target Materials List.</p>';
-  h+='<div class="how-steps-h">';
-  h+='<div class="how-step-card"><div class="step-n">1</div><h4>About you</h4><p>Business details, your role, and your AO27 waste and reuse targets.</p></div>';
-  h+='<div class="how-step-card"><div class="step-n">2</div><h4>Assets &amp; Materials</h4><p>Add each asset in your scope with its materials, volumes and expected end-of-event status.</p></div>';
-  h+='<div class="how-step-card"><div class="step-n">3</div><h4>Review &amp; Save</h4><p>See your circularity score, flag any non-recommended materials, and save or print your plan.</p></div>';
-  h+='<div class="how-step-card" style="border-color:#33D900;background:#EEF9F4"><div class="step-n" style="background:#33D900">4</div><h4>Post event manifest</h4><p>Return at bump-out to record actual outcomes and complete your circularity report.</p></div>';
+  h+='<div class="purpose-hero" style="position:relative;overflow:hidden;padding:2.1rem 1.25rem 1.9rem">';
+  h+='<div style="position:absolute;top:-18px;right:-24px;width:210px;height:210px;opacity:.4;pointer-events:none">';
+  h+='<svg width="210" height="210" viewBox="0 0 210 210"><defs><pattern id="heroGridDots" width="24" height="24" patternUnits="userSpaceOnUse"><circle cx="2.5" cy="2.5" r="2.5" fill="#0AE6FF"/></pattern></defs><rect width="210" height="210" fill="url(#heroGridDots)"/></svg>';
   h+='</div>';
-  h+='<div class="mreq-card">';
-  h+='<div class="mreq-img fit"><img src="'+CREATE_IMG+'" alt="Create plan illustration"></div>';
-  h+='<div class="mreq-body">';
-  h+='<div class="mreq-title">New Plan</div>';
-  h+='<p class="mreq-text">Document your assets and materials, targets and submit your plan to TA before the event.</p>';
-  h+='<div class="mreq-divider"></div>';
-  h+='<div class="mreq-foot" style="display:flex;gap:10px;flex-wrap:wrap"><button class="mreq-btn" onclick="startTA()">I work for TA</button><button class="mreq-btn" onclick="startExternal()" style="background:#0091D2;color:#fff">I am an Agency/ Builder</button></div>';
-  h+='</div></div>';
+  h+='<div style="position:relative;z-index:1">';
+  h+='<span class="tag">AO27 &middot; Materials Management Plan</span>';
+  h+='<h2 style="max-width:440px">Know your footprint.<br>Report <span style="color:#0AE6FF">progress</span>.</h2>';
+  h+='<p style="margin-bottom:0">One plan that follows your build from bump-in to bump-out. Track assets and materials, set circularity targets and complete post event reporting.</p>';
+  h+='</div>';
   h+='</div>';
 
-  // ── TOP WASTE CATEGORIES (ported verbatim from Start Here tab) ────────────────
-  h+=`<div class="twc-wrap" style="margin:0 -1rem;padding:1.25rem 1rem;background:#fff;border-bottom:1px solid #e8e5de">
-    <div class="acc-item open" id="acc-categories">
-      <button class="acc-trigger" onclick="toggleAcc('acc-categories')">
-        <div class="acc-trigger-left">
-          <div class="acc-trigger-icon amber">
-            <svg width="16" height="16" viewBox="0 0 20 20" fill="none" stroke="#d97706" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 17l4-12 3 6 2-3 5 9H3Z"/></svg>
+  // ── GET STARTED (3-step row) ──────────────────────────────────────
+  h+='<div class="plans-section" id="get-started">';
+  h+='<div class="sechd sechd-first">Get started</div>';
+  h+='<div class="gs-grid">';
+  h+='<div class="gs-card"><div class="gs-num">01</div><span class="bdg bl">New plan</span><h4>Create a new plan</h4><p>The one-stop-shop for precinct Agencies &amp; Builders to track assets and materials, set targets. As part of your design/build process submit your plan to TA for approval.</p><button class="mreq-btn" onclick="goCreateIntro()">Create a new plan &rarr;</button></div>';
+  h+='<div class="gs-card"><div class="gs-num">02</div><span class="bdg tl">Existing plan</span><h4>Update an existing plan</h4><p>Use Plan ID to edit assets and materials and log actuals at bump-out.</p><button class="mreq-btn" onclick="switchTab(&#39;update&#39;)">Update a plan &rarr;</button></div>';
+  h+='<div class="gs-card"><div class="gs-num">03</div><span class="bdg gr">Light-touch</span><h4>Bump out: Provide a waste forecast</h4><p>Activations not providing a full plan use the survey for event waste planning. Return post event to report what actually happened to your materials.</p><button class="mreq-btn" onclick="switchTab(&#39;forecast&#39;)">Start a forecast &rarr;</button></div>';
+  h+='</div>';
+  h+='</div>';
+
+  // ── BANNER IMAGE ────────────────────────────────────────────────
+  h+='<div style="margin:0 -1rem"><img src="'+BANNER_IMG+'" alt="Australian Open court" style="width:100%;height:260px;object-fit:cover;object-position:center 11%;display:block"></div>';
+
+  // ── AO TARGET MATERIALS (collapsible, open by default) ─────────
+  h+=`<div class="plans-section">
+    <div class="atm-acc open" id="acc-atm">
+      <div class="sechd sechd-first" style="cursor:pointer" onclick="toggleAcc('acc-atm')">AO target materials<span class="acc-chevron">&#8964;</span></div>
+      <div class="atm-acc-body" id="acc-atm-body">
+        <div class="atm-sub">Many materials currently used in the AO temporary build <span style="font-style:italic;text-decoration:underline">can</span> be reused or recycled. It&rsquo;s how we treat, finish and handle them that turns resources into waste.</div>
+        <div class="atm-grid">
+          <div>
+            <div class="atm-colhd"><div class="atm-icon">C</div><div><h4>Materials currently in use</h4><span class="atm-colsub">The AO27 target material categories</span></div></div>
+            <div class="atm-box" style="background:#12A594">
+              <span class="atm-pill" style="background:rgba(255,255,255,.22);color:#fff">Keep using these materials</span>
+              <div class="atm-item" style="color:#fff"><span class="atm-item-num" style="color:#DFFAF4">1</span><span>Engineered wood sheets: plywood, formply, particleboard (E0)</span></div>
+              <div class="atm-item" style="color:#fff"><span class="atm-item-num" style="color:#DFFAF4">2</span><span>Joinery/ cabinetry: formply, particleboard, melamine</span></div>
+              <div class="atm-item" style="color:#fff"><span class="atm-item-num" style="color:#DFFAF4">3</span><span>Graphics: PVC sail track banners, ACM/ ACP, removable SAV</span></div>
+              <div class="atm-item" style="color:#fff"><span class="atm-item-num" style="color:#DFFAF4">4</span><span>Surfaces: Textiles &amp; fabrics</span></div>
+              <div class="atm-item" style="color:#fff"><span class="atm-item-num" style="color:#DFFAF4">5</span><span>Reusable flooring tiles: carpet &amp; vinyl</span></div>
+            </div>
+            <div class="atm-box" style="background:#0F6FB0">
+              <span class="atm-pill" style="background:rgba(255,255,255,.22);color:#fff">High circularity</span>
+              <div class="atm-item" style="color:#fff"><span class="atm-item-num" style="color:#DCEFFF">6</span><span>Water-based paint</span></div>
+              <div class="atm-item" style="color:#fff"><span class="atm-item-num" style="color:#DCEFFF">7</span><span>Steel: high value on the secondary market</span></div>
+              <div class="atm-item" style="color:#fff"><span class="atm-item-num" style="color:#DCEFFF">8</span><span>Aluminium: high value on the secondary market</span></div>
+            </div>
+            <button class="atm-more-link" onclick="window.open('https://megtei.github.io/Materials_Methods_Plan/','_blank')">View full Target Materials List &#8599;</button>
           </div>
           <div>
-            <div class="acc-label">Top waste categories at the AO</div>
-            <div class="acc-sublabel">These are the high impact ↔ high volume materials — 8 material types make up most of the waste volume — this is our zone of focus</div>
-          </div>
-        </div>
-        <span class="acc-chevron">&#8964;</span>
-      </button>
-      <div class="acc-body open" id="acc-categories-body">
-        <div style="display:grid;grid-template-columns:1fr 340px;gap:20px;align-items:start;padding-top:16px;">
-          <!-- LEFT: content boxes -->
-          <div>
-            <!-- Choose Recommended Materials box -->
-            <div style="display:flex;border-radius:10px;overflow:hidden;margin-bottom:10px;border:1.5px solid var(--slate-200);">
-              <div style="width:26px;flex-shrink:0;background:#003A5D;display:flex;align-items:center;justify-content:center;">
-                <span style="color:#fff;font-size:.48rem;font-weight:800;letter-spacing:.12em;text-transform:uppercase;writing-mode:vertical-rl;transform:rotate(180deg);">Choose recommended materials</span>
-              </div>
-              <div style="padding:14px 16px;flex:1;background:white;">
-                <div style="margin-bottom:10px;">
-                  <div style="font-size:.79rem;font-weight:700;margin-bottom:4px;color:var(--blue-dark);">Wood / timber / engineered wood</div>
-                  <div style="font-size:.75rem;color:#333;line-height:1.75;">1&nbsp;&nbsp;Engineered Wood – MDF, LDF</div>
-                  <div style="font-size:.75rem;color:#333;line-height:1.75;">2&nbsp;&nbsp;Engineered Wood – Plywood, Formply, Particleboard</div>
-                  <div style="font-size:.75rem;color:#333;line-height:1.75;">3&nbsp;&nbsp;Wood / Timber / Pallets</div>
-                </div>
-                <div style="margin-bottom:10px;">
-                  <div style="font-size:.79rem;font-weight:700;margin-bottom:4px;color:var(--blue-dark);">Facades / graphics / skins</div>
-                  <div style="font-size:.75rem;color:#333;line-height:1.75;">4&nbsp;&nbsp;PVC sail track banners</div>
-                  <div style="font-size:.75rem;color:#333;line-height:1.75;">5&nbsp;&nbsp;ACM / ACP</div>
-                  <div style="font-size:.75rem;color:#333;line-height:1.75;">6&nbsp;&nbsp;SAV</div>
-                  <div style="font-size:.75rem;color:#333;line-height:1.75;">7&nbsp;&nbsp;Textiles / Fabrics</div>
-                </div>
-                <div style="font-size:.79rem;font-weight:700;color:var(--blue-dark);">8&nbsp;&nbsp;Flooring (carpet / vinyl)</div>
-              </div>
+            <div class="atm-colhd"><div class="atm-icon">M</div><div><h4>Methods</h4><span class="atm-colsub">How we treat, finish &amp; handle materials</span></div></div>
+            <div style="font-size:12.5px;color:#333;line-height:1.7;margin-bottom:14px"><b>Finishes decide the fate of a material.</b> A sheet of plywood could be reused or is single-use bound for landfill depending on the method used to finish, fix or coat it.</div>
+            <div class="atm-box" style="background:#FBEAEA">
+              <span class="atm-pill" style="background:#A32E2E;color:#fff">Methods that create waste</span>
+              <div class="atm-item" style="color:#333"><span class="atm-item-num" style="color:#A32E2E">01</span><span><b>Solvent-based adhesives</b> &#8212; cure into a permanent bond, so the substrate can&rsquo;t be cleanly separated for reuse</span></div>
+              <div class="atm-item" style="color:#333"><span class="atm-item-num" style="color:#A32E2E">02</span><span><b>Solvent-based/ alkyd paints</b> penetrate and contaminate the timber fibre</span></div>
+              <div class="atm-item" style="color:#333"><span class="atm-item-num" style="color:#A32E2E">03</span><span><b>Bonding composite materials</b> &#8212; two or more distinct materials bonded together create a waste problem if not separated<br><span style="font-size:11px;color:#888;font-style:italic">e.g. hi-res graphics surface rigidity (ACP+Ply) or finishes (stucco + particleboard)</span></span></div>
             </div>
-            <!-- Highly Circular box -->
-            <div style="display:flex;border-radius:10px;overflow:hidden;border:1.5px solid rgba(16,185,129,.3);">
-              <div style="width:26px;flex-shrink:0;background:#33D900;display:flex;align-items:center;justify-content:center;">
-                <span style="color:#fff;font-size:.48rem;font-weight:800;letter-spacing:.12em;text-transform:uppercase;writing-mode:vertical-rl;transform:rotate(180deg);">Highly Circular</span>
-              </div>
-              <div style="padding:14px 16px;flex:1;background:white;">
-                <div style="margin-bottom:8px;"><div style="font-size:.75rem;color:#333;line-height:1.75;">9&nbsp;&nbsp;Water-based Paint</div><div style="font-size:.73rem;color:#666;padding-left:14px;">Doesn't contaminate wood / timber</div></div>
-                <div style="margin-bottom:8px;"><div style="font-size:.75rem;color:#333;line-height:1.75;">10&nbsp;&nbsp;Steel</div></div>
-                <div><div style="font-size:.75rem;color:#333;line-height:1.75;">11&nbsp;&nbsp;Aluminium</div><div style="font-size:.73rem;color:#666;padding-left:14px;">High secondary market value — don't bin it</div></div>
-              </div>
-            </div>
-            <div style="margin-top:12px;">
-              <button onclick="window.open('https://megtei.github.io/Materials_Methods_Plan/','_blank')" style="font-size:.78rem;font-weight:700;color:var(--blue);background:rgba(2,136,204,.07);border:1.5px solid rgba(2,136,204,.22);border-radius:7px;padding:7px 14px;cursor:pointer;font-family:inherit;">View full Target Materials List &#8599;</button>
-            </div>
-          </div>
-          <!-- RIGHT: bubble chart -->
-          <div style="background:white;border-radius:10px;overflow:hidden;">
-            <svg viewBox="0 0 1447 1350" width="100%" role="img" style="display:block;">
-              <defs><marker id="tm-arrow2" markerWidth="14" markerHeight="14" refX="10" refY="7" orient="auto" markerUnits="strokeWidth"><path d="M0,0 L14,7 L0,14 z" fill="#3d3d3d"/></marker></defs>
-              <line stroke="#3d3d3d" stroke-width="7" stroke-linecap="square" marker-end="url(#tm-arrow2)" x1="82" y1="1250" x2="82" y2="331"/>
-              <line stroke="#3d3d3d" stroke-width="7" stroke-linecap="square" marker-end="url(#tm-arrow2)" x1="82" y1="1250" x2="997" y2="1250"/>
-              <text font-size="45" fill="#3d3d3d" font-weight="400" letter-spacing="-1" x="87" y="1306">Increasing Environmental Impact</text>
-              <text font-size="45" fill="#3d3d3d" font-weight="400" letter-spacing="-1" transform="translate(58 1228) rotate(-90)">Increasing Volume/ Spend</text>
-              <g transform="translate(268 385)"><clipPath id="tm-gridClip2"><rect width="730" height="730"/></clipPath><rect width="730" height="730" fill="#efefef"/><g opacity=".96" clip-path="url(#tm-gridClip2)"><rect x="91.25" y="0" width="91.25" height="638.75" fill="#e4f7fd"/><rect x="182.5" y="0" width="91.25" height="638.75" fill="#d0f0f8"/><rect x="273.75" y="0" width="91.25" height="638.75" fill="#bde9f4"/><rect x="365" y="0" width="91.25" height="638.75" fill="#92dbef"/><rect x="456.25" y="0" width="91.25" height="456.25" fill="#149bd0"/><rect x="547.5" y="0" width="91.25" height="456.25" fill="#087aa2"/><rect x="638.75" y="0" width="91.25" height="456.25" fill="#253491"/><rect x="365" y="91.25" width="365" height="91.25" fill="#61cbea" opacity=".65"/><rect x="365" y="182.5" width="365" height="91.25" fill="#26b7df" opacity=".75"/><rect x="365" y="273.75" width="365" height="91.25" fill="#0c9bd0" opacity=".9"/><rect x="365" y="365" width="365" height="91.25" fill="#07a2d0" opacity=".95"/><rect x="365" y="456.25" width="365" height="91.25" fill="#80d7ee" opacity=".9"/><rect x="365" y="547.5" width="365" height="91.25" fill="#d7f3fa" opacity=".85"/></g>
-              <g><line stroke="white" stroke-opacity=".35" stroke-width="3" x1="91.25" y1="0" x2="91.25" y2="730"/><line stroke="white" stroke-opacity=".35" stroke-width="3" x1="182.5" y1="0" x2="182.5" y2="730"/><line stroke="white" stroke-opacity=".35" stroke-width="3" x1="273.75" y1="0" x2="273.75" y2="730"/><line stroke="white" stroke-opacity=".35" stroke-width="3" x1="365" y1="0" x2="365" y2="730"/><line stroke="white" stroke-opacity=".35" stroke-width="3" x1="456.25" y1="0" x2="456.25" y2="730"/><line stroke="white" stroke-opacity=".35" stroke-width="3" x1="547.5" y1="0" x2="547.5" y2="730"/><line stroke="white" stroke-opacity=".35" stroke-width="3" x1="638.75" y1="0" x2="638.75" y2="730"/><line stroke="white" stroke-opacity=".35" stroke-width="3" x1="0" y1="91.25" x2="730" y2="91.25"/><line stroke="white" stroke-opacity=".35" stroke-width="3" x1="0" y1="182.5" x2="730" y2="182.5"/><line stroke="white" stroke-opacity=".35" stroke-width="3" x1="0" y1="273.75" x2="730" y2="273.75"/><line stroke="white" stroke-opacity=".35" stroke-width="3" x1="0" y1="365" x2="730" y2="365"/><line stroke="white" stroke-opacity=".35" stroke-width="3" x1="0" y1="456.25" x2="730" y2="456.25"/><line stroke="white" stroke-opacity=".35" stroke-width="3" x1="0" y1="547.5" x2="730" y2="547.5"/><line stroke="white" stroke-opacity=".35" stroke-width="3" x1="0" y1="638.75" x2="730" y2="638.75"/></g></g>
-              <g><circle fill="rgba(255,255,255,.05)" stroke="black" stroke-width="5" cx="231" cy="580" r="54"/><text font-size="31" font-weight="700" fill="#4a4a4a" text-anchor="middle" dominant-baseline="middle" x="231" y="580">3</text><circle fill="rgba(255,255,255,.05)" stroke="black" stroke-width="5" cx="602" cy="435" r="54"/><text font-size="31" font-weight="700" fill="#4a4a4a" text-anchor="middle" dominant-baseline="middle" x="602" y="435">6</text><circle fill="rgba(255,255,255,.05)" stroke="black" stroke-width="5" cx="681" cy="435" r="55"/><text font-size="31" font-weight="700" fill="#4a4a4a" text-anchor="middle" dominant-baseline="middle" x="681" y="435">2</text><circle fill="rgba(255,255,255,.05)" stroke="white" stroke-width="5" cx="759" cy="435" r="55"/><text font-size="31" font-weight="700" fill="white" text-anchor="middle" dominant-baseline="middle" x="759" y="435">5</text><circle fill="rgba(255,255,255,.05)" stroke="white" stroke-width="5" cx="880" cy="435" r="55"/><text font-size="31" font-weight="700" fill="white" text-anchor="middle" dominant-baseline="middle" x="880" y="435">1</text><circle fill="rgba(255,255,255,.05)" stroke="white" stroke-width="5" cx="982" cy="435" r="55"/><text font-size="31" font-weight="700" fill="white" text-anchor="middle" dominant-baseline="middle" x="982" y="435">11</text><circle fill="rgba(255,255,255,.05)" stroke="white" stroke-width="5" cx="959" cy="514" r="54"/><text font-size="31" font-weight="700" fill="white" text-anchor="middle" dominant-baseline="middle" x="959" y="514">10</text><circle fill="rgba(255,255,255,.05)" stroke="white" stroke-width="5" cx="854" cy="593" r="55"/><text font-size="31" font-weight="700" fill="white" text-anchor="middle" dominant-baseline="middle" x="854" y="593">8</text><circle fill="rgba(255,255,255,.05)" stroke="white" stroke-width="5" cx="952" cy="594" r="55"/><text font-size="31" font-weight="700" fill="white" text-anchor="middle" dominant-baseline="middle" x="952" y="594">4</text><circle fill="rgba(255,255,255,.05)" stroke="white" stroke-width="5" cx="727" cy="703" r="55"/><text font-size="31" font-weight="700" fill="white" text-anchor="middle" dominant-baseline="middle" x="727" y="703">7</text><circle fill="rgba(255,255,255,.05)" stroke="black" stroke-width="5" cx="686" cy="766" r="55"/><text font-size="31" font-weight="700" fill="#4a4a4a" text-anchor="middle" dominant-baseline="middle" x="686" y="766">9</text></g>
-            </svg>
           </div>
         </div>
       </div>
@@ -1137,6 +1266,39 @@ function renderPlanTab(){
   h+='<div style="font-size:11px;color:#aaa;margin-top:4px">'+egSc.nonLandfill+' of '+egSc.total+' materials diverted from landfill</div>';
   h+='</div>';
   h+='<button onclick="loadExample()" style="font-size:12px;padding:9px 18px;color:#0091D2;background:#fff;border:1.5px solid #c5daf5;border-radius:8px;font-weight:700;white-space:nowrap;flex-shrink:0;cursor:pointer">Open example &rarr;</button>';
+  h+='</div></div>';
+  h+='</div>';
+
+  document.getElementById('main').innerHTML=h;
+}
+function renderCreateIntro(){
+  const pb=document.getElementById('page-body-wrap');
+  if(pb){pb.style.padding='0';}
+  let h='';
+
+  // ── PAGE HERO ────────────────────────────────────────────────────
+  h+='<div class="admin-hero">';
+  h+='<div style="font-size:10px;font-weight:800;letter-spacing:.12em;color:rgba(255,255,255,.55);text-transform:uppercase;margin-bottom:4px">AO27</div>';
+  h+='<h2 style="font-size:20px;font-weight:800;color:#fff;margin-bottom:.4rem;letter-spacing:-.02em">Create a materials management plan</h2>';
+  h+='<p style="font-size:12px;line-height:1.6;opacity:.85;max-width:520px">Complete a plan before the event to document assets and materials, set circularity and waste reduction targets. You&rsquo;ll need your AO27 scope and the Target Materials List.</p>';
+  h+='</div>';
+
+  // ── HOW IT WORKS ─────────────────────────────────────────────────
+  h+='<div class="cta-section" style="text-align:left;padding-top:1.25rem">';
+  h+='<div class="sechd sechd-first">How it works</div>';
+  h+='<div class="how-steps-h">';
+  h+='<div class="how-step-card"><div class="step-n">1</div><h4>About you</h4><p>Business details, your role, and your AO27 waste and reuse targets.</p></div>';
+  h+='<div class="how-step-card"><div class="step-n">2</div><h4>Assets &amp; Materials</h4><p>Add each asset in your scope with its materials, volumes and expected end-of-event status.</p></div>';
+  h+='<div class="how-step-card"><div class="step-n">3</div><h4>Review &amp; Save</h4><p>See your circularity score, flag any non-recommended materials, and save or print your plan.</p></div>';
+  h+='<div class="how-step-card" style="border-color:#33D900;background:#EEF9F4"><div class="step-n" style="background:#33D900">4</div><h4>Post event manifest</h4><p>Return at bump-out to record actual outcomes and complete your circularity report.</p></div>';
+  h+='</div>';
+  h+='<div class="mreq-card">';
+  h+='<div class="mreq-img fit"><img src="'+CREATE_IMG+'" alt="Create plan illustration"></div>';
+  h+='<div class="mreq-body">';
+  h+='<div class="mreq-title">New Plan</div>';
+  h+='<p class="mreq-text">Document your assets and materials, targets and submit your plan to TA before the event.</p>';
+  h+='<div class="mreq-divider"></div>';
+  h+='<div class="mreq-foot" style="display:flex;gap:10px;flex-wrap:wrap"><button class="mreq-btn" onclick="startTA()">I work for TA</button><button class="mreq-btn" onclick="startExternal()" style="background:#0091D2;color:#fff">I am an Agency/ Builder</button></div>';
   h+='</div></div>';
   h+='</div>';
 
@@ -1226,6 +1388,504 @@ async function prepareXlsUpdate(){
   }
 }
 
+function renderForecastTab(){
+  if(!S.fc)S.fc={mode:'landing'};
+  const pb=document.getElementById('page-body-wrap');
+  if(pb){pb.style.padding='0';}
+  try{
+    if(S.fc.mode==='new')return renderFcForm();
+    if(S.fc.mode==='summary')return renderFcSummary();
+    if(S.fc.mode==='actuals')return renderFcActuals();
+    return renderFcLanding();
+  }catch(err){
+    // A render failing partway through must never leave the page silently
+    // stuck on whatever was on screen before — fall back to the landing
+    // screen and say so, rather than a confusing do-nothing click.
+    console.warn('Forecast render failed, returning to landing:',err);
+    showToast('Something went wrong loading that forecast — please try again.');
+    S.fc={mode:'landing'};
+    return renderFcLanding();
+  }
+}
+
+function renderFcLanding(){
+  let h='';
+  h+='<div class="admin-hero">';
+  h+='<div style="font-size:10px;font-weight:800;letter-spacing:.12em;color:rgba(255,255,255,.55);text-transform:uppercase;margin-bottom:4px">AO27</div>';
+  h+='<h2 style="font-size:20px;font-weight:800;color:#fff;margin-bottom:.4rem;letter-spacing:-.02em">Provide a waste &amp; reuse forecast</h2>';
+  h+='<p style="font-size:12px;line-height:1.6;opacity:.85;max-width:520px">Not doing a full materials management plan? Give TA a quick waste forecast now, then come back after the event to log what actually happened. This counts towards AO27&rsquo;s whole-of-event materials report.</p>';
+  h+='</div>';
+
+  h+='<div style="padding:1.25rem 1rem">';
+
+  h+='<div class="card" style="border:1.5px solid #c5daf5">';
+  h+='<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px"><span style="display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:50%;background:#0091D2;color:#fff;font-size:12px;font-weight:800">1</span><div class="sechd" style="margin:0">Provide a forecast</div></div>';
+  h+='<p style="font-size:13px;color:#666;line-height:1.6;margin-bottom:12px">TA PMs, Agencies and Builders complete this 10 min materials reuse and waste forecast before Dec 31.</p>';
+  h+='<button class="mreq-btn" onclick="fcStartNew()">Start a forecast &rarr;</button>';
+  h+='</div>';
+
+  h+='<div style="display:flex;align-items:center;gap:12px;margin:6px 2px 14px"><div style="flex:1;height:1px;background:#e0ddd6"></div><span style="font-size:11px;font-weight:700;color:#aaa;text-transform:uppercase;letter-spacing:.08em">or</span><div style="flex:1;height:1px;background:#e0ddd6"></div></div>';
+
+  h+='<div class="card" style="border:1.5px solid #b7e4d0">';
+  h+='<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px"><span style="display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:50%;background:#0F6E56;color:#fff;font-size:12px;font-weight:800">2</span><div class="sechd" style="margin:0">Updates &amp; post event</div></div>';
+  h+='<p style="font-size:13px;color:#666;line-height:1.6;margin-bottom:12px">Updates to your forecast can be made easily here. Use your TA-ID to make changes that TA bump-out ops need for bin management, and following bump-out, log what actually happened to materials and download your event report.</p>';
+  h+='<div class="retrieve-row"><input type="text" id="fc-retrieve-input" name="fc-code-retrieve" autocomplete="off" autocapitalize="characters" autocorrect="off" spellcheck="false" placeholder="AO27-FC-XXXX" maxlength="12" oninput="this.value=this.value.toUpperCase().replace(/[^A-Z0-9-]/g,&#39;&#39;);" onkeydown="if(event.keyCode===13)fcRetrieve()"><button onclick="fcRetrieve()">Load</button></div>';
+  h+='<div id="fc-retrieve-msg" style="margin-top:.5rem;font-size:11px;color:#aaa"></div>';
+  h+='</div>';
+
+  const dbStatus=SUPABASE_READY
+    ?'<span style="color:#0F6E56;font-weight:700">Cloud storage active.</span> Forecasts save to Supabase and can be retrieved on any device using your TA-ID.'
+    :'<span style="color:#854F0B;font-weight:700">Cloud storage not configured.</span> Forecasts save to this browser only.';
+  h+='<div class="backend-notice" style="margin-top:1rem"><strong>Forecast storage: </strong>'+dbStatus+'</div>';
+
+  h+='</div>';
+  document.getElementById('main').innerHTML=h;
+}
+
+function fcStartNew(){S.fc={mode:'new',draft:newForecast()};S.screen='home';render();}
+function fcBackToLanding(){S.fc={mode:'landing'};S.screen='home';render();}
+
+function renderFcForm(){
+  const fc=S.fc.draft;
+  let h='';
+  h+='<div class="admin-hero">';
+  h+='<div style="font-size:10px;font-weight:800;letter-spacing:.12em;color:rgba(255,255,255,.55);text-transform:uppercase;margin-bottom:4px">AO27</div>';
+  h+='<h2 style="font-size:20px;font-weight:800;color:#fff;margin-bottom:.4rem;letter-spacing:-.02em">Provide a waste &amp; reuse forecast</h2>';
+  h+='</div>';
+
+  h+='<div class="fc-page" style="padding:1.25rem 1rem">';
+
+  h+='<div class="hbox">Agencies, Builders and Contractors delivering temporary infrastructure for the AO are required to provide waste estimates to enable TA to plan waste services on bump out. The information provided will be used to plan bin types and locations and optimise recycling.<br><br>It will also provide Agencies and builders with post event reporting which will be reviewed by Partners and TA for future events.</div>';
+
+  h+='<div class="card">';
+  h+='<div class="sechd sechd-first">Your details</div>';
+  h+='<div class="fg"><label>Organisation *</label><input type="text" data-f="org" value="'+esc(fc.profile.org)+'" placeholder="Business/ organisation name" onblur="fcUpProfile(this)"></div>';
+  h+='<div class="fg"><label>Project *</label><input type="text" data-f="project" value="'+esc(fc.profile.project)+'" placeholder="Activation name" onblur="fcUpProfile(this)"><div class="fhint">Activation name/ precinct/ project</div></div>';
+  h+='<div style="display:flex;gap:8px"><div class="fg" style="flex:1"><label>Role *</label><select data-f="role" onchange="fcUpProfile(this)"><option value="">Select role...</option>'+mkOpts(FC_ROLES,fc.profile.role)+'</select></div>';
+  h+='<div class="fg" style="width:110px"><label>Event year</label><select data-f="eventYear" onchange="fcUpProfile(this)"><option value="AO27"'+(fc.profile.eventYear==='AO27'?' selected':'')+'>AO27</option><option value="AO28"'+(fc.profile.eventYear==='AO28'?' selected':'')+'>AO28</option></select></div></div>';
+  h+='<div style="display:flex;gap:8px"><div class="fg" style="flex:1"><label>Contact name *</label><input type="text" data-f="contactName" value="'+esc(fc.profile.contactName)+'" placeholder="Full name" onblur="fcUpProfile(this)"></div>';
+  h+='<div class="fg" style="flex:1"><label>Contact email *</label><input type="email" data-f="contactEmail" value="'+esc(fc.profile.contactEmail)+'" placeholder="email@company.com" onblur="fcUpProfile(this)"></div></div>';
+  h+='</div>';
+
+  h+='<div class="card">';
+  h+='<div class="sechd sechd-first">Targets &amp; practices</div>';
+  h+='<div class="fg"><label>1. What are your reuse targets this year (percentage)? *</label><input type="text" data-f="reuseTarget" value="'+esc(fc.targets.reuseTarget)+'" placeholder="20%" onblur="fcUpTargets(this)"></div>';
+  h+='<div class="fg"><label>2. What are your waste reduction targets this year (percentage)? *</label><input type="text" data-f="wasteTarget" value="'+esc(fc.targets.wasteTarget)+'" placeholder="15%" onblur="fcUpTargets(this)"></div>';
+  h+='<div class="fg"><label>3. To what extent do you use circular practices (modular design, finishes and fixes that don&rsquo;t contaminate materials, methods to optimise reuse or recycling)? *</label><select data-f="circPractices" onchange="fcUpTargets(this)"><option value="">Select...</option>'+mkOpts(['Not at all','Somewhat','As much as possible'],fc.targets.circPractices)+'</select></div>';
+  h+='<div class="fg"><label>4. Estimate the proportion of materials to be reused &amp; stored (percentage) *</label><input type="text" data-f="reuseStoredPct" value="'+esc(fc.targets.reuseStoredPct)+'" placeholder="30%" onblur="fcUpTargets(this)"></div>';
+  h+='<div class="fg"><label>5. Estimate the proportion of materials to be disposed on site in bins (percentage) *</label><input type="text" data-f="disposedPct" value="'+esc(fc.targets.disposedPct)+'" placeholder="10%" onblur="fcUpTargets(this)"></div>';
+  h+='</div>';
+
+  h+='<div class="sechd">Waste &amp; reuse forecast</div>';
+  h+='<div class="hbox" style="margin-bottom:14px">Use the 80/20 rule for your materials &#8212; typically a small number of key materials make up the majority of build and waste volumes. Completing this also reports how much reuse you are achieving and waste you are reducing.</div>';
+  h+='<div id="fc-mats">';
+  fc.materials.forEach((m,i)=>{h+=fcMatRowHtml(m,i);});
+  h+='</div>';
+  h+='<button class="btn-add-mat" style="margin-bottom:1rem;display:block;width:100%;text-align:center;padding:10px" onclick="fcAddMaterial()">+ Add another material</button>';
+
+  h+='<div class="card">';
+  h+='<div class="sechd sechd-first">Anything else?</div>';
+  h+='<div class="fg"><label>If you have large structures or bespoke materials that will use onsite bins, please let us know in advance.</label><textarea rows="2" data-f="largeStructures" onblur="fcUpNotes(this)" placeholder="Optional">'+esc(fc.notes.largeStructures)+'</textarea></div>';
+  h+='<div class="fg"><label>Any questions or feedback? Let us know below.</label><textarea rows="2" data-f="feedback" onblur="fcUpNotes(this)" placeholder="Optional">'+esc(fc.notes.feedback)+'</textarea></div>';
+  h+='</div>';
+
+  // Bottom nav bar matches the materials plan's own step pages: a plain
+  // "&larr; Back" on the left and the bold blue primary action on the right,
+  // both in the same .acts row, instead of a floating top-corner Back button
+  // paired with an unrelated full-width CTA at the bottom.
+  h+='<div class="acts"><button onclick="fcBackToLanding()">&larr; Back</button><button id="fc-save-forecast-btn" onclick="fcSaveForecast()" style="background:linear-gradient(135deg,#0091D2,#0072A8);color:#fff;border-color:#0072A8;font-weight:700;padding:9px 20px;box-shadow:0 2px 8px rgba(0,145,210,.3)">Save forecast &#10003;</button></div>';
+
+  h+='</div>';
+  document.getElementById('main').innerHTML=h;
+}
+
+function fcMatRowHtml(m,idx){
+  const showOther=m.detail==='Other';
+  return'<div class="mat-row" id="fcmr-'+m.id+'">'
+    +'<div class="mat-row-hd">'
+    +'<span class="mat-row-num">Material '+(idx+1)+'</span>'
+    +'<span class="mat-row-name">'+esc(m.detail==='Other'?(m.detailOther||'Other material'):(m.detail||''))+'</span>'
+    +'<button onclick="fcDelMaterial(&#39;'+m.id+'&#39;)" style="background:none;border:none;cursor:pointer;color:#ccc;padding:8px 10px;font-size:14px;border-radius:6px;flex-shrink:0" title="Remove material">&times;</button>'
+    +'</div>'
+    +'<div class="fg"><label>1. Material details *</label><select data-mid="'+m.id+'" data-f="detail" onchange="fcUpMat(this)">'+fcMatOptsHtml(m.detail)+'</select></div>'
+    +(showOther?'<div class="fg"><label>If other, list below *</label><input type="text" data-mid="'+m.id+'" data-f="detailOther" value="'+esc(m.detailOther)+'" placeholder="Describe the material" onblur="fcUpMat(this)"></div>':'')
+    +'<div style="display:flex;gap:8px;align-items:flex-end">'
+    +'<div class="fg" style="flex:1;margin-bottom:0"><label>Expected volume *</label><input type="text" data-mid="'+m.id+'" data-f="vol" value="'+esc(m.vol)+'" placeholder="10 sheets/ 2 rolls/ 5kg" onblur="fcUpMat(this)"></div>'
+    +'<div class="fg" style="width:180px;margin-bottom:0"><label>Unit</label><input type="text" list="vol-units" data-mid="'+m.id+'" data-f="vunit" value="'+esc(m.vunit)+'" placeholder="Kg/ sqm/ lm etc" autocomplete="off" onblur="fcUpMat(this)"></div>'
+    +'</div>'
+    +'<div class="fg" style="margin-top:8px"><label>2. Expected status *</label><select data-mid="'+m.id+'" data-f="stat" onchange="fcUpMat(this)">'+mkOpts(STATS,m.stat,'Select status...')+'</select>'+(m.stat?'<div style="margin-top:6px">'+fcStatTag(m.stat)+'</div>':'')+'</div>'
+    +'</div>';
+}
+
+// Used on both the create-forecast form (S.fc.draft) and the forecast
+// update/actuals page (S.fc.current, where targets are editable but the
+// object is stored under a different key) — resolve whichever is active.
+function fcActive(){return S.fc.draft||S.fc.current;}
+function fcUpProfile(el){fcActive().profile[el.dataset.f]=el.value;}
+function fcUpTargets(el){fcActive().targets[el.dataset.f]=el.value;}
+function fcUpNotes(el){fcActive().notes[el.dataset.f]=el.value;}
+function fcUpMat(el){
+  const mid=el.dataset.mid,f=el.dataset.f;
+  const m=S.fc.draft.materials.find(x=>x.id===mid);if(!m)return;
+  m[f]=el.value;
+  const row=document.getElementById('fcmr-'+mid);
+  if(row){
+    const idx=S.fc.draft.materials.findIndex(x=>x.id===mid);
+    row.outerHTML=fcMatRowHtml(m,idx);
+  }
+}
+function fcAddMaterial(){
+  S.fc.draft.materials.push(newFcMat());
+  const wrap=document.getElementById('fc-mats');
+  if(wrap){let h='';S.fc.draft.materials.forEach((m,i)=>{h+=fcMatRowHtml(m,i);});wrap.innerHTML=h;}
+}
+function fcDelMaterial(mid){
+  if(S.fc.draft.materials.length<=1){showToast('A forecast needs at least one material.');return;}
+  S.fc.draft.materials=S.fc.draft.materials.filter(m=>m.id!==mid);
+  const wrap=document.getElementById('fc-mats');
+  if(wrap){let h='';S.fc.draft.materials.forEach((m,i)=>{h+=fcMatRowHtml(m,i);});wrap.innerHTML=h;}
+}
+
+async function fcSaveForecast(){
+  const fc=S.fc.draft;
+  const p=fc.profile;
+  if(!p.org||!p.project||!p.role||!p.contactName||!p.contactEmail){showToast('Please complete organisation, project, role, contact name and email.');return;}
+  if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(p.contactEmail)){showToast('Please enter a valid contact email.');return;}
+  const t=fc.targets;
+  if(!t.reuseTarget||!t.wasteTarget||!t.circPractices||!t.reuseStoredPct||!t.disposedPct){showToast('Please complete all 5 questions in Targets & practices.');return;}
+  const missingMat=fc.materials.find(m=>!m.detail||!m.vol||!m.stat||(m.detail==='Other'&&!m.detailOther));
+  if(missingMat){showToast('Please complete material details, expected volume and expected status for every material.');return;}
+  const btn=document.getElementById('fc-save-forecast-btn');
+  if(btn){btn.disabled=true;btn.textContent='Saving...';}
+  const res=await forecastDB.save(fc);
+  S.fc={mode:'summary',saved:fc,saveSource:res.source,from:'form'};
+  S.screen='home';
+  showToast(res.source==='cloud'?'Forecast saved':'Forecast saved to this device');
+  render();
+}
+
+// Back from the forecast summary page to whichever page led here — the
+// in-progress form (just saved a new forecast) or the actuals page (just
+// saved actuals) — mirroring the materials plan summary's "&larr; Back" to
+// goPrev(). S.fc.from is set by fcSaveForecast/fcSaveActuals right before
+// they switch to mode:'summary'.
+function fcBackFromSummary(){
+  const fc=S.fc.saved;
+  if(!fc)return fcBackToLanding();
+  if(S.fc.from==='actuals')S.fc={mode:'actuals',current:fc};
+  else S.fc={mode:'new',draft:fc};
+  S.screen='home';
+  render();
+}
+
+function renderFcSummary(){
+  const fc=S.fc.saved;
+  const code=fcCode(fc.id);
+  const total=fc.materials.length;
+  const wasteCount=fc.materials.filter(m=>m.stat==='Mixed construction waste - AO onsite bins').length;
+  const divertedCount=fc.materials.filter(m=>m.stat&&statRating(m.stat)==='circular').length;
+  // Circularity rate — same calc/scale/copy as the materials plan's own
+  // "Circularity score" card (circStats + fillClr + pctText), computed off
+  // the forecast's expected status per material.
+  const sc=circStats(fc.materials,'stat');
+  const cl=fillClr(sc.pct);
+  const circBody=sc.total>0?'<div style="display:flex;justify-content:space-between;font-size:12px;color:#888;margin-bottom:4px;margin-top:10px"><span>Circularity rate</span><span style="font-weight:600;color:'+cl+'">'+pctText(sc.pctExact)+'</span></div><div class="strack"><div class="sfill" style="width:'+sc.pct+'%;background:'+cl+'"></div></div><div style="font-size:11px;color:#aaa;margin-top:3px">AO target: 10% improvement per year</div>':'';
+  const loggedActuals=!!fc.actualsLoggedAt;
+  let h='';
+  h+='<div class="admin-hero">';
+  h+='<div style="font-size:10px;font-weight:800;letter-spacing:.12em;color:rgba(255,255,255,.55);text-transform:uppercase;margin-bottom:4px">AO27</div>';
+  h+='<h2 style="font-size:20px;font-weight:800;color:#fff;margin-bottom:.4rem;letter-spacing:-.02em">'+(loggedActuals?'Event report':'Forecast saved')+'</h2>';
+  h+='<p style="font-size:12px;line-height:1.6;opacity:.85;max-width:520px">'+(loggedActuals?'Your actuals are logged &#8212; print or export a copy of your event report below.':'Save your TA-ID below &#8212; you&rsquo;ll need it to log what actually happened after the event.')+'</p>';
+  h+='</div>';
+  h+='<div style="padding:1.25rem 1rem">';
+
+  if(!loggedActuals)h+='<div class="hbox"><strong>What happens following submission of your forecast?</strong><br><br>&bull; You will be asked prior to bump-out to review the waste stream questions<br>&bull; Post-event &#8212; return here with your TA-ID to report your actuals</div>';
+
+  h+='<div class="card">';
+  h+='<div class="sechd sechd-first">TA-ID</div>';
+  h+='<div style="display:flex;gap:16px"><div style="flex:1"><div style="font-size:12px;color:#888">Organisation</div><div style="font-size:14px;font-weight:600;margin-top:2px">'+esc(fc.profile.org)+'</div></div><div style="flex:1"><div style="font-size:12px;color:#888">Contact</div><div style="font-size:14px;margin-top:2px">'+esc(fc.profile.contactEmail)+'</div></div></div>';
+  h+='<div class="plan-id-badge"><div><div class="plan-id-lbl">TA-ID</div><div class="plan-id-code">'+code+'</div></div><button class="plan-id-copy-btn" data-code="'+code+'" onclick="copyCode(this)">Copy</button></div>';
+  h+='</div>';
+
+  h+='<div class="card">';
+  h+='<div class="sechd sechd-first">Forecast summary</div>';
+  h+='<div class="metg"><div class="met"><div class="mval">'+total+'</div><div class="mlbl">Total materials</div></div><div class="met"><div class="mval" style="color:#0F6E56">'+divertedCount+'</div><div class="mlbl">Expected to divert</div></div><div class="met"><div class="mval" style="color:#A32D2D">'+wasteCount+'</div><div class="mlbl">Waste</div></div></div>';
+  h+=circBody;
+  h+='</div>';
+
+  const stCts={};for(const m of fc.materials)if(m.stat)stCts[m.stat]=(stCts[m.stat]||0)+1;
+  const stRows=Object.entries(stCts).sort((a,b)=>b[1]-a[1]).map(([s,n])=>'<div class="srow"><div class="sdot" style="background:'+(STCOL[s]||'#9ca3af')+'"></div><div style="flex:1;color:#1a1a1a">'+esc(s)+'</div><div style="font-weight:600;min-width:20px;text-align:right">'+n+'</div></div>').join('');
+  const actualCts={};for(const m of fc.materials)if(m.actual&&m.actual.stat)actualCts[m.actual.stat]=(actualCts[m.actual.stat]||0)+1;
+  const actualRows=Object.entries(actualCts).sort((a,b)=>b[1]-a[1]).map(([s,n])=>'<div class="srow"><div class="sdot" style="background:'+(STCOL[s]||'#9ca3af')+'"></div><div style="flex:1;color:#1a1a1a">'+esc(s)+'</div><div style="font-weight:600;min-width:20px;text-align:right">'+n+'</div></div>').join('');
+  if(stRows)h+='<div class="card"><div style="display:grid;grid-template-columns:1fr 1fr;gap:16px"><div><div class="sechd" style="margin-top:0">Materials by expected status</div>'+stRows+'</div><div><div class="sechd" style="margin-top:0;color:#0091D2">Materials ACTUALS POST EVENT</div>'+(actualRows||'<div style="font-size:13px;color:#aaa;margin-top:6px">Return with your TA-ID after the event to log actuals.</div>')+'</div></div></div>';
+
+  h+='<div class="acts"><button onclick="fcBackFromSummary()">&larr; Back</button><button onclick="window.print()">Print / PDF</button><button onclick="fcExportXLS()">Export XLS</button><button onclick="fcBackToLanding()" style="background:#0091D2;color:#fff;border-color:#0091D2;font-weight:700">Done</button></div>';
+  h+='</div>';
+  document.getElementById('main').innerHTML=h;
+}
+
+async function fcRetrieve(){
+  const inp=document.getElementById('fc-retrieve-input');
+  const msg=document.getElementById('fc-retrieve-msg');
+  const btn=document.querySelector('#fc-retrieve-input').nextElementSibling;
+  if(!inp)return;
+  const code=inp.value.trim().toUpperCase();
+  if(code.length<12){if(msg){msg.textContent='Enter a full TA-ID (format: AO27-FC-XXXX)';msg.style.color='#A32D2D';}return;}
+  if(msg){msg.textContent=SUPABASE_READY?'Searching cloud...':'Searching local forecasts...';msg.style.color='#888';}
+  if(btn){btn.disabled=true;btn.textContent='Loading...';}
+  try{
+    const fc=await forecastDB.loadById(code);
+    if(fc){
+      S.fc={mode:'actuals',current:fc};
+      S.screen='home';
+      showToast('Forecast loaded');render();
+    } else {
+      if(msg){msg.textContent='TA-ID not found. Check the ID and try again.';msg.style.color='#A32D2D';}
+    }
+  } finally {
+    if(btn){btn.disabled=false;btn.textContent='Load';}
+  }
+}
+
+function renderFcActuals(){
+  const fc=S.fc.current;
+  const code=fcCode(fc.id);
+  let h='';
+  h+='<div class="admin-hero">';
+  h+='<div style="font-size:10px;font-weight:800;letter-spacing:.12em;color:rgba(255,255,255,.55);text-transform:uppercase;margin-bottom:4px">'+code+'</div>';
+  h+='<h2 style="font-size:20px;font-weight:800;color:#fff;margin-bottom:.4rem;letter-spacing:-.02em">Forecast updates and report</h2>';
+  h+='<p style="font-size:12px;line-height:1.6;opacity:.85;max-width:520px">Make changes to the forecast if needed prior to bump out and post event log what actually happened to materials and complete the post event report.</p>';
+  h+='</div>';
+  h+='<div style="padding:1.25rem 1rem">';
+
+  h+='<div class="card"><div class="sechd sechd-first">Your forecast</div><div style="font-size:13px;color:#555;line-height:1.6">'+esc(fc.profile.org)+' &middot; '+esc(fc.profile.role)+' &middot; '+esc(fc.profile.eventYear)+'</div></div>';
+
+  h+='<div class="card">';
+  h+='<div class="sechd sechd-first">Targets &amp; practices</div>';
+  h+='<div class="fg"><label>1. What are your reuse targets this year (percentage)?</label><input type="text" data-f="reuseTarget" value="'+esc(fc.targets.reuseTarget)+'" placeholder="20%" onblur="fcUpTargets(this)"></div>';
+  h+='<div class="fg"><label>2. What are your waste reduction targets this year (percentage)?</label><input type="text" data-f="wasteTarget" value="'+esc(fc.targets.wasteTarget)+'" placeholder="15%" onblur="fcUpTargets(this)"></div>';
+  h+='<div class="fg"><label>3. To what extent do you use circular practices (modular design, finishes and fixes that don&rsquo;t contaminate materials, methods to optimise reuse or recycling)?</label><select data-f="circPractices" onchange="fcUpTargets(this)"><option value="">Select...</option>'+mkOpts(['Not at all','Somewhat','As much as possible'],fc.targets.circPractices)+'</select></div>';
+  h+='<div class="fg"><label>4. Estimate the proportion of materials to be reused &amp; stored (percentage)</label><input type="text" data-f="reuseStoredPct" value="'+esc(fc.targets.reuseStoredPct)+'" placeholder="30%" onblur="fcUpTargets(this)"></div>';
+  h+='<div class="fg"><label>5. Estimate the proportion of materials to be disposed on site in bins (percentage)</label><input type="text" data-f="disposedPct" value="'+esc(fc.targets.disposedPct)+'" placeholder="10%" onblur="fcUpTargets(this)"></div>';
+  h+='</div>';
+
+  h+='<div class="sechd">Updates or bump-out actuals</div>';
+  h+='<div id="fc-act-mats">';
+  fc.materials.forEach((m,i)=>{h+=fcActualMatRowHtml(fc,m,i);});
+  h+='</div>';
+
+  // Same bottom nav bar pattern as the materials plan and the forecast form:
+  // plain "&larr; Back" paired with the bold blue primary action, both in .acts.
+  h+='<div class="acts"><button onclick="fcBackToLanding()">&larr; Back</button><button id="fc-save-actuals-btn" onclick="fcSaveActuals()" style="background:linear-gradient(135deg,#0091D2,#0072A8);color:#fff;border-color:#0072A8;font-weight:700;padding:9px 20px;box-shadow:0 2px 8px rgba(0,145,210,.3)">Save &#10003;</button></div>';
+  h+='</div>';
+  document.getElementById('main').innerHTML=h;
+}
+
+function fcActualMatRowHtml(fc,m,idx){
+  const a=m.actual;
+  const label=m.detail==='Other'?(m.detailOther||'Material '+(idx+1)):(m.detail||'Material '+(idx+1));
+  let body='';
+  if(a.matches===true){
+    body+='<div style="display:flex;align-items:center;gap:8px;background:#EEF9F4;border:1px solid #b2e8d2;border-radius:8px;padding:10px 12px">'
+      +'<span style="color:#0F6E56;font-weight:700;font-size:13px">&#10003; Matches forecast</span>'
+      +'<button onclick="fcEditActual(&#39;'+m.id+'&#39;)" style="margin-left:auto;background:none;border:none;color:#0091D2;font-size:12px;font-weight:700;cursor:pointer;text-decoration:underline">Make changes to forecast</button>'
+      +'</div>';
+    body+='<div style="margin-top:10px">'+fcEvidenceBlock(m,null)+'</div>';
+  } else if(a.matches===false || a._editing){
+    const curDetail=a.detail||m.detail;
+    const showOther=curDetail==='Other';
+    const curStat=a.stat||(m.stat!=='Unsure yet'?m.stat:'')||'';
+    const showDonate=curStat==='Donate';
+    const showTakeback=curStat==='Recycle on site with AO Take-back program';
+    body+='<div class="fg"><label>1. Material details</label><select data-mid="'+m.id+'" data-f="detail" onchange="fcUpActual(this);fcRefreshActRow(&#39;'+m.id+'&#39;)">'+fcMatOptsHtml(curDetail)+'</select></div>';
+    if(showOther)body+='<div class="fg"><label>If other, list below</label><input type="text" data-mid="'+m.id+'" data-f="detailOther" value="'+esc(a.detailOther||m.detailOther||'')+'" onblur="fcUpActual(this)"></div>';
+    body+='<div style="display:flex;gap:8px;align-items:flex-end"><div class="fg" style="flex:1;margin-bottom:0"><label>Actual volume</label><input type="text" data-mid="'+m.id+'" data-f="vol" value="'+esc(a.vol||m.vol||'')+'" onblur="fcUpActual(this)"></div><div class="fg" style="width:120px;margin-bottom:0"><label>Unit</label><input type="text" data-mid="'+m.id+'" data-f="vunit" value="'+esc(a.vunit||m.vunit||'')+'" onblur="fcUpActual(this)"></div></div>';
+    body+='<div class="fg" style="margin-top:8px"><label>2. Actual status</label><select data-mid="'+m.id+'" data-f="stat" onchange="fcUpActual(this);fcRefreshActRow(&#39;'+m.id+'&#39;)">'+mkOpts(OUTCOMES,curStat,'Select actual status...')+'</select>'+(curStat?'<div style="margin-top:6px">'+fcStatTag(curStat)+'</div>':'')+'</div>';
+    if(showDonate)body+='<div class="fg"><label>Receiving organisation</label><input type="text" data-mid="'+m.id+'" data-f="receivingOrg" value="'+esc(a.receivingOrg||'')+'" placeholder="Who received this?" onblur="fcUpActual(this)"></div>';
+    if(showTakeback)body+='<div class="fg"><label>Note</label><input type="text" data-mid="'+m.id+'" data-f="takeBackNote" value="'+esc(a.takeBackNote||'')+'" placeholder="Any details for the take-back program" onblur="fcUpActual(this)"></div>';
+    body+=fcEvidenceBlock(m,'3');
+  } else {
+    const canConfirm=m.stat&&m.stat!=='Unsure yet';
+    body+='<div class="fg" style="margin-bottom:0">'
+      +(canConfirm?'<button onclick="fcConfirmMatches(&#39;'+m.id+'&#39;)" style="width:100%;padding:11px;background:#EEF9F4;border:1.5px solid #b2e8d2;color:#0F6E56;border-radius:8px;font-weight:700;font-size:13px;cursor:pointer;margin-bottom:6px">Forecast matches actuals</button>':'')
+      +'<button onclick="fcEditActual(&#39;'+m.id+'&#39;)" style="width:100%;padding:'+(canConfirm?'9px':'11px')+';background:'+(canConfirm?'none':'#EEF9F4')+';border:'+(canConfirm?'none':'1.5px solid #b2e8d2')+';color:'+(canConfirm?'#0091D2':'#0F6E56')+';border-radius:8px;font-size:'+(canConfirm?'12.5px':'13px')+';font-weight:700;cursor:pointer;text-decoration:'+(canConfirm?'underline':'none')+'">'+(canConfirm?'Make changes to forecast':'Add actual outcome &rarr;')+'</button>'
+      +'</div>';
+  }
+  return'<div class="mat-row" id="fcamr-'+m.id+'"><div class="mat-row-hd"><span class="mat-row-num">Material '+(idx+1)+'</span><span class="mat-row-name">'+esc(label)+'</span></div>'
+    +'<div style="font-size:11px;color:#888;margin-bottom:8px">Forecast: '+esc(m.detail==='Other'?m.detailOther:m.detail)+(m.vol?' &middot; '+esc(m.vol)+' '+esc(m.vunit):'')+(m.stat?' &middot; '+esc(m.stat):'')+'</div>'
+    +body+'</div>';
+}
+
+function fcRefreshActRow(mid){
+  const fc=S.fc.current;
+  const idx=fc.materials.findIndex(x=>x.id===mid);
+  const m=fc.materials[idx];
+  const row=document.getElementById('fcamr-'+mid);
+  if(row&&m)row.outerHTML=fcActualMatRowHtml(fc,m,idx);
+}
+function fcConfirmMatches(mid){
+  const fc=S.fc.current;const m=fc.materials.find(x=>x.id===mid);if(!m)return;
+  m.actual.matches=true;m.actual._editing=false;
+  m.actual.detail=m.detail;m.actual.detailOther=m.detailOther;m.actual.vol=m.vol;m.actual.vunit=m.vunit;m.actual.stat=m.stat;
+  fcRefreshActRow(mid);
+}
+function fcEditActual(mid){
+  const fc=S.fc.current;const m=fc.materials.find(x=>x.id===mid);if(!m)return;
+  m.actual.matches=false;m.actual._editing=true;
+  fcRefreshActRow(mid);
+}
+function fcUpActual(el){
+  const fc=S.fc.current;const mid=el.dataset.mid,f=el.dataset.f;
+  const m=fc.materials.find(x=>x.id===mid);if(!m)return;
+  m.actual[f]=el.value;
+}
+function fcUploadEvidence(input,mid){
+  const file=input.files&&input.files[0];if(!file)return;
+  if(file.size>IMAGE_MAX_BYTES){showToast('Image is too large (max 10MB)');return;}
+  const img=new Image();
+  const url=URL.createObjectURL(file);
+  img.onload=function(){
+    const maxDim=480;
+    let w=img.width,h=img.height;
+    const longest=Math.max(w,h);
+    if(longest>maxDim){const scale=maxDim/longest;w=Math.round(w*scale);h=Math.round(h*scale);}
+    const canvas=document.createElement('canvas');canvas.width=w;canvas.height=h;
+    const ctx=canvas.getContext('2d');
+    // THE BLACK-IMAGE BUG: a <canvas> has a transparent backing store, and
+    // JPEG has no alpha channel, so drawing a transparent PNG (a screenshot
+    // with rounded/trimmed corners, an exported graphic, etc.) straight onto
+    // the canvas and then exporting as JPEG silently turned every transparent
+    // pixel solid black. Fixed the same way the materials plan's own asset
+    // photo downscaler avoids it: keep PNGs as PNG (preserves the real
+    // transparency) and only flatten to JPEG for formats that are already
+    // fully opaque — with a white fill first as a second safety net for any
+    // other format that turns out to carry alpha.
+    const isPng=/png/i.test(file.type);
+    if(!isPng){ctx.fillStyle='#ffffff';ctx.fillRect(0,0,w,h);}
+    ctx.drawImage(img,0,0,w,h);
+    URL.revokeObjectURL(url);
+    const dataUrl=isPng?canvas.toDataURL('image/png'):canvas.toDataURL('image/jpeg',0.6);
+    const fc=S.fc.current;const m=fc.materials.find(x=>x.id===mid);if(!m)return;
+    m.actual.evidence=dataUrl;
+    fcRefreshActRow(mid);
+  };
+  img.onerror=function(){URL.revokeObjectURL(url);showToast('Could not read that image.');};
+  img.src=url;
+}
+function fcRemoveEvidence(mid){
+  if(!confirm('Remove this photo?'))return;
+  const fc=S.fc.current;const m=fc.materials.find(x=>x.id===mid);if(!m)return;
+  m.actual.evidence='';
+  fcRefreshActRow(mid);
+}
+// Verify/evidence widget for a material's actual outcome: thumbnail + Upload/Replace
+// + Remove — the same upload/replace/remove pattern as the materials plan's asset
+// image slots (imgSlotBlock), instead of the old click-anywhere-on-the-photo zone.
+function fcEvidenceBlock(m,num){
+  const a=m.actual;
+  const hasImg=!!a.evidence;
+  const thumb=hasImg
+    ? '<img src="'+a.evidence+'" alt="Evidence photo" style="width:74px;height:74px;object-fit:cover;border-radius:8px;border:1px solid #dde2e8;display:block;flex-shrink:0">'
+    : '<div style="width:74px;height:74px;border-radius:8px;border:1.5px dashed #d0cdc7;background:#faf9f7;display:flex;align-items:center;justify-content:center;color:#c4c0b8;font-size:22px;flex-shrink:0">&#9634;</div>';
+  const btnStyle='font-size:11.5px;font-weight:600;padding:6px 12px;border-radius:7px;cursor:pointer;border:1px solid #d0cdc7;background:#fff;color:#555;font-family:inherit;width:auto';
+  let btns='<input type="file" accept="image/*" id="fc-ev-'+m.id+'" style="display:none" onchange="fcUploadEvidence(this,&#39;'+m.id+'&#39;)">';
+  btns+='<button type="button" style="'+btnStyle+'" onclick="document.getElementById(&#39;fc-ev-'+m.id+'&#39;).click()">'+(hasImg?'Replace':'&#8593; Upload image')+'</button>';
+  if(hasImg)btns+='<button type="button" style="'+btnStyle+';color:#A32D2D;border-color:#f0cfcf" onclick="fcRemoveEvidence(&#39;'+m.id+'&#39;)">Remove</button>';
+  return '<div class="fg" style="margin-bottom:0">'
+    +'<label style="font-size:14px;font-weight:800;color:#003A5D">'+(num?num+'. ':'')+'Verify</label>'
+    +'<div style="font-size:12px;color:#888;margin-bottom:6px">To substantiate your report, provide evidence of any recycled/ reused materials with an image upload</div>'
+    +'<div style="display:flex;gap:12px;align-items:center">'
+    +thumb
+    +'<div style="flex:1;min-width:0">'
+    +'<div style="display:flex;gap:6px;flex-wrap:wrap">'+btns+'</div>'
+    +'</div></div></div>';
+}
+async function fcSaveActuals(){
+  const fc=S.fc.current;
+  // Saving is always allowed — someone opening this page to update targets, or
+  // just to check details, shouldn't be forced to confirm every material's
+  // actual outcome before their changes can be kept. "Actuals logged" (and the
+  // Event report framing on the summary page) is only marked complete once
+  // every material has actually been addressed.
+  const allAnswered=!fc.materials.some(m=>m.actual.matches===null&&!m.actual._editing);
+  fc.materials.forEach(m=>{delete m.actual._editing;});
+  if(allAnswered)fc.actualsLoggedAt=Date.now();
+  const btn=document.getElementById('fc-save-actuals-btn');
+  if(btn){btn.disabled=true;btn.textContent='Saving...';}
+  const res=await forecastDB.save(fc);
+  const savedMsg=allAnswered?'Actuals saved':'Progress saved';
+  showToast(res.source==='cloud'?savedMsg:savedMsg+' to this device');
+  S.fc={mode:'summary',saved:fc,saveSource:res.source,from:'actuals'};
+  S.screen='home';
+  render();
+}
+
+// ── Forecast export (FYI only — no re-upload) ─────────────────────────────────
+// A plain data export of the current forecast for the user's own records.
+// Deliberately simple: no embedded images and no re-import path. An earlier
+// version of this tried to make the export a full offline-edit-and-reupload
+// round trip (mirroring the materials plan's XLS workflow, including hand-
+// embedding each material's evidence photo into the file), but that isn't
+// something forecasts need — evidence photos are captured and reviewed in the
+// app itself, and hand-rolling image embedding produced photos that rendered
+// correctly when inspected byte-for-byte but showed up black when actually
+// opened, a rendering bug not worth the risk for a file that's just FYI.
+function fcExportXLS(){
+  loadXLSXThen(function(){
+    try{ _doFcExportXLS(); }
+    catch(err){ console.error('Forecast export error:',err); showToast('Export failed — '+err.message); }
+  });
+}
+function _doFcExportXLS(){
+  const fc=S.fc.saved||S.fc.current||(S.fc&&S.fc.draft);
+  if(!fc){showToast('No forecast to export.');return;}
+  const code=fcCode(fc.id);
+  const p=fc.profile,t=fc.targets,n=fc.notes;
+
+  const rows=[];
+  rows.push(['AO27 Forecast Report']);
+  rows.push(['TA-ID:',code]);
+  rows.push([]);
+  rows.push(['BUSINESS DETAILS']);
+  rows.push(['Organisation',p.org||'','Contact',p.contactName||'']);
+  rows.push(['Role',p.role||'','Email',p.contactEmail||'']);
+  rows.push(['Project',p.project||'','Event year',p.eventYear||'']);
+  rows.push([]);
+  rows.push(['TARGETS & PRACTICES']);
+  rows.push(['1. Reuse target (%)',t.reuseTarget||'']);
+  rows.push(['2. Waste reduction target (%)',t.wasteTarget||'']);
+  rows.push(['3. Circular practices',t.circPractices||'']);
+  rows.push(['4. Reused & stored (%)',t.reuseStoredPct||'']);
+  rows.push(['5. Disposed on site (%)',t.disposedPct||'']);
+  rows.push([]);
+  rows.push(['MATERIALS — FORECAST & ACTUALS']);
+  const matHeader=['Material detail','If other detail','Expected volume','Expected unit','Expected status',
+    'Actual detail','Actual other detail','Actual volume','Actual unit','Actual status',
+    'Receiving org (Donate)','Take-back note','Evidence photo captured?'];
+  rows.push(matHeader);
+  (fc.materials||[]).forEach(function(m){
+    const a=m.actual||{};
+    rows.push([
+      m.detail||'',m.detailOther||'',m.vol||'',m.vunit||'',m.stat||'',
+      a.detail||'',a.detailOther||'',a.vol||'',a.vunit||'',a.stat||'',
+      a.receivingOrg||'',a.takeBackNote||'',
+      a.evidence?'Yes — view in app':'No'
+    ]);
+  });
+  rows.push([]);
+  rows.push(['NOTES']);
+  rows.push(['Large structures / bespoke materials',n.largeStructures||'']);
+  rows.push(['Feedback',n.feedback||'']);
+
+  const wb=XLSX.utils.book_new();
+  const ws=XLSX.utils.aoa_to_sheet(rows);
+  ws['!cols']=[{wch:26},{wch:22},{wch:16},{wch:14},{wch:24},{wch:20},{wch:20},{wch:14},{wch:14},
+    {wch:24},{wch:20},{wch:24},{wch:20}];
+  XLSX.utils.book_append_sheet(wb,ws,'Forecast');
+  XLSX.writeFile(wb,code+'.xlsx');
+  showToast('Forecast exported ✓');
+}
+
 function renderAdmin(){
   document.getElementById('hd-btns').innerHTML='';
   const pb=document.getElementById('page-body-wrap');
@@ -1245,8 +1905,17 @@ function renderAdmin(){
     return;
   }
 
-  // Authenticated — route to the selected admin sub-view (dashboard | upload)
+  // Authenticated — route to the selected admin sub-view (dashboard | upload | forecasts)
   if(S.adminView==='upload'){renderAdminUpload();return;}
+  if(S.adminView==='forecasts'){
+    document.getElementById('main').innerHTML=
+      '<div style="text-align:center;padding:3rem 1rem;color:#888">'
+      +'<div style="font-size:13px;margin-bottom:.5rem">'+(SUPABASE_READY?'Loading forecasts from cloud...':'Loading local forecasts...')+'</div>'
+      +'<div style="width:32px;height:32px;border:3px solid #e0ddd6;border-top-color:#0091D2;border-radius:50%;animation:spin .8s linear infinite;margin:0 auto"></div>'
+      +'</div>';
+    loadAdminForecastsInto();
+    return;
+  }
 
   // Show loading state immediately
   document.getElementById('main').innerHTML=
@@ -1259,7 +1928,7 @@ function renderAdmin(){
   loadAdminPlansInto();
 }
 
-// Admin sub-tab bar — shared across dashboard & upload views (reuses the same login)
+// Admin sub-tab bar — shared across dashboard, upload & forecasts views (reuses the same login)
 function adminSubTabBar(active,withSignOut){
   const tab=(id,label)=>{
     const on=active===id;
@@ -1267,7 +1936,7 @@ function adminSubTabBar(active,withSignOut){
   };
   const signOut=withSignOut?'<button onclick="adminSignOut()" style="margin-left:auto;font-size:11px;padding:7px 14px;color:#888;border:1px solid #ddd;border-radius:8px;cursor:pointer;background:#fff">Sign out</button>':'';
   return '<div class="admin-section" style="display:flex;gap:8px;padding-top:1rem;padding-bottom:1rem">'
-    +tab('dashboard','Dashboard')+tab('upload','Upload asset records')+signOut
+    +tab('dashboard','Materials plans')+tab('forecasts','Forecasts')+tab('upload','Upload asset records')+signOut
     +'</div>';
 }
 function adminSwitchView(v){S.adminView=v;renderAdmin();}
@@ -1740,6 +2409,259 @@ function renderAdminDashboard(rawPlans){
 
   document.getElementById('main').innerHTML=h;
 }
+
+// ── Forecast dashboard (separate from the materials-plan dashboard above, kept
+// in its own admin sub-tab, but built with the exact same layout/CSS classes —
+// admin-hero, admin-section, .metg/.met, .insight-card/.insight-row/.insight-bar,
+// .admin-table — so it reads as the same dashboard, just a different dataset) ──
+async function loadAdminForecasts(){
+  const client=ensureAdminClient();
+  if(client){
+    const{data,error}=await client.from('forecasts')
+      .select('data,updated_at')
+      .order('updated_at',{ascending:false})
+      .limit(300);
+    if(error){
+      throw new Error('CLOUD_LOAD_FAILED: '+error.message);
+    }
+    return (data||[]).map(row=>row.data).filter(Boolean);
+  }
+  return fcStorageLoadAll();
+}
+function loadAdminForecastsInto(){
+  loadAdminForecasts()
+    .then(function(forecasts){
+      S._adminForecasts=forecasts;
+      renderAdminFcDashboard(forecasts);
+    })
+    .catch(err=>renderAdminFcError(err));
+}
+function renderAdminFcError(err){
+  const main=document.getElementById('main');if(!main)return;
+  const msg=esc((err&&err.message)||'Unknown error');
+  let h='<div class="admin-hero"><h2 style="font-size:20px;font-weight:800;color:#fff;margin-bottom:.4rem">Forecast Dashboard</h2>';
+  h+='<p style="font-size:12px;opacity:.85">Could not load forecasts from the cloud.</p></div>';
+  h+='<div class="admin-section">';
+  h+='<div class="hbox" style="background:#FCEBEB;border-color:#f5c6c6;color:#A32D2D">';
+  h+='Forecasts could not be loaded from Supabase, so nothing is shown (rather than risk displaying out-of-date local copies). ';
+  h+='Check your connection and try again.<br><span style="font-size:11px;opacity:.8">Details: '+msg+'</span></div>';
+  h+='<button onclick="loadAdminForecastsInto()" class="btn-primary" style="padding:9px 18px">Retry</button>';
+  h+='<button onclick="adminSignOut()" style="margin-left:8px;font-size:12px;padding:9px 16px;border:1px solid #ddd;color:#555;background:#fff;border-radius:7px;cursor:pointer">Sign out</button>';
+  h+='</div>';
+  main.innerHTML=h;
+}
+
+function renderAdminFcDashboard(rawForecasts){
+  const allFc=rawForecasts||[];
+
+  // ── Year filter ──────────────────────────────────────────────────────────
+  const years=[...new Set(allFc.map(f=>f.profile&&f.profile.eventYear?f.profile.eventYear:'Unknown'))].sort();
+  let selYear=sessionStorage.getItem('adminFcYear')||'all';
+  if(selYear!=='all'&&!years.includes(selYear))selYear='all';
+  const filtered=selYear==='all'?allFc:allFc.filter(f=>(f.profile&&f.profile.eventYear?f.profile.eventYear:'Unknown')===selYear);
+
+  const sourceBadge=SUPABASE_READY
+    ?'<span style="background:#E1F5EE;color:#0F6E56;border:1px solid #b2e8d2;font-size:11px;font-weight:700;padding:3px 9px;border-radius:20px">&#9679; Live cloud</span>'
+    :'<span style="background:#FAEEDA;color:#854F0B;border:1px solid #f5ddb7;font-size:11px;font-weight:700;padding:3px 9px;border-radius:20px">&#9679; Local only</span>';
+
+  let h='';
+  h+='<div class="admin-hero">';
+  h+='<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px">';
+  h+='<div>';
+  h+='<div style="font-size:10px;font-weight:800;letter-spacing:.12em;color:rgba(255,255,255,.55);text-transform:uppercase;margin-bottom:4px">Australian Open</div>';
+  h+='<h2 style="font-size:20px;font-weight:800;color:#fff;margin-bottom:.4rem;letter-spacing:-.02em">Forecast Dashboard</h2>';
+  h+='<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">'+sourceBadge;
+  h+='<span style="font-size:12px;color:rgba(255,255,255,.65)">'+allFc.length+' forecast'+(allFc.length===1?'':'s')+' total</span>';
+  h+='</div></div>';
+  h+='<button onclick="adminSignOut()" style="font-size:11px;padding:6px 14px;color:rgba(255,255,255,.7);border:1px solid rgba(255,255,255,.25);border-radius:7px;cursor:pointer;background:rgba(255,255,255,.1);flex-shrink:0;margin-top:2px">Sign out</button>';
+  h+='</div></div>';
+  h+=adminSubTabBar('forecasts',false);
+
+  // ── Year filter ───────────────────────────────────────────────────────────
+  if(years.length){
+    h+='<div class="admin-section" style="padding-top:1rem;padding-bottom:1rem">';
+    h+='<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">';
+    h+='<span style="font-size:11px;font-weight:700;color:#888;text-transform:uppercase;letter-spacing:.06em;margin-right:4px">Year</span>';
+    const tabStyle=(active)=>'font-size:12px;font-weight:700;padding:5px 14px;border-radius:20px;cursor:pointer;border:1.5px solid '+(active?'#0091D2':'#d0cdc7')+';background:'+(active?'#0091D2':'#fff')+';color:'+(active?'#fff':'#555');
+    h+='<button style="'+tabStyle(selYear==="all")+'" onclick="sessionStorage.setItem(&quot;adminFcYear&quot;,&quot;all&quot;);loadAdminForecastsInto()">All years ('+allFc.length+')</button>';
+    for(const yr of years){
+      const cnt=allFc.filter(f=>(f.profile&&f.profile.eventYear?f.profile.eventYear:'Unknown')===yr).length;
+      h+='<button style="'+tabStyle(selYear===yr)+'" onclick="sessionStorage.setItem(&quot;adminFcYear&quot;,&quot;'+yr+'&quot;);loadAdminForecastsInto()">'+esc(yr)+' ('+cnt+')</button>';
+    }
+    h+='</div></div>';
+  }
+
+  // ── Empty state ───────────────────────────────────────────────────────────
+  if(!filtered.length){
+    h+='<div style="padding:1.25rem 1rem">';
+    h+='<div style="background:#fff;border:1px solid #e8e5de;border-radius:10px;padding:2.5rem;text-align:center;color:#888;font-size:13px">';
+    h+=allFc.length?'No forecasts for this year yet.':SUPABASE_READY?'No forecasts in the database yet.':'No forecasts saved in this browser yet.';
+    h+='</div></div>';
+    document.getElementById('main').innerHTML=h;
+    return;
+  }
+
+  // ── Core metrics ──────────────────────────────────────────────────────────
+  const totalMaterials=filtered.reduce((n,f)=>n+(f.materials||[]).length,0);
+  const actualsLoggedCount=filtered.filter(f=>f.actualsLoggedAt).length;
+  // Same plan-weighted-average approach as the materials plan dashboard: each
+  // forecast counts equally, scored via circStats on a stat/outcome-shaped view
+  // of its materials (outcome = the material's logged actual status, if any).
+  function fcWeightedPct(field){
+    let sum=0,n=0,anyData=false;
+    for(const f of filtered){
+      const mats=(f.materials||[]).map(m=>({stat:m.stat,outcome:(m.actual&&m.actual.stat)||''}));
+      if(!mats.length)continue;
+      n++;
+      const s=circStats(mats,field);
+      if(s.pctExact!=null){anyData=true;sum+=s.pctExact;}
+    }
+    if(!n||!anyData)return null;
+    return sum/n;
+  }
+  const pct=fcWeightedPct('stat');
+  const actualPct=fcWeightedPct('outcome');
+
+  h+='<div class="admin-section">';
+  h+='<div class="sechd sechd-first">Snapshot</div>';
+  h+='<div class="metg" style="grid-template-columns:repeat(4,1fr)">';
+  h+='<div class="met"><div class="mval">'+filtered.length+'</div><div class="mlbl">Forecasts submitted</div></div>';
+  h+='<div class="met"><div class="mval">'+totalMaterials+'</div><div class="mlbl">Total materials</div></div>';
+  h+='<div class="met"><div class="mval" style="color:'+(pct==null?'#9ca3af':fillClr(pct))+'">'+pctText(pct)+'</div><div class="mlbl">Expected circularity</div></div>';
+  h+='<div class="met"><div class="mval" style="color:'+(actualPct==null?'#9ca3af':fillClr(actualPct))+'">'+pctText(actualPct)+'</div><div class="mlbl">Actual circularity</div></div>';
+  h+='</div></div>';
+
+  // Expected status breakdown (across all materials in the filtered forecasts)
+  const allMats=filtered.flatMap(f=>f.materials||[]);
+  const withStat=allMats.filter(m=>m.stat);
+  const stCts={};for(const m of allMats)if(m.stat)stCts[m.stat]=(stCts[m.stat]||0)+1;
+
+  // Actuals breakdown
+  const withActual=allMats.filter(m=>m.actual&&m.actual.stat);
+  const actCts={};for(const m of allMats)if(m.actual&&m.actual.stat)actCts[m.actual.stat]=(actCts[m.actual.stat]||0)+1;
+
+  // Circularity by organisation (leaders)
+  const fcCirc=filtered.map(f=>{
+    const mats=(f.materials||[]).map(m=>({stat:m.stat}));
+    const pp=circStats(mats,'stat').pct;
+    return{name:f.profile&&f.profile.org?f.profile.org:'Unknown',pct:pp};
+  }).filter(x=>x.pct!==null).sort((a,b)=>b.pct-a.pct);
+
+  // Top materials (by "Material details") — mirrors the plan dashboard's "Top
+  // material categories" card, using the forecast's own material-identity field
+  // since forecasts have no TML category to group by.
+  const matCts={};
+  for(const m of allMats){const d=m.detail==='Other'?(m.detailOther||'Other'):m.detail;if(d)matCts[d]=(matCts[d]||0)+1;}
+  const topMats=Object.entries(matCts).sort((a,b)=>b[1]-a[1]).slice(0,5);
+  const matTot=allMats.filter(m=>m.detail).length;
+
+  const svgBar='<svg viewBox="0 0 24 24" style="width:18px;height:18px;stroke:#0091D2;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/><line x1="2" y1="20" x2="22" y2="20"/></svg>';
+  const svgList='<svg viewBox="0 0 24 24" style="width:18px;height:18px;stroke:#0091D2;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>';
+  const svgCheck='<svg viewBox="0 0 24 24" style="width:18px;height:18px;stroke:#0091D2;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>';
+  const svgAward='<svg viewBox="0 0 24 24" style="width:18px;height:18px;stroke:#0091D2;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round"><circle cx="12" cy="8" r="6"/><path d="M15.477 12.89L17 22l-5-3-5 3 1.523-9.11"/></svg>';
+  const iconBox=(svg)=>'<div style="width:32px;height:32px;background:#EEF5FF;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-bottom:10px">'+svg+'</div>';
+
+  h+='<div class="admin-section alt">';
+  h+='<div class="sechd sechd-first">Insights</div>';
+  h+='<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px">';
+
+  // Insight A: Top materials (mirrors the plan dashboard's "Top material categories")
+  h+='<div class="insight-card">';
+  h+=iconBox(svgBar);
+  h+='<div class="insight-label" style="color:#003A5D">Top materials</div>';
+  if(topMats.length){for(let i=0;i<topMats.length;i++){
+    const[mat,cnt]=topMats[i];
+    const pp=matTot?Math.round(cnt/matTot*100):0;
+    h+='<div class="insight-row"><span style="color:#aaa;font-size:10px;width:14px;flex-shrink:0">'+(i+1)+'</span><span style="flex:1;color:#333;font-weight:'+(i===0?700:400)+';overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+esc(mat)+'</span><span style="color:#888;font-size:11px;margin-right:8px">'+pp+'%</span><div class="insight-bar-wrap"><div class="insight-bar" style="background:#0091D2;width:'+pp+'%"></div></div></div>';
+  }}
+  else h+='<div style="color:#aaa;font-size:12px;padding-top:4px">No data yet.</div>';
+  h+='</div>';
+
+  // Insight B: Materials by expected status
+  h+='<div class="insight-card">';
+  h+=iconBox(svgList);
+  h+='<div class="insight-label" style="color:#003A5D">Materials by expected status</div>';
+  if(withStat.length){const tot=withStat.length;for(const[s,n]of Object.entries(stCts).sort((a,b)=>b[1]-a[1])){const pp=Math.round(n/tot*100);const col=STCOL_ADMIN[s]||'#9ca3af';h+='<div class="insight-row"><div class="insight-dot" style="background:'+col+'"></div><div style="flex:1;font-size:12px;color:#333">'+esc(s)+'</div><div style="color:#888;font-size:11px;margin-right:8px">'+pp+'%</div><div class="insight-bar-wrap"><div class="insight-bar" style="background:'+col+';width:'+pp+'%"></div></div></div>';}}
+  else h+='<div style="color:#aaa;font-size:12px;padding-top:4px">No status data yet.</div>';
+  h+='</div>';
+
+  // Insight C: Materials actuals post event
+  h+='<div class="insight-card">';
+  h+=iconBox(svgCheck);
+  h+='<div class="insight-label" style="color:#003A5D">Materials actuals post event</div>';
+  if(withActual.length){const tot=withActual.length;for(const[s,n]of Object.entries(actCts).sort((a,b)=>b[1]-a[1])){const pp=Math.round(n/tot*100);const col=STCOL_ADMIN[s]||'#9ca3af';h+='<div class="insight-row"><div class="insight-dot" style="background:'+col+'"></div><div style="flex:1;font-size:12px;color:#333">'+esc(s)+'</div><div style="color:#888;font-size:11px;margin-right:8px">'+pp+'%</div><div class="insight-bar-wrap"><div class="insight-bar" style="background:'+col+';width:'+pp+'%"></div></div></div>';}}
+  else h+='<div style="color:#aaa;font-size:12px;padding-top:4px;text-align:center">Post-event actuals will appear here once bump-out data is recorded.</div>';
+  h+='</div>';
+
+  // Insight D: Circularity by organisation
+  h+='<div class="insight-card">';
+  h+=iconBox(svgAward);
+  h+='<div class="insight-label" style="color:#003A5D">Circularity by organisation</div>';
+  if(fcCirc.length){for(let i=0;i<Math.min(fcCirc.length,5);i++){const f2=fcCirc[i];const col=fillClr(f2.pct);h+='<div class="insight-row"><span style="color:#aaa;font-size:10px;width:14px;flex-shrink:0">'+(i+1)+'</span><span style="flex:1;color:#333;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+esc(f2.name)+'</span><span style="color:'+col+';font-weight:700;font-size:12px;margin-right:8px">'+f2.pct+'%</span><div class="insight-bar-wrap"><div class="insight-bar" style="background:'+col+';width:'+f2.pct+'%"></div></div></div>';}}
+  else h+='<div style="color:#aaa;font-size:12px;padding-top:4px">No circularity data yet.</div>';
+  h+='</div>';
+
+  h+='</div></div>'; // end insights grid + section
+
+  // ── Forecasts table ───────────────────────────────────────────────────────
+  h+='<div class="admin-section">';
+  h+='<div class="sechd sechd-first">Submitted forecasts ('+filtered.length+')</div>';
+  h+='<div style="overflow-x:auto;margin-bottom:1.5rem"><table class="admin-table">';
+  h+='<thead><tr><th>Business</th><th>Contact</th><th>Year</th><th>TA-ID</th><th>Materials</th><th>Circularity</th><th>Last saved</th></tr></thead>';
+  h+='<tbody>';
+  for(const f of filtered){
+    const mats=(f.materials||[]).map(m=>({stat:m.stat}));
+    const sc=circStats(mats,'stat');
+    const _noSc=sc.total===0;
+    const statBg=_noSc?'#f1f1f1':sc.pct>=80?'#EEF9F4':sc.pct>=50?'#FFF8EE':'#FCEBEB';
+    const statCol=_noSc?'#9ca3af':sc.pct>=80?'#0F6E56':sc.pct>=50?'#854F0B':'#A32D2D';
+    const code=fcCode(f.id);
+    const yr=f.profile&&f.profile.eventYear?f.profile.eventYear:'—';
+    h+='<tr>';
+    h+='<td><strong>'+esc(f.profile&&f.profile.org?f.profile.org:'Unnamed')+'</strong><br><span style="color:#aaa;font-size:10px">'+esc(f.profile&&f.profile.role?f.profile.role:'')+'</span></td>';
+    h+='<td><div>'+esc(f.profile&&f.profile.contactName?f.profile.contactName:'-')+'</div><div style="color:#888;font-size:10px">'+esc(f.profile&&f.profile.contactEmail?f.profile.contactEmail:'')+'</div></td>';
+    h+='<td><span style="font-size:12px;font-weight:700;color:#0091D2">'+esc(yr)+'</span></td>';
+    h+='<td><span style="font-family:monospace;font-size:11px;color:#0091D2;font-weight:700">'+code+'</span></td>';
+    h+='<td>'+(f.materials||[]).length+' materials</td>';
+    h+='<td><span class="admin-stat" style="background:'+statBg+';color:'+statCol+'">'+(_noSc?'-':pctText(sc.pctExact))+'</span></td>';
+    h+='<td style="white-space:nowrap;font-size:11px">'+fmtDate(f.savedAt||f.createdAt)+'<br><span style="color:#aaa">'+(f.actualsLoggedAt?'✓ Actuals logged':'Actuals pending')+'</span></td>';
+    h+='</tr>';
+  }
+  h+='</tbody></table></div>';
+  h+='</div>'; // close forecasts admin-section
+
+  // ── Actions ───────────────────────────────────────────────────────────────
+  h+='<div class="admin-section" style="display:flex;gap:8px;flex-wrap:wrap">';
+  h+='<button onclick="exportAdminFcCSV()" style="font-size:12px;padding:8px 16px;border:1px solid #0091D2;color:#0091D2;background:#EEF5FF;border-radius:7px;cursor:pointer">Export all forecasts as CSV</button>';
+  if(SUPABASE_READY)h+='<button onclick="loadAdminForecastsInto()" style="font-size:12px;padding:8px 16px;border:1px solid #ddd;color:#555;background:#fff;border-radius:7px;cursor:pointer">Refresh</button>';
+  h+='</div>';
+
+  document.getElementById('main').innerHTML=h;
+}
+
+function exportAdminFcCSV(){
+  loadAdminForecasts().then(forecasts=>{
+    if(!forecasts.length){showToast('No forecasts to export');return;}
+    const rows=[['Organisation','Project','Role','Contact name','Contact email','Event year','TA-ID','Material','Expected volume','Unit','Expected status','Actual status']];
+    for(const f of forecasts){
+      const code=fcCode(f.id);
+      for(const m of (f.materials||[])){
+        rows.push([
+          f.profile.org||'',f.profile.project||'',f.profile.role||'',f.profile.contactName||'',f.profile.contactEmail||'',
+          f.profile.eventYear||'',code,
+          m.detail==='Other'?(m.detailOther||'Other'):(m.detail||''),m.vol||'',m.vunit||'',m.stat||'',(m.actual&&m.actual.stat)||''
+        ]);
+      }
+    }
+    const csv=rows.map(r=>r.map(v=>'"'+String(v).replace(/"/g,'""')+'"').join(',')).join('\r\n');
+    const blob=new Blob([csv],{type:'text/csv;charset=utf-8;'});
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement('a');
+    a.href=url;a.download='ao27-forecasts.csv';a.click();
+    URL.revokeObjectURL(url);
+  }).catch(()=>showToast('Export failed — could not load forecasts from cloud'));
+}
+
 function adminSignOut(){
   sessionStorage.removeItem(ADMIN_KEY_SS);
   sbAdmin=null;
@@ -1771,15 +2693,11 @@ async function checkAdminPin(){
 
   const probe=buildAdminClient(key);
   try{
-    // Ask the database directly whether this password is correct, via the
-    // same dashboard_authed() function the RLS policy uses. A row-count probe
-    // against `plans` can't distinguish "wrong password" from "correct
-    // password, empty table" — both return zero rows with no error, since an
-    // RLS filter isn't a Postgres error — so this checks the boolean result
-    // itself instead.
-    const{data,error}=await probe.rpc('dashboard_authed');
+    // HEAD count request: returns a count when the gate passes, 0 rows / no
+    // error is also a pass (valid empty table). A wrong password trips the RLS
+    // policy and Supabase returns an error, which we treat as "denied".
+    const{error}=await probe.from('plans').select('id',{count:'exact',head:true});
     if(error) throw error;
-    if(!data) throw new Error('Incorrect password.');
     // Password accepted — persist for the session and promote the admin client.
     sessionStorage.setItem(ADMIN_KEY_SS, key);
     sbAdmin=probe;
@@ -2286,6 +3204,24 @@ function imgSigOf(f){
   return (d.crc32>>>0)+':'+d.uncompressedSize;
 }
 
+// Parse a .rels file into {Id: Target}, one entry per <Relationship> tag,
+// reading each attribute independently rather than assuming Id comes before
+// Target. This app's own export always writes Id first, but a file that has
+// been through Excel or another tool (openpyxl, LibreOffice, …) commonly
+// writes Target before Id — an order-dependent regex silently found nothing
+// for those files, which meant any picture a user added or edited outside
+// this app's own round-trip was never picked up on re-upload.
+function relTargetsById(relsXml){
+  const out={};
+  const tagRe=/<Relationship\b[^>]*\/?>/g;let t;
+  while((t=tagRe.exec(relsXml||''))!==null){
+    const idM=/\bId="([^"]+)"/.exec(t[0]);
+    const tgtM=/\bTarget="([^"]+)"/.exec(t[0]);
+    if(idM&&tgtM)out[idM[1]]=tgtM[1];
+  }
+  return out;
+}
+
 async function collectRichValueImages(zip,txt,sheetPath,found){
   const rvXml=await txt('xl/richData/rdrichvalue.xml');
   const rvrXml=await txt('xl/richData/richValueRel.xml');
@@ -2306,8 +3242,7 @@ async function collectRichValueImages(zip,txt,sheetPath,found){
   const rvb=fmBlock?(fmBlock[0].match(/<xlrd:rvb[^>]*\bi="(\d+)"/g)||[]).map(s=>parseInt(/i="(\d+)"/.exec(s)[1],10)):[];
   const rvs=(rvXml.match(/<rv[^>]*>[\s\S]*?<\/rv>/g)||[]).map(b=>{const v=/<v>(\d+)<\/v>/.exec(b);return v?parseInt(v[1],10):-1;});
   const relIds=(rvrXml.match(/<rel[^>]*r:id="[^"]+"/g)||[]).map(s=>/r:id="([^"]+)"/.exec(s)[1]);
-  const target={};const relRe=/Id="([^"]+)"[^>]*Target="([^"]+)"/g;let rm;
-  while((rm=relRe.exec(relsXml))!==null)target[rm[1]]=rm[2];
+  const target=relTargetsById(relsXml);
 
   for(const c of cells){
     const iRc=rc[c.vm-1];        if(iRc===undefined)continue;
@@ -2339,8 +3274,9 @@ async function collectDrawingImages(zip,txt,sheetPath,found){
     const dRels=await txt(drawPath.replace(/([^/]+)$/,'_rels/$1.rels'));
     // Relationship ids are arbitrary strings, not necessarily rId+digits — this app's
     // own export writes "rIdImg1", so anchoring on \d+ here found nothing at all.
-    const media={};const mRe=/Id="([^"]+)"[^>]*Target="([^"]+)"/g;let mm;
-    while((mm=mRe.exec(dRels||''))!==null)media[mm[1]]=zipResolve(drawPath,mm[2]);
+    const dTargets=relTargetsById(dRels||'');
+    const media={};
+    for(const rid in dTargets)media[rid]=zipResolve(drawPath,dTargets[rid]);
     // oneCellAnchor and twoCellAnchor both carry <from><col>/<row>; absoluteAnchor
     // has no cell reference at all, so it is skipped.
     ['oneCellAnchor','twoCellAnchor'].forEach(function(tag){
@@ -3339,7 +4275,7 @@ function importPlanXLS(input){
 
       plan.imported=true;
       S.plan=plan;
-      S.screen='form';
+      S.formOrigin=isUpdate?'update':'new';S.screen='form';
       S.plan.step=2; // Go to summary to review
       S._unsaved=true; // imported plan should still be saved via savePlan to cloud
       sendPlanEmail(plan, !isUpdate); // send email: created if not an update
@@ -3912,16 +4848,17 @@ function goHome(){
   S.screen='home';render();
 }
 function goPlan(id){const p=S.plans.find(x=>x.id===id);if(p){S.plan=JSON.parse(JSON.stringify(p));S.screen='form';render()}}
+function goCreateIntro(){S.screen='create-intro';render();}
 function startTA(){
   S.plan=newPlan();S.plan.roleType='TA';S._unsaved=false;
   S.plan.imported=false;S.plan.step=0;
-  S.screen='form';render();
+  S.formOrigin='new';S.screen='form';render();
 }
 function startExternal(){
   S.plan=newPlan();S.plan.roleType='EXT';S._unsaved=false;
   S.gate={roleType:'EXT',mode:''};
   S.plan.imported=false;S.plan.step=0;
-  S.screen='form';render();
+  S.formOrigin='new';S.screen='form';render();
 }
 
 function openSupportModal(){
@@ -3965,7 +4902,7 @@ function submitSupport(){
   if(typeof showToast==='function')showToast('Opening your email to send the request to the AO Waste team.');
 }
 
-function createNewPlan(){S.plan=newPlan();S._unsaved=false;S.screen='form';render();}
+function createNewPlan(){S.plan=newPlan();S._unsaved=false;S.formOrigin='new';S.screen='form';render();}
 function loadExample(){S.plan=Object.assign(examplePlan(),{_example:true});S.screen='form';render();}
 function goNext(){
   if(S.plan.step===0)saveAbout();
