@@ -300,6 +300,16 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,te
 .gs-card .bdg{align-self:flex-start;margin-bottom:8px}
 .gs-card h4{font-size:14px;font-weight:800;color:#003A5D;margin-bottom:6px;letter-spacing:-.01em}
 .gs-card p{font-size:12px;color:#666;line-height:1.55;margin-bottom:14px;flex:1}
+/* Groups the "New plan"/"Existing plan" cards together as steps of the same
+   materials plan, visually distinct from the separate forecast card next to it. */
+.gs-group{border:1.5px solid #CFE3EA;border-radius:14px;padding:14px;display:flex;flex-direction:column}
+.gs-group-materials{grid-column:span 2}
+.gs-group-forecast{border-color:#BEE8E8;padding-left:7px;padding-right:7px}
+.gs-group-label{font-size:11px;font-weight:800;color:#0091D2;letter-spacing:.06em;text-transform:uppercase;margin-bottom:10px}
+.gs-group-label.teal{color:#009999}
+.gs-grid-2{display:grid;grid-template-columns:1fr 1fr;gap:12px;flex:1}
+.gs-group-forecast .gs-card{flex:1}
+@media(max-width:640px){.gs-group-materials{grid-column:span 1}.gs-grid-2{grid-template-columns:1fr}.gs-group-forecast{padding-left:14px;padding-right:14px}}
 
 /* Admin dashboard */
 .admin-panel{padding:1.25rem 1rem}
@@ -361,12 +371,16 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,te
 .atm-icon{width:30px;height:30px;border-radius:50%;background:#003A5D;color:#fff;font-weight:800;font-size:13px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
 .atm-colhd h4{font-size:13px;font-weight:800;color:#003A5D;text-transform:uppercase;letter-spacing:.04em;margin:0}
 .atm-colhd .atm-colsub{font-size:11px;color:#888;display:block;margin-top:1px;font-weight:600}
-.atm-pill{display:inline-block;font-size:10.5px;font-weight:800;letter-spacing:.03em;text-transform:uppercase;padding:5px 12px;border-radius:99px;margin-bottom:12px}
-.atm-box{border-radius:12px;padding:16px}
-.atm-box+.atm-box{margin-top:12px}
-.atm-item{display:flex;gap:10px;font-size:12.5px;line-height:1.7;margin-bottom:8px}
+/* Light, editorial list style for the target-materials panel: a small
+   colored group label plus rows with a thin colored left accent, rather
+   than the earlier heavy solid-fill / pastel-block cards. */
+.atm-group{margin-bottom:20px}
+.atm-group:last-child{margin-bottom:0}
+.atm-group-hd{font-size:11.5px;font-weight:800;text-transform:uppercase;letter-spacing:.04em;margin-bottom:10px;display:flex;align-items:center;gap:7px}
+.atm-item{display:flex;gap:10px;font-size:12.5px;line-height:1.6;padding:9px 12px;border-left:3px solid transparent;background:#FAF9F5;border-radius:0 8px 8px 0;margin-bottom:6px;color:#333}
 .atm-item:last-child{margin-bottom:0}
 .atm-item-num{font-weight:800;flex-shrink:0}
+.atm-bullet{font-size:22px;line-height:1;margin-top:1px}
 .atm-more-link{font-size:.78rem;font-weight:700;color:#0091D2;background:rgba(2,136,204,.07);border:1.5px solid rgba(2,136,204,.22);border-radius:7px;padding:7px 14px;cursor:pointer;font-family:inherit;margin-top:14px}
 
 /* ── Material-request style CTA card (mockup-matched) ───────── */
@@ -387,6 +401,8 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,te
 .mreq-foot{display:flex;align-items:center;justify-content:flex-end;gap:12px}
 .mreq-btn{display:inline-flex;align-items:center;gap:7px;background:#fff;color:#0091D2;border:1.5px solid #0091D2;border-radius:99px;padding:9px 20px;font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap;transition:background .15s,color .15s}
 .mreq-btn:hover{background:#0091D2;color:#fff;border-color:#0091D2}
+.mreq-btn.teal{color:#009999;border-color:#009999}
+.mreq-btn.teal:hover{background:#009999;color:#fff;border-color:#009999}
 </style>
 <!-- XLSX: no crossorigin attribute — not needed without an integrity hash, and can cause CORS failures in some environments -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"
@@ -1190,7 +1206,7 @@ function renderPlanTab(){
   h+='</div>';
   h+='<div style="position:relative;z-index:1">';
   h+='<span class="tag">AO27 &middot; Materials Management Plan</span>';
-  h+='<h2 style="max-width:440px">Know your footprint.<br>Report <span style="color:#0AE6FF">progress</span>.</h2>';
+  h+='<h2 style="max-width:440px">Know your footprint<br>Report <span style="color:#0AE6FF">progress</span></h2>';
   h+='<p style="margin-bottom:0">One plan that follows your build from bump-in to bump-out. Track assets and materials, set circularity targets and complete post event reporting.</p>';
   h+='</div>';
   h+='</div>';
@@ -1199,9 +1215,13 @@ function renderPlanTab(){
   h+='<div class="plans-section" id="get-started">';
   h+='<div class="sechd sechd-first">Get started</div>';
   h+='<div class="gs-grid">';
-  h+='<div class="gs-card"><div class="gs-num">01</div><span class="bdg bl">New plan</span><h4>Create a new plan</h4><p>The one-stop-shop for precinct Agencies &amp; Builders to track assets and materials, set targets. As part of your design/build process submit your plan to TA for approval.</p><button class="mreq-btn" onclick="goCreateIntro()">Create a new plan &rarr;</button></div>';
-  h+='<div class="gs-card"><div class="gs-num">02</div><span class="bdg tl">Existing plan</span><h4>Update an existing plan</h4><p>Use Plan ID to edit assets and materials and log actuals at bump-out.</p><button class="mreq-btn" onclick="switchTab(&#39;update&#39;)">Update a plan &rarr;</button></div>';
-  h+='<div class="gs-card"><div class="gs-num">03</div><span class="bdg gr">Light-touch</span><h4>Bump out: Provide a waste forecast</h4><p>Activations not providing a full plan use the survey for event waste planning. Return post event to report what actually happened to your materials.</p><button class="mreq-btn" onclick="switchTab(&#39;forecast&#39;)">Start a forecast &rarr;</button></div>';
+  h+='<div class="gs-group gs-group-materials"><div class="gs-group-label">Materials plan</div><div class="gs-grid-2">';
+  h+='<div class="gs-card"><div class="gs-num">01</div><span class="bdg" style="background:#B9E9FF;color:#0091D2">New plan</span><h4>Create a new plan</h4><p>The one-stop-shop for precinct Agencies &amp; Builders to track assets and materials, set targets. As part of your design/build process submit your plan to TA for approval.</p><button class="mreq-btn" onclick="goCreateIntro()">Create a new plan &rarr;</button></div>';
+  h+='<div class="gs-card"><div class="gs-num">02</div><span class="bdg" style="background:#B9E9FF;color:#0091D2">Existing plan</span><h4>Update an existing plan</h4><p>Use Plan ID to edit assets and materials and log actuals at bump-out.</p><button class="mreq-btn" onclick="switchTab(&#39;update&#39;)">Update a plan &rarr;</button></div>';
+  h+='</div></div>';
+  h+='<div class="gs-group gs-group-forecast"><div class="gs-group-label teal">Waste &amp; Reuse forecast</div>';
+  h+='<div class="gs-card"><div class="gs-num" style="color:#009999">03</div><span class="bdg" style="background:#D9F2F2;color:#009999">Light-touch</span><h4>Bump out: Provide a waste forecast</h4><p>Activations not providing a full plan use the survey for event waste planning. Return post event to report what actually happened to your materials.</p><button class="mreq-btn teal" onclick="switchTab(&#39;forecast&#39;)">Start a forecast &rarr;</button></div>';
+  h+='</div>';
   h+='</div>';
   h+='</div>';
 
@@ -1217,29 +1237,34 @@ function renderPlanTab(){
         <div class="atm-grid">
           <div>
             <div class="atm-colhd"><div class="atm-icon">C</div><div><h4>Materials currently in use</h4><span class="atm-colsub">The AO27 target material categories</span></div></div>
-            <div class="atm-box" style="background:#12A594">
-              <span class="atm-pill" style="background:rgba(255,255,255,.22);color:#fff">Keep using these materials</span>
-              <div class="atm-item" style="color:#fff"><span class="atm-item-num" style="color:#DFFAF4">1</span><span>Engineered wood sheets: plywood, formply, particleboard (E0)</span></div>
-              <div class="atm-item" style="color:#fff"><span class="atm-item-num" style="color:#DFFAF4">2</span><span>Joinery/ cabinetry: formply, particleboard, melamine</span></div>
-              <div class="atm-item" style="color:#fff"><span class="atm-item-num" style="color:#DFFAF4">3</span><span>Graphics: PVC sail track banners, ACM/ ACP, removable SAV</span></div>
-              <div class="atm-item" style="color:#fff"><span class="atm-item-num" style="color:#DFFAF4">4</span><span>Surfaces: Textiles &amp; fabrics</span></div>
-              <div class="atm-item" style="color:#fff"><span class="atm-item-num" style="color:#DFFAF4">5</span><span>Reusable flooring tiles: carpet &amp; vinyl</span></div>
+            <div class="atm-group">
+              <div class="atm-group-hd" style="color:#009999">&#10003; Keep using these materials</div>
+              <div class="atm-item" style="border-left-color:#009999;background:rgba(0,153,153,.1)"><span class="atm-item-num" style="color:#009999">1</span><span>Engineered wood sheets: plywood, formply, particleboard (E0)</span></div>
+              <div class="atm-item" style="border-left-color:#009999;background:rgba(0,153,153,.1)"><span class="atm-item-num" style="color:#009999">2</span><span>Joinery/ cabinetry: formply, particleboard, melamine</span></div>
+              <div class="atm-item" style="border-left-color:#009999;background:rgba(0,153,153,.1)"><span class="atm-item-num" style="color:#009999">3</span><span>Graphics: PVC sail track banners, removable SAV, ACP (if fire rated AS 1530.3-1999 &amp; separated from substrate)</span></div>
+              <div class="atm-item" style="border-left-color:#009999;background:rgba(0,153,153,.1)"><span class="atm-item-num" style="color:#009999">4</span><span>Surfaces: Textiles &amp; fabrics</span></div>
+              <div class="atm-item" style="border-left-color:#009999;background:rgba(0,153,153,.1)"><span class="atm-item-num" style="color:#009999">5</span><span>Reusable flooring tiles: carpet &amp; vinyl</span></div>
             </div>
-            <div class="atm-box" style="background:#0F6FB0">
-              <span class="atm-pill" style="background:rgba(255,255,255,.22);color:#fff">High circularity</span>
-              <div class="atm-item" style="color:#fff"><span class="atm-item-num" style="color:#DCEFFF">6</span><span>Water-based paint</span></div>
-              <div class="atm-item" style="color:#fff"><span class="atm-item-num" style="color:#DCEFFF">7</span><span>Steel: high value on the secondary market</span></div>
-              <div class="atm-item" style="color:#fff"><span class="atm-item-num" style="color:#DCEFFF">8</span><span>Aluminium: high value on the secondary market</span></div>
+            <div class="atm-group">
+              <div class="atm-group-hd" style="color:#0091D2">&#9851; High circularity</div>
+              <div class="atm-item" style="border-left-color:#0091D2;background:rgba(0,145,210,.1)"><span class="atm-item-num" style="color:#0091D2">6</span><span>Water-based paint</span></div>
+              <div class="atm-item" style="border-left-color:#0091D2;background:rgba(0,145,210,.1)"><span class="atm-item-num" style="color:#0091D2">7</span><span>Steel: high value on the secondary market</span></div>
+              <div class="atm-item" style="border-left-color:#0091D2;background:rgba(0,145,210,.1)"><span class="atm-item-num" style="color:#0091D2">8</span><span>Aluminium: high value on the secondary market</span></div>
             </div>
           </div>
-          <div style="display:flex;flex-direction:column;height:100%">
+          <div>
             <div class="atm-colhd"><div class="atm-icon">M</div><div><h4>Methods</h4><span class="atm-colsub">How we treat, finish &amp; handle materials</span></div></div>
             <div style="font-size:12.5px;color:#333;line-height:1.7;margin-bottom:14px"><b>Finishes decide the fate of a material.</b> A sheet of plywood could be reused or is single-use bound for landfill depending on the method used to finish, fix or coat it.</div>
-            <div class="atm-box" style="background:#FBEAEA;flex:1">
-              <span class="atm-pill" style="background:#A32E2E;color:#fff">Methods that create waste</span>
-              <div class="atm-item" style="color:#333"><span class="atm-item-num" style="color:#A32E2E">01</span><span><b>Solvent-based adhesives</b> &#8212; cure into a permanent bond, so the substrate can&rsquo;t be cleanly separated for reuse</span></div>
-              <div class="atm-item" style="color:#333"><span class="atm-item-num" style="color:#A32E2E">02</span><span><b>Solvent-based/ alkyd paints</b> penetrate and contaminate the timber fibre</span></div>
-              <div class="atm-item" style="color:#333"><span class="atm-item-num" style="color:#A32E2E">03</span><span><b>Bonding composite materials</b> &#8212; two or more distinct materials stuck together create a waste problem if not separated<br><span style="font-size:11px;color:#888;font-style:italic">e.g. hi-res graphics surface rigidity (ACP+Ply) or facades with finishes (stucco + particleboard)</span></span></div>
+            <div class="atm-group">
+              <div class="atm-group-hd" style="color:#A32E2E">&#9888; Methods that create waste</div>
+              <div class="atm-item" style="border-left-color:#A32E2E;background:#FFD9D9"><span class="atm-item-num atm-bullet" style="color:#A32E2E">&#8226;</span><span><b>Solvent-based adhesives</b> &#8212; cure into a permanent bond, so the substrate can&rsquo;t be cleanly separated for reuse</span></div>
+              <div class="atm-item" style="border-left-color:#A32E2E;background:#FFD9D9"><span class="atm-item-num atm-bullet" style="color:#A32E2E">&#8226;</span><span><b>Solvent-based/ alkyd paints</b> penetrate and contaminate the timber fibre</span></div>
+              <div class="atm-item" style="border-left-color:#A32E2E;background:#FFD9D9"><span class="atm-item-num atm-bullet" style="color:#A32E2E">&#8226;</span><span><b>Bonding composite materials</b> &#8212; two or more distinct materials stuck together create a waste problem if not separated<br><span style="font-size:11px;color:#888;font-style:italic">e.g. hi-res graphics surface rigidity (ACP+Ply) or facades with finishes (stucco + particleboard)</span></span></div>
+            </div>
+            <div class="atm-group">
+              <div class="atm-group-hd" style="color:#3B6D11">&#128161; What can you do?</div>
+              <div class="atm-item" style="border-left-color:#3B6D11;background:rgba(59,109,17,.08)"><span class="atm-item-num" style="color:#3B6D11">01</span><span>Design the separation of composites from substrates</span></div>
+              <div class="atm-item" style="border-left-color:#3B6D11;background:rgba(59,109,17,.08)"><span class="atm-item-num" style="color:#3B6D11">02</span><span><b>Experiment</b><br><span style="font-size:11px;color:#5c7a45;font-style:italic">Are there other facades or panels that can be reused? Like, fabric, textured or moulded panels.</span></span></div>
             </div>
           </div>
         </div>
