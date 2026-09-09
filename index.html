@@ -470,6 +470,12 @@ const STATS=['Reuse - next AO (stored at TA warehouse)','Reuse - next AO (stored
 // Field 7 (Actual outcome) is completed post-event, so "Unsure yet" is not a valid answer there.
 // Field 6 (Expected status) keeps it.
 const OUTCOMES=STATS.filter(s=>s!=='Unsure yet');
+// A forecast material's post-event status now lives on m.outcome directly.
+// Older saved forecasts (pre-flatten) still carry it under a nested
+// m.actual.stat — read through this helper wherever admin views pull straight
+// from raw stored data without going through migrateForecast() first, so both
+// shapes report correctly instead of legacy records silently showing "no data".
+function fcMatOutcome(m){return(m&&(m.outcome||(m.actual&&m.actual.stat)))||'';}
 const STCOL={'Reuse - next AO (stored at TA warehouse)':'#20A85A','Reuse - next AO (stored by Agency/Builder)':'#20A85A','Reuse - other event/ client (Agency/Builder)':'#20A85A','Recycle - we will take off site (Agency/Builder)':'#20A85A','Recycle on site with AO Take-back program':'#20A85A','Repurpose - keep for another use':'#7FB53A','Reuse - next AO (stored by AO)':'#20A85A','Reuse - next AO (stored by us)':'#20A85A','Reuse - other event/ client':'#20A85A','Recycle on site with AO take-back program':'#20A85A','Recycle - we will take offsite':'#20A85A','Repurpose - we will take offsite for another use':'#7FB53A','Donate':'#7FB53A','Mixed construction waste - AO onsite bins':'#A32E2E','Unsure yet':'#8A97A2','Reuse \u2013 Next AO (stored at AO)':'#20A85A','Reuse \u2013 Next AO (stored by us)':'#20A85A','Reuse \u2013 Other Event / Client':'#20A85A','Recycle':'#20A85A','Repurpose – use material in another way':'#7FB53A','Mixed construction waste \u2013 AO onsite bin':'#A32E2E','Not sure yet':'#8A97A2','Other':'#8A97A2'};
 const STCOL_ADMIN={'Reuse - next AO (stored by AO)':'#20A85A','Reuse - next AO (stored by us)':'#20A85A','Reuse - other event/ client':'#20A85A','Recycle on site with AO take-back program':'#20A85A','Recycle - we will take offsite':'#20A85A','Repurpose - we will take offsite for another use':'#7FB53A','Mixed construction waste - AO onsite bins':'#A32E2E','Unsure yet':'#8A97A2','Reuse \u2013 Next AO (stored at AO)':'#20A85A','Reuse \u2013 Next AO (stored by us)':'#20A85A','Reuse \u2013 Other Event / Client':'#20A85A','Recycle':'#20A85A','Repurpose – use material in another way':'#7FB53A','Donate':'#7FB53A','Mixed construction waste \u2013 AO onsite bin':'#A32E2E','Not sure yet':'#8A97A2','Other':'#8A97A2','Reuse - Next AO':'#20A85A','Reuse - Other Event / Client':'#20A85A','Landfill':'#A32E2E','TBC - decide later':'#8A97A2'};
 const ROLES=['Agency','Builder','Designer','Sub-contractor','TA PM','TA Design','TA Build','TA delivery team','Other'];
@@ -1001,7 +1007,7 @@ function fcMatOptsHtml(val){
 function newForecast(){
   return{
     id:uid(),createdAt:Date.now(),actualsLoggedAt:null,
-    profile:{org:'',role:'',project:'',eventYear:'AO27',contactName:'',contactEmail:''},
+    profile:{org:'',website:'',role:'',project:'',eventYear:'AO27',contactName:'',contactEmail:''},
     targets:{reuseTarget:'',wasteTarget:'',circPractices:'',reuseStoredPct:'',disposedPct:''},
     materials:[newFcMat()],
     notes:{largeStructures:'',feedback:''}
@@ -1009,35 +1015,43 @@ function newForecast(){
 }
 function newFcMat(){
   return{
-    id:uid(),detail:'',detailOther:'',vol:'',vunit:'',stat:'',notes:'',
-    actual:{detail:'',detailOther:'',vol:'',vunit:'',stat:'',notes:'',receivingOrg:'',takeBackNote:'',evidence:'',matches:null}
+    id:uid(),assetName:'',detail:'',detailOther:'',vol:'',vunit:'',stat:'',
+    receivingOrg:'',takeBackProgram:'',outcome:'',evidence:''
   };
 }
 // Backfill any fields a forecast was saved without (older schema, a hand-edited
 // XLS re-import, etc.) with safe defaults — same "Object.assign default covers
-// gaps on load" pattern the full plan uses (see MAINTENANCE.md §2). Without
-// this, a material missing `.actual` (e.g. saved before that field existed)
-// throws when the actuals page reads `m.actual.matches`, which aborts the
-// whole render mid-way and leaves the previous screen on display with no
-// error shown to the user — a confusing, hard-to-diagnose "load did nothing"
-// symptom. Always run a loaded forecast through this before rendering it.
+// gaps on load" pattern the full plan uses (see MAINTENANCE.md §2). Always run
+// a loaded forecast through this before rendering it.
+//
+// A forecast's material row used to carry a whole separate `.actual` object
+// (detail/vol/vunit/stat duplicated, plus a matches/confirm toggle) filled in
+// on a second "actuals" page. That's retired — forecast and post-event status
+// are now one continuously-editable row, matching the materials plan's own
+// "Expected material status" + "Actual outcome" pair on a single asset. Old
+// saved forecasts still have the nested shape, so pull their actual.* values
+// up onto the flat fields (outcome/receivingOrg/takeBackProgram/evidence)
+// before dropping it, rather than silently losing that data.
 function migrateForecast(fc){
   if(!fc)return fc;
-  fc.profile=Object.assign({org:'',role:'',project:'',eventYear:'AO27',contactName:'',contactEmail:''},fc.profile||{});
+  fc.profile=Object.assign({org:'',website:'',role:'',project:'',eventYear:'AO27',contactName:'',contactEmail:''},fc.profile||{});
   fc.targets=Object.assign({reuseTarget:'',wasteTarget:'',circPractices:'',reuseStoredPct:'',disposedPct:''},fc.targets||{});
   fc.notes=Object.assign({largeStructures:'',feedback:''},fc.notes||{});
   if(!Array.isArray(fc.materials)||!fc.materials.length)fc.materials=[newFcMat()];
   fc.materials.forEach(m=>{
     if(m.id==null)m.id=uid();
-    m.actual=Object.assign({detail:'',detailOther:'',vol:'',vunit:'',stat:'',notes:'',receivingOrg:'',takeBackNote:'',evidence:'',matches:null},m.actual||{});
-    // matches:false only ever means "the edit panel was open this session" — it's
-    // not a real decision worth remembering (unlike matches:true, a deliberate
-    // "forecast matches actuals" confirmation). Reset it on every fresh load so
-    // a material a user once opened but didn't finish always starts collapsed
-    // with the choice buttons again, rather than reopening straight into the
-    // edit panel forever.
-    if(m.actual.matches===false)m.actual.matches=null;
-    delete m.actual._editing;
+    if(m.assetName==null)m.assetName='';
+    if(m.actual){
+      if(!m.outcome)m.outcome=m.actual.stat||'';
+      if(!m.receivingOrg)m.receivingOrg=m.actual.receivingOrg||'';
+      if(!m.takeBackProgram)m.takeBackProgram=m.actual.takeBackProgram||m.actual.takeBackNote||'';
+      if(!m.evidence)m.evidence=m.actual.evidence||'';
+      delete m.actual;
+    }
+    if(m.receivingOrg==null)m.receivingOrg='';
+    if(m.takeBackProgram==null)m.takeBackProgram='';
+    if(m.outcome==null)m.outcome='';
+    if(m.evidence==null)m.evidence='';
   });
   if(fc.actualsLoggedAt===undefined)fc.actualsLoggedAt=null;
   return fc;
@@ -1418,7 +1432,6 @@ function renderForecastTab(){
   try{
     if(S.fc.mode==='new')return renderFcForm();
     if(S.fc.mode==='summary')return renderFcSummary();
-    if(S.fc.mode==='actuals')return renderFcActuals();
     return renderFcLanding();
   }catch(err){
     // A render failing partway through must never leave the page silently
@@ -1465,25 +1478,29 @@ function renderFcLanding(){
   document.getElementById('main').innerHTML=h;
 }
 
-function fcStartNew(){S.fc={mode:'new',draft:newForecast()};S.screen='home';render();}
+function fcStartNew(){S._fcExpanded={};S.fc={mode:'new',draft:newForecast()};S.screen='home';render();}
 function fcBackToLanding(){S.fc={mode:'landing'};S.screen='home';render();}
 
 function renderFcForm(){
   const fc=S.fc.draft;
+  const isUpdate=!!S.fc.isUpdate;
   let h='';
   h+='<div class="admin-hero">';
-  h+='<div style="font-size:10px;font-weight:800;letter-spacing:.12em;color:rgba(255,255,255,.55);text-transform:uppercase;margin-bottom:4px">AO27</div>';
-  h+='<h2 style="font-size:20px;font-weight:800;color:#fff;margin-bottom:.4rem;letter-spacing:-.02em">Provide a waste &amp; reuse forecast</h2>';
+  h+='<div style="font-size:10px;font-weight:800;letter-spacing:.12em;color:rgba(255,255,255,.55);text-transform:uppercase;margin-bottom:4px">'+(isUpdate?fcCode(fc.id):'AO27')+'</div>';
+  h+='<h2 style="font-size:20px;font-weight:800;color:#fff;margin-bottom:.4rem;letter-spacing:-.02em">'+(isUpdate?'Update your forecast':'Provide a waste &amp; reuse forecast')+'</h2>';
   h+='</div>';
 
   h+='<div class="fc-page" style="padding:1.25rem 1rem">';
 
-  h+='<div class="hbox">Agencies, Builders and Contractors delivering temporary infrastructure for the AO are required to provide waste estimates to enable TA to plan waste services on bump out. The information provided will be used to plan bin types and locations and optimise recycling.<br><br>It will also provide Agencies and builders with post event reporting which will be reviewed by Partners and TA for future events.</div>';
+  h+='<div class="hbox">'+(isUpdate
+    ?'Make changes to your forecast if needed prior to bump-out. Post-event, complete field 5 for each material to log what actually happened and unlock the verify photo upload &#8212; this becomes your event report.'
+    :'Agencies, Builders and Contractors delivering temporary infrastructure for the AO are required to provide waste estimates to enable TA to plan waste services on bump out. The information provided will be used to plan bin types and locations and optimise recycling.<br><br>It will also provide Agencies and builders with post event reporting which will be reviewed by Partners and TA for future events.')+'</div>';
 
   h+='<div class="card">';
   h+='<div class="sechd sechd-first">Your details</div>';
   h+='<div class="fg"><label>Organisation *</label><input type="text" data-f="org" value="'+esc(fc.profile.org)+'" placeholder="Business/ organisation name" onblur="fcUpProfile(this)"></div>';
-  h+='<div class="fg"><label>Project *</label><input type="text" data-f="project" value="'+esc(fc.profile.project)+'" placeholder="Activation name" onblur="fcUpProfile(this)"><div class="fhint">Activation name/ precinct/ project</div></div>';
+  h+='<div class="fg"><label>Website *</label><input type="url" data-f="website" value="'+esc(fc.profile.website)+'" placeholder="https://www.example.com" onblur="fcUpProfile(this)"></div>';
+  h+='<div class="fg"><label>Project *</label><input type="text" data-f="project" value="'+esc(fc.profile.project)+'" placeholder="Activation name/ precinct/ project" onblur="fcUpProfile(this)"></div>';
   h+='<div style="display:flex;gap:8px"><div class="fg" style="flex:1"><label>Role *</label><select data-f="role" onchange="fcUpProfile(this)"><option value="">Select role...</option>'+mkOpts(FC_ROLES,fc.profile.role)+'</select></div>';
   h+='<div class="fg" style="width:110px"><label>Event year</label><select data-f="eventYear" onchange="fcUpProfile(this)"><option value="AO27"'+(fc.profile.eventYear==='AO27'?' selected':'')+'>AO27</option><option value="AO28"'+(fc.profile.eventYear==='AO28'?' selected':'')+'>AO28</option></select></div></div>';
   h+='<div style="display:flex;gap:8px"><div class="fg" style="flex:1"><label>Contact name *</label><input type="text" data-f="contactName" value="'+esc(fc.profile.contactName)+'" placeholder="Full name" onblur="fcUpProfile(this)"></div>';
@@ -1492,11 +1509,10 @@ function renderFcForm(){
 
   h+='<div class="card">';
   h+='<div class="sechd sechd-first">Targets &amp; practices</div>';
-  h+='<div class="fg"><label>1. What are your reuse targets this year (percentage)? *</label><input type="text" data-f="reuseTarget" value="'+esc(fc.targets.reuseTarget)+'" placeholder="20%" onblur="fcUpTargets(this)"></div>';
-  h+='<div class="fg"><label>2. What are your waste reduction targets this year (percentage)? *</label><input type="text" data-f="wasteTarget" value="'+esc(fc.targets.wasteTarget)+'" placeholder="15%" onblur="fcUpTargets(this)"></div>';
-  h+='<div class="fg"><label>3. To what extent do you use circular practices (modular design, finishes and fixes that don&rsquo;t contaminate materials, methods to optimise reuse or recycling)? *</label><select data-f="circPractices" onchange="fcUpTargets(this)"><option value="">Select...</option>'+mkOpts(['Not at all','Somewhat','As much as possible'],fc.targets.circPractices)+'</select></div>';
-  h+='<div class="fg"><label>4. Estimate the proportion of materials to be reused &amp; stored (percentage) *</label><input type="text" data-f="reuseStoredPct" value="'+esc(fc.targets.reuseStoredPct)+'" placeholder="30%" onblur="fcUpTargets(this)"></div>';
-  h+='<div class="fg"><label>5. Estimate the proportion of materials to be disposed on site in bins (percentage) *</label><input type="text" data-f="disposedPct" value="'+esc(fc.targets.disposedPct)+'" placeholder="10%" onblur="fcUpTargets(this)"></div>';
+  h+='<div class="fg"><label>What are your reuse targets this year (percentage)? *</label><input type="text" data-f="reuseTarget" value="'+esc(fc.targets.reuseTarget)+'" placeholder="%" onblur="fcUpTargets(this)"></div>';
+  h+='<div class="fg"><label>What are your waste reduction targets this year (percentage)? *</label><input type="text" data-f="wasteTarget" value="'+esc(fc.targets.wasteTarget)+'" placeholder="%" onblur="fcUpTargets(this)"></div>';
+  h+='<div class="fg"><label>Estimate the proportion of materials to be disposed on site in bins (percentage) *</label><input type="text" data-f="disposedPct" value="'+esc(fc.targets.disposedPct)+'" placeholder="%" onblur="fcUpTargets(this)"></div>';
+  h+='<div class="fg"><label>To what extent do you use circular practices (modular design, finishes and fixes that don&rsquo;t contaminate materials, methods to optimise reuse or recycling)? *</label><select data-f="circPractices" onchange="fcUpTargets(this)"><option value="">Select...</option>'+mkOpts(['Very little <10%','Somewhat 10-40%','As much as possible 41-70%','All the time >71%'],fc.targets.circPractices)+'</select></div>';
   h+='</div>';
 
   h+='<div class="sechd">Waste &amp; reuse forecast</div>';
@@ -1516,34 +1532,67 @@ function renderFcForm(){
   // "&larr; Back" on the left and the bold blue primary action on the right,
   // both in the same .acts row, instead of a floating top-corner Back button
   // paired with an unrelated full-width CTA at the bottom.
-  h+='<div class="acts"><button onclick="fcBackToLanding()">&larr; Back</button><button id="fc-save-forecast-btn" onclick="fcSaveForecast()" style="background:linear-gradient(135deg,#0091D2,#0072A8);color:#fff;border-color:#0072A8;font-weight:700;padding:9px 20px;box-shadow:0 2px 8px rgba(0,145,210,.3)">Save forecast &#10003;</button></div>';
+  h+='<div class="acts"><button onclick="fcBackToLanding()">&larr; Back</button><button id="fc-save-forecast-btn" onclick="fcSaveForecast()" style="background:linear-gradient(135deg,#0091D2,#0072A8);color:#fff;border-color:#0072A8;font-weight:700;padding:9px 20px;box-shadow:0 2px 8px rgba(0,145,210,.3)">'+(isUpdate?'Save updates':'Save forecast')+' &#10003;</button></div>';
 
   h+='</div>';
   document.getElementById('main').innerHTML=h;
 }
 
+// Fields 1-4 (forecast details) collapse to a one-line summary on a loaded/
+// updated forecast, since by then they're usually already set and the point
+// of coming back is field 5 (bump-out actuals) — not re-walking the whole
+// row. A fresh create always starts expanded. Expand state is a transient,
+// per-material, per-session UI toggle — never saved with the forecast.
+function fcToggleMatCollapse(mid){
+  if(!S._fcExpanded)S._fcExpanded={};
+  S._fcExpanded[mid]=!S._fcExpanded[mid];
+  const fc=S.fc.draft;
+  const idx=fc.materials.findIndex(x=>x.id===mid);
+  const m=fc.materials[idx];
+  const row=document.getElementById('fcmr-'+mid);
+  if(row)row.outerHTML=fcMatRowHtml(m,idx);
+}
 function fcMatRowHtml(m,idx){
   const showOther=m.detail==='Other';
+  // Receiving organisation / take-back program name are about what actually
+  // happened at bump-out, so they're tied to field 5 (Actual material status)
+  // — not field 4 (Expected status), which is only a forecast.
+  const showDonate=m.outcome==='Donate';
+  const showTakeback=m.outcome==='Recycle on site with AO Take-back program';
+  // The verify photo is not relevant when the material simply went to the
+  // AO onsite mixed construction waste bins — show it for every other
+  // logged outcome.
+  const hasOutcome=!!m.outcome&&m.outcome!=='Mixed construction waste - AO onsite bins';
+  if(!S._fcExpanded)S._fcExpanded={};
+  const isUpdate=!!(S.fc&&S.fc.isUpdate);
+  if(!(m.id in S._fcExpanded))S._fcExpanded[m.id]=!isUpdate;
+  const expanded=S._fcExpanded[m.id];
+  const summaryLine=[m.assetName,m.detail==='Other'?m.detailOther:m.detail,m.vol?(m.vol+(m.vunit?' '+m.vunit:'')):'',m.stat].filter(Boolean).map(esc).join(' &middot; ')||'No details yet';
+  const detailFields=expanded
+    ?('<div class="fg"><label>1. Asset name (optional)</label><input type="text" data-mid="'+m.id+'" data-f="assetName" value="'+esc(m.assetName)+'" placeholder="If you track assets/ materials by name or reference number, add this here" onblur="fcUpMat(this)"></div>'
+      +'<div class="fg"><label>2. Material details *</label><select data-mid="'+m.id+'" data-f="detail" onchange="fcUpMat(this)">'+fcMatOptsHtml(m.detail)+'</select></div>'
+      +(showOther?'<div class="fg"><label>If other, list below *</label><input type="text" data-mid="'+m.id+'" data-f="detailOther" value="'+esc(m.detailOther)+'" placeholder="Describe the material" onblur="fcUpMat(this)"></div>':'')
+      +'<div style="display:flex;gap:8px;align-items:flex-end">'
+      +'<div class="fg" style="flex:1;margin-bottom:0"><label>3. Expected volume *</label><input type="text" data-mid="'+m.id+'" data-f="vol" value="'+esc(m.vol)+'" placeholder="10 sheets/ 2 rolls/ 5kg" onblur="fcUpMat(this)"></div>'
+      +'<div class="fg" style="width:180px;margin-bottom:0"><label>Unit</label><input type="text" list="vol-units" data-mid="'+m.id+'" data-f="vunit" value="'+esc(m.vunit)+'" placeholder="Kg/ sqm/ lm etc" autocomplete="off" onblur="fcUpMat(this)"></div>'
+      +'</div>'
+      +'<div class="fg" style="margin-top:8px"><label>4. Expected status *</label><select data-mid="'+m.id+'" data-f="stat" onchange="fcUpMat(this)">'+mkOpts(STATS,m.stat,'Select status...')+'</select></div>'
+      +(isUpdate?'<button type="button" onclick="fcToggleMatCollapse(&#39;'+m.id+'&#39;)" style="background:none;border:none;color:#0091D2;font-size:12px;font-weight:700;cursor:pointer;text-decoration:underline;margin-bottom:8px">Collapse forecast details</button>':''))
+    :('<div class="fg" style="margin-bottom:10px"><div style="display:flex;align-items:center;gap:8px;background:#F7F6F2;border-radius:8px;padding:9px 12px;font-size:12px;color:#555"><span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">1&ndash;4. '+summaryLine+'</span>'+(m.stat?fcStatTag(m.stat):'')+'<button type="button" onclick="fcToggleMatCollapse(&#39;'+m.id+'&#39;)" style="background:none;border:none;color:#0091D2;font-weight:700;cursor:pointer;font-size:12px;flex-shrink:0">Edit</button></div></div>');
   return'<div class="mat-row" id="fcmr-'+m.id+'">'
     +'<div class="mat-row-hd">'
     +'<span class="mat-row-num">Material '+(idx+1)+'</span>'
-    +'<span class="mat-row-name">'+esc(m.detail==='Other'?(m.detailOther||'Other material'):(m.detail||''))+'</span>'
-    +'<button onclick="fcDelMaterial(&#39;'+m.id+'&#39;)" style="background:none;border:none;cursor:pointer;color:#ccc;padding:8px 10px;font-size:14px;border-radius:6px;flex-shrink:0" title="Remove material">&times;</button>'
+    +'<button onclick="fcDelMaterial(&#39;'+m.id+'&#39;)" style="background:none;border:none;cursor:pointer;color:#ccc;padding:8px 10px;font-size:14px;border-radius:6px;flex-shrink:0;margin-left:auto" title="Remove material">&times;</button>'
     +'</div>'
-    +'<div class="fg"><label>1. Material details *</label><select data-mid="'+m.id+'" data-f="detail" onchange="fcUpMat(this)">'+fcMatOptsHtml(m.detail)+'</select></div>'
-    +(showOther?'<div class="fg"><label>If other, list below *</label><input type="text" data-mid="'+m.id+'" data-f="detailOther" value="'+esc(m.detailOther)+'" placeholder="Describe the material" onblur="fcUpMat(this)"></div>':'')
-    +'<div style="display:flex;gap:8px;align-items:flex-end">'
-    +'<div class="fg" style="flex:1;margin-bottom:0"><label>Expected volume *</label><input type="text" data-mid="'+m.id+'" data-f="vol" value="'+esc(m.vol)+'" placeholder="10 sheets/ 2 rolls/ 5kg" onblur="fcUpMat(this)"></div>'
-    +'<div class="fg" style="width:180px;margin-bottom:0"><label>Unit</label><input type="text" list="vol-units" data-mid="'+m.id+'" data-f="vunit" value="'+esc(m.vunit)+'" placeholder="Kg/ sqm/ lm etc" autocomplete="off" onblur="fcUpMat(this)"></div>'
-    +'</div>'
-    +'<div class="fg" style="margin-top:8px"><label>2. Expected status *</label><select data-mid="'+m.id+'" data-f="stat" onchange="fcUpMat(this)">'+mkOpts(STATS,m.stat,'Select status...')+'</select>'+(m.stat?'<div style="margin-top:6px">'+fcStatTag(m.stat)+'</div>':'')+'</div>'
+    +detailFields
+    +'<div class="fg" style="margin-top:8px"><label style="color:#aaa">5. Actual material status (Bump-out) <span style="font-size:10px;font-weight:400">(complete post-event)</span></label><select data-mid="'+m.id+'" data-f="outcome" onchange="fcUpMat(this)">'+mkOpts(OUTCOMES,m.outcome,'Select actual status...')+'</select></div>'
+    +(showDonate?'<div class="fg"><label>Receiving organisation</label><input type="text" data-mid="'+m.id+'" data-f="receivingOrg" value="'+esc(m.receivingOrg)+'" placeholder="Who received this?" onblur="fcUpMat(this)"></div>':'')
+    +(showTakeback?'<div class="fg"><label>Take-back program name</label><input type="text" data-mid="'+m.id+'" data-f="takeBackProgram" value="'+esc(m.takeBackProgram)+'" placeholder="Name of the take-back program" onblur="fcUpMat(this)"></div>':'')
+    +(hasOutcome?fcEvidenceBlock(m):'')
     +'</div>';
 }
 
-// Used on both the create-forecast form (S.fc.draft) and the forecast
-// update/actuals page (S.fc.current, where targets are editable but the
-// object is stored under a different key) — resolve whichever is active.
-function fcActive(){return S.fc.draft||S.fc.current;}
+function fcActive(){return S.fc.draft;}
 function fcUpProfile(el){fcActive().profile[el.dataset.f]=el.value;}
 function fcUpTargets(el){fcActive().targets[el.dataset.f]=el.value;}
 function fcUpNotes(el){fcActive().notes[el.dataset.f]=el.value;}
@@ -1558,7 +1607,13 @@ function fcUpMat(el){
   }
 }
 function fcAddMaterial(){
-  S.fc.draft.materials.push(newFcMat());
+  const nm=newFcMat();
+  S.fc.draft.materials.push(nm);
+  // A freshly-added material is always shown fully expanded, even when the
+  // rest of the (saved/loaded) plan's materials are collapsed — the collapse
+  // behaviour is only for materials that were already entered.
+  if(!S._fcExpanded)S._fcExpanded={};
+  S._fcExpanded[nm.id]=true;
   const wrap=document.getElementById('fc-mats');
   if(wrap){let h='';S.fc.draft.materials.forEach((m,i)=>{h+=fcMatRowHtml(m,i);});wrap.innerHTML=h;}
 }
@@ -1572,31 +1627,38 @@ function fcDelMaterial(mid){
 async function fcSaveForecast(){
   const fc=S.fc.draft;
   const p=fc.profile;
-  if(!p.org||!p.project||!p.role||!p.contactName||!p.contactEmail){showToast('Please complete organisation, project, role, contact name and email.');return;}
+  if(!p.org||!p.website||!p.project||!p.role||!p.contactName||!p.contactEmail){showToast('Please complete organisation, website, project, role, contact name and email.');return;}
   if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(p.contactEmail)){showToast('Please enter a valid contact email.');return;}
   const t=fc.targets;
-  if(!t.reuseTarget||!t.wasteTarget||!t.circPractices||!t.reuseStoredPct||!t.disposedPct){showToast('Please complete all 5 questions in Targets & practices.');return;}
+  if(!t.reuseTarget||!t.wasteTarget||!t.disposedPct||!t.circPractices){showToast('Please complete all 4 questions in Targets & practices.');return;}
   const missingMat=fc.materials.find(m=>!m.detail||!m.vol||!m.stat||(m.detail==='Other'&&!m.detailOther));
   if(missingMat){showToast('Please complete material details, expected volume and expected status for every material.');return;}
   const btn=document.getElementById('fc-save-forecast-btn');
   if(btn){btn.disabled=true;btn.textContent='Saving...';}
+  // "Actuals logged" (and the Event report framing on the summary page) is only
+  // marked complete once every material has field 5 — Actual material status
+  // (Bump-out) — filled in. Saving before then (e.g. just updating targets, or
+  // fixing a forecast detail pre-event) is always allowed and never blocked on it.
+  const wasAlreadyLogged=!!fc.actualsLoggedAt;
+  const allOutcomesFilled=fc.materials.length>0&&fc.materials.every(m=>m.outcome);
+  if(allOutcomesFilled&&!wasAlreadyLogged)fc.actualsLoggedAt=Date.now();
+  const isUpdate=!!S.fc.isUpdate;
   const res=await forecastDB.save(fc);
-  S.fc={mode:'summary',saved:fc,saveSource:res.source,from:'form'};
+  S.fc={mode:'summary',saved:fc,saveSource:res.source,isUpdate};
   S.screen='home';
-  showToast(res.source==='cloud'?'Forecast saved':'Forecast saved to this device');
+  const savedMsg=allOutcomesFilled&&!wasAlreadyLogged?'Actuals saved':isUpdate?'Progress saved':'Forecast saved';
+  showToast(res.source==='cloud'?savedMsg:savedMsg+' to this device');
   render();
 }
 
-// Back from the forecast summary page to whichever page led here — the
-// in-progress form (just saved a new forecast) or the actuals page (just
-// saved actuals) — mirroring the materials plan summary's "&larr; Back" to
-// goPrev(). S.fc.from is set by fcSaveForecast/fcSaveActuals right before
-// they switch to mode:'summary'.
+// Back from the forecast summary page to the same single form, now flagged
+// as an update — once a forecast has been through Save once it's an existing
+// record either way, whether this was its first save or a later one.
 function fcBackFromSummary(){
   const fc=S.fc.saved;
   if(!fc)return fcBackToLanding();
-  if(S.fc.from==='actuals')S.fc={mode:'actuals',current:fc};
-  else S.fc={mode:'new',draft:fc};
+  S._fcExpanded={};
+  S.fc={mode:'new',draft:fc,isUpdate:true};
   S.screen='home';
   render();
 }
@@ -1638,7 +1700,7 @@ function renderFcSummary(){
 
   const stCts={};for(const m of fc.materials)if(m.stat)stCts[m.stat]=(stCts[m.stat]||0)+1;
   const stRows=Object.entries(stCts).sort((a,b)=>b[1]-a[1]).map(([s,n])=>'<div class="srow"><div class="sdot" style="background:'+(STCOL[s]||'#9ca3af')+'"></div><div style="flex:1;color:#1a1a1a">'+esc(s)+'</div><div style="font-weight:600;min-width:20px;text-align:right">'+n+'</div></div>').join('');
-  const actualCts={};for(const m of fc.materials)if(m.actual&&m.actual.stat)actualCts[m.actual.stat]=(actualCts[m.actual.stat]||0)+1;
+  const actualCts={};for(const m of fc.materials)if(m.outcome)actualCts[m.outcome]=(actualCts[m.outcome]||0)+1;
   const actualRows=Object.entries(actualCts).sort((a,b)=>b[1]-a[1]).map(([s,n])=>'<div class="srow"><div class="sdot" style="background:'+(STCOL[s]||'#9ca3af')+'"></div><div style="flex:1;color:#1a1a1a">'+esc(s)+'</div><div style="font-weight:600;min-width:20px;text-align:right">'+n+'</div></div>').join('');
   if(stRows)h+='<div class="card"><div style="display:grid;grid-template-columns:1fr 1fr;gap:16px"><div><div class="sechd" style="margin-top:0">Materials by expected status</div>'+stRows+'</div><div><div class="sechd" style="margin-top:0;color:#0091D2">Materials ACTUALS POST EVENT</div>'+(actualRows||'<div style="font-size:13px;color:#aaa;margin-top:6px">Return with your TA-ID after the event to log actuals.</div>')+'</div></div></div>';
 
@@ -1659,7 +1721,8 @@ async function fcRetrieve(){
   try{
     const fc=await forecastDB.loadById(code);
     if(fc){
-      S.fc={mode:'actuals',current:fc};
+      S._fcExpanded={};
+      S.fc={mode:'new',draft:fc,isUpdate:true};
       S.screen='home';
       showToast('Forecast loaded');render();
     } else {
@@ -1670,98 +1733,6 @@ async function fcRetrieve(){
   }
 }
 
-function renderFcActuals(){
-  const fc=S.fc.current;
-  const code=fcCode(fc.id);
-  let h='';
-  h+='<div class="admin-hero">';
-  h+='<div style="font-size:10px;font-weight:800;letter-spacing:.12em;color:rgba(255,255,255,.55);text-transform:uppercase;margin-bottom:4px">'+code+'</div>';
-  h+='<h2 style="font-size:20px;font-weight:800;color:#fff;margin-bottom:.4rem;letter-spacing:-.02em">Forecast updates and report</h2>';
-  h+='<p style="font-size:12px;line-height:1.6;opacity:.85;max-width:520px">Make changes to the forecast if needed prior to bump out and post event log what actually happened to materials and complete the post event report.</p>';
-  h+='</div>';
-  h+='<div style="padding:1.25rem 1rem">';
-
-  h+='<div class="card"><div class="sechd sechd-first">Your forecast</div><div style="font-size:13px;color:#555;line-height:1.6">'+esc(fc.profile.org)+' &middot; '+esc(fc.profile.role)+' &middot; '+esc(fc.profile.eventYear)+'</div></div>';
-
-  h+='<div class="card">';
-  h+='<div class="sechd sechd-first">Targets &amp; practices</div>';
-  h+='<div class="fg"><label>1. What are your reuse targets this year (percentage)?</label><input type="text" data-f="reuseTarget" value="'+esc(fc.targets.reuseTarget)+'" placeholder="20%" onblur="fcUpTargets(this)"></div>';
-  h+='<div class="fg"><label>2. What are your waste reduction targets this year (percentage)?</label><input type="text" data-f="wasteTarget" value="'+esc(fc.targets.wasteTarget)+'" placeholder="15%" onblur="fcUpTargets(this)"></div>';
-  h+='<div class="fg"><label>3. To what extent do you use circular practices (modular design, finishes and fixes that don&rsquo;t contaminate materials, methods to optimise reuse or recycling)?</label><select data-f="circPractices" onchange="fcUpTargets(this)"><option value="">Select...</option>'+mkOpts(['Not at all','Somewhat','As much as possible'],fc.targets.circPractices)+'</select></div>';
-  h+='<div class="fg"><label>4. Estimate the proportion of materials to be reused &amp; stored (percentage)</label><input type="text" data-f="reuseStoredPct" value="'+esc(fc.targets.reuseStoredPct)+'" placeholder="30%" onblur="fcUpTargets(this)"></div>';
-  h+='<div class="fg"><label>5. Estimate the proportion of materials to be disposed on site in bins (percentage)</label><input type="text" data-f="disposedPct" value="'+esc(fc.targets.disposedPct)+'" placeholder="10%" onblur="fcUpTargets(this)"></div>';
-  h+='</div>';
-
-  h+='<div class="sechd">Updates or bump-out actuals</div>';
-  h+='<div id="fc-act-mats">';
-  fc.materials.forEach((m,i)=>{h+=fcActualMatRowHtml(fc,m,i);});
-  h+='</div>';
-
-  // Same bottom nav bar pattern as the materials plan and the forecast form:
-  // plain "&larr; Back" paired with the bold blue primary action, both in .acts.
-  h+='<div class="acts"><button onclick="fcBackToLanding()">&larr; Back</button><button id="fc-save-actuals-btn" onclick="fcSaveActuals()" style="background:linear-gradient(135deg,#0091D2,#0072A8);color:#fff;border-color:#0072A8;font-weight:700;padding:9px 20px;box-shadow:0 2px 8px rgba(0,145,210,.3)">Save &#10003;</button></div>';
-  h+='</div>';
-  document.getElementById('main').innerHTML=h;
-}
-
-function fcActualMatRowHtml(fc,m,idx){
-  const a=m.actual;
-  const label=m.detail==='Other'?(m.detailOther||'Material '+(idx+1)):(m.detail||'Material '+(idx+1));
-  let body='';
-  if(a.matches===true){
-    body+='<div style="display:flex;align-items:center;gap:8px;background:#EEF9F4;border:1px solid #b2e8d2;border-radius:8px;padding:10px 12px">'
-      +'<span style="color:#0F6E56;font-weight:700;font-size:13px">&#10003; Matches forecast</span>'
-      +'<button onclick="fcEditActual(&#39;'+m.id+'&#39;)" style="margin-left:auto;background:none;border:none;color:#0091D2;font-size:12px;font-weight:700;cursor:pointer;text-decoration:underline">Make changes to forecast</button>'
-      +'</div>';
-    body+='<div style="margin-top:10px">'+fcEvidenceBlock(m,null)+'</div>';
-  } else if(a.matches===false || a._editing){
-    const curDetail=a.detail||m.detail;
-    const showOther=curDetail==='Other';
-    const curStat=a.stat||(m.stat!=='Unsure yet'?m.stat:'')||'';
-    const showDonate=curStat==='Donate';
-    const showTakeback=curStat==='Recycle on site with AO Take-back program';
-    body+='<div class="fg"><label>1. Material details</label><select data-mid="'+m.id+'" data-f="detail" onchange="fcUpActual(this);fcRefreshActRow(&#39;'+m.id+'&#39;)">'+fcMatOptsHtml(curDetail)+'</select></div>';
-    if(showOther)body+='<div class="fg"><label>If other, list below</label><input type="text" data-mid="'+m.id+'" data-f="detailOther" value="'+esc(a.detailOther||m.detailOther||'')+'" onblur="fcUpActual(this)"></div>';
-    body+='<div style="display:flex;gap:8px;align-items:flex-end"><div class="fg" style="flex:1;margin-bottom:0"><label>Actual volume</label><input type="text" data-mid="'+m.id+'" data-f="vol" value="'+esc(a.vol||m.vol||'')+'" onblur="fcUpActual(this)"></div><div class="fg" style="width:120px;margin-bottom:0"><label>Unit</label><input type="text" data-mid="'+m.id+'" data-f="vunit" value="'+esc(a.vunit||m.vunit||'')+'" onblur="fcUpActual(this)"></div></div>';
-    body+='<div class="fg" style="margin-top:8px"><label>2. Actual status</label><select data-mid="'+m.id+'" data-f="stat" onchange="fcUpActual(this);fcRefreshActRow(&#39;'+m.id+'&#39;)">'+mkOpts(OUTCOMES,curStat,'Select actual status...')+'</select>'+(curStat?'<div style="margin-top:6px">'+fcStatTag(curStat)+'</div>':'')+'</div>';
-    if(showDonate)body+='<div class="fg"><label>Receiving organisation</label><input type="text" data-mid="'+m.id+'" data-f="receivingOrg" value="'+esc(a.receivingOrg||'')+'" placeholder="Who received this?" onblur="fcUpActual(this)"></div>';
-    if(showTakeback)body+='<div class="fg"><label>Note</label><input type="text" data-mid="'+m.id+'" data-f="takeBackNote" value="'+esc(a.takeBackNote||'')+'" placeholder="Any details for the take-back program" onblur="fcUpActual(this)"></div>';
-    body+=fcEvidenceBlock(m,'3');
-  } else {
-    const canConfirm=m.stat&&m.stat!=='Unsure yet';
-    body+='<div class="fg" style="margin-bottom:0">'
-      +(canConfirm?'<button onclick="fcConfirmMatches(&#39;'+m.id+'&#39;)" style="width:100%;padding:11px;background:#EEF9F4;border:1.5px solid #b2e8d2;color:#0F6E56;border-radius:8px;font-weight:700;font-size:13px;cursor:pointer;margin-bottom:6px">Forecast matches actuals</button>':'')
-      +'<button onclick="fcEditActual(&#39;'+m.id+'&#39;)" style="width:100%;padding:'+(canConfirm?'9px':'11px')+';background:'+(canConfirm?'none':'#EEF9F4')+';border:'+(canConfirm?'none':'1.5px solid #b2e8d2')+';color:'+(canConfirm?'#0091D2':'#0F6E56')+';border-radius:8px;font-size:'+(canConfirm?'12.5px':'13px')+';font-weight:700;cursor:pointer;text-decoration:'+(canConfirm?'underline':'none')+'">'+(canConfirm?'Make changes to forecast':'Add actual outcome &rarr;')+'</button>'
-      +'</div>';
-  }
-  return'<div class="mat-row" id="fcamr-'+m.id+'"><div class="mat-row-hd"><span class="mat-row-num">Material '+(idx+1)+'</span><span class="mat-row-name">'+esc(label)+'</span></div>'
-    +'<div style="font-size:11px;color:#888;margin-bottom:8px">Forecast: '+esc(m.detail==='Other'?m.detailOther:m.detail)+(m.vol?' &middot; '+esc(m.vol)+' '+esc(m.vunit):'')+(m.stat?' &middot; '+esc(m.stat):'')+'</div>'
-    +body+'</div>';
-}
-
-function fcRefreshActRow(mid){
-  const fc=S.fc.current;
-  const idx=fc.materials.findIndex(x=>x.id===mid);
-  const m=fc.materials[idx];
-  const row=document.getElementById('fcamr-'+mid);
-  if(row&&m)row.outerHTML=fcActualMatRowHtml(fc,m,idx);
-}
-function fcConfirmMatches(mid){
-  const fc=S.fc.current;const m=fc.materials.find(x=>x.id===mid);if(!m)return;
-  m.actual.matches=true;m.actual._editing=false;
-  m.actual.detail=m.detail;m.actual.detailOther=m.detailOther;m.actual.vol=m.vol;m.actual.vunit=m.vunit;m.actual.stat=m.stat;
-  fcRefreshActRow(mid);
-}
-function fcEditActual(mid){
-  const fc=S.fc.current;const m=fc.materials.find(x=>x.id===mid);if(!m)return;
-  m.actual.matches=false;m.actual._editing=true;
-  fcRefreshActRow(mid);
-}
-function fcUpActual(el){
-  const fc=S.fc.current;const mid=el.dataset.mid,f=el.dataset.f;
-  const m=fc.materials.find(x=>x.id===mid);if(!m)return;
-  m.actual[f]=el.value;
-}
 function fcUploadEvidence(input,mid){
   const file=input.files&&input.files[0];if(!file)return;
   if(file.size>IMAGE_MAX_BYTES){showToast('Image is too large (max 10MB)');return;}
@@ -1788,59 +1759,44 @@ function fcUploadEvidence(input,mid){
     ctx.drawImage(img,0,0,w,h);
     URL.revokeObjectURL(url);
     const dataUrl=isPng?canvas.toDataURL('image/png'):canvas.toDataURL('image/jpeg',0.6);
-    const fc=S.fc.current;const m=fc.materials.find(x=>x.id===mid);if(!m)return;
-    m.actual.evidence=dataUrl;
-    fcRefreshActRow(mid);
+    const fc=S.fc.draft;const m=fc.materials.find(x=>x.id===mid);if(!m)return;
+    m.evidence=dataUrl;
+    const idx=fc.materials.findIndex(x=>x.id===mid);
+    const row=document.getElementById('fcmr-'+mid);
+    if(row)row.outerHTML=fcMatRowHtml(m,idx);
   };
   img.onerror=function(){URL.revokeObjectURL(url);showToast('Could not read that image.');};
   img.src=url;
 }
 function fcRemoveEvidence(mid){
   if(!confirm('Remove this photo?'))return;
-  const fc=S.fc.current;const m=fc.materials.find(x=>x.id===mid);if(!m)return;
-  m.actual.evidence='';
-  fcRefreshActRow(mid);
+  const fc=S.fc.draft;const m=fc.materials.find(x=>x.id===mid);if(!m)return;
+  m.evidence='';
+  const idx=fc.materials.findIndex(x=>x.id===mid);
+  const row=document.getElementById('fcmr-'+mid);
+  if(row)row.outerHTML=fcMatRowHtml(m,idx);
 }
 // Verify/evidence widget for a material's actual outcome: thumbnail + Upload/Replace
 // + Remove — the same upload/replace/remove pattern as the materials plan's asset
 // image slots (imgSlotBlock), instead of the old click-anywhere-on-the-photo zone.
-function fcEvidenceBlock(m,num){
-  const a=m.actual;
-  const hasImg=!!a.evidence;
+// Only shown once field 5 (Actual material status) has been populated.
+function fcEvidenceBlock(m){
+  const hasImg=!!m.evidence;
   const thumb=hasImg
-    ? '<img src="'+a.evidence+'" alt="Evidence photo" style="width:74px;height:74px;object-fit:cover;border-radius:8px;border:1px solid #dde2e8;display:block;flex-shrink:0">'
+    ? '<img src="'+m.evidence+'" alt="Evidence photo" style="width:74px;height:74px;object-fit:cover;border-radius:8px;border:1px solid #dde2e8;display:block;flex-shrink:0">'
     : '<div style="width:74px;height:74px;border-radius:8px;border:1.5px dashed #d0cdc7;background:#faf9f7;display:flex;align-items:center;justify-content:center;color:#c4c0b8;font-size:22px;flex-shrink:0">&#9634;</div>';
   const btnStyle='font-size:11.5px;font-weight:600;padding:6px 12px;border-radius:7px;cursor:pointer;border:1px solid #d0cdc7;background:#fff;color:#555;font-family:inherit;width:auto';
   let btns='<input type="file" accept="image/*" id="fc-ev-'+m.id+'" style="display:none" onchange="fcUploadEvidence(this,&#39;'+m.id+'&#39;)">';
   btns+='<button type="button" style="'+btnStyle+'" onclick="document.getElementById(&#39;fc-ev-'+m.id+'&#39;).click()">'+(hasImg?'Replace':'&#8593; Upload image')+'</button>';
   if(hasImg)btns+='<button type="button" style="'+btnStyle+';color:#A32D2D;border-color:#f0cfcf" onclick="fcRemoveEvidence(&#39;'+m.id+'&#39;)">Remove</button>';
-  return '<div class="fg" style="margin-bottom:0">'
-    +'<label style="font-size:14px;font-weight:800;color:#003A5D">'+(num?num+'. ':'')+'Verify</label>'
+  return '<div class="fg" style="margin-top:8px;margin-bottom:0">'
+    +'<label style="font-size:14px;font-weight:800;color:#003A5D">Verify</label>'
     +'<div style="font-size:12px;color:#888;margin-bottom:6px">To substantiate your report, provide evidence of any recycled/ reused materials with an image upload</div>'
     +'<div style="display:flex;gap:12px;align-items:center">'
     +thumb
     +'<div style="flex:1;min-width:0">'
     +'<div style="display:flex;gap:6px;flex-wrap:wrap">'+btns+'</div>'
     +'</div></div></div>';
-}
-async function fcSaveActuals(){
-  const fc=S.fc.current;
-  // Saving is always allowed — someone opening this page to update targets, or
-  // just to check details, shouldn't be forced to confirm every material's
-  // actual outcome before their changes can be kept. "Actuals logged" (and the
-  // Event report framing on the summary page) is only marked complete once
-  // every material has actually been addressed.
-  const allAnswered=!fc.materials.some(m=>m.actual.matches===null&&!m.actual._editing);
-  fc.materials.forEach(m=>{delete m.actual._editing;});
-  if(allAnswered)fc.actualsLoggedAt=Date.now();
-  const btn=document.getElementById('fc-save-actuals-btn');
-  if(btn){btn.disabled=true;btn.textContent='Saving...';}
-  const res=await forecastDB.save(fc);
-  const savedMsg=allAnswered?'Actuals saved':'Progress saved';
-  showToast(res.source==='cloud'?savedMsg:savedMsg+' to this device');
-  S.fc={mode:'summary',saved:fc,saveSource:res.source,from:'actuals'};
-  S.screen='home';
-  render();
 }
 
 // ── Forecast export (FYI only — no re-upload) ─────────────────────────────────
@@ -1860,7 +1816,7 @@ function fcExportXLS(){
   });
 }
 function _doFcExportXLS(){
-  const fc=S.fc.saved||S.fc.current||(S.fc&&S.fc.draft);
+  const fc=S.fc.saved||(S.fc&&S.fc.draft);
   if(!fc){showToast('No forecast to export.');return;}
   const code=fcCode(fc.id);
   const p=fc.profile,t=fc.targets,n=fc.notes;
@@ -1871,28 +1827,25 @@ function _doFcExportXLS(){
   rows.push([]);
   rows.push(['BUSINESS DETAILS']);
   rows.push(['Organisation',p.org||'','Contact',p.contactName||'']);
-  rows.push(['Role',p.role||'','Email',p.contactEmail||'']);
-  rows.push(['Project',p.project||'','Event year',p.eventYear||'']);
+  rows.push(['Website',p.website||'','Email',p.contactEmail||'']);
+  rows.push(['Role',p.role||'','Event year',p.eventYear||'']);
+  rows.push(['Project',p.project||'']);
   rows.push([]);
   rows.push(['TARGETS & PRACTICES']);
   rows.push(['1. Reuse target (%)',t.reuseTarget||'']);
   rows.push(['2. Waste reduction target (%)',t.wasteTarget||'']);
-  rows.push(['3. Circular practices',t.circPractices||'']);
-  rows.push(['4. Reused & stored (%)',t.reuseStoredPct||'']);
-  rows.push(['5. Disposed on site (%)',t.disposedPct||'']);
+  rows.push(['3. Disposed on site (%)',t.disposedPct||'']);
+  rows.push(['4. Circular practices',t.circPractices||'']);
   rows.push([]);
   rows.push(['MATERIALS — FORECAST & ACTUALS']);
-  const matHeader=['Material detail','If other detail','Expected volume','Expected unit','Expected status',
-    'Actual detail','Actual other detail','Actual volume','Actual unit','Actual status',
-    'Receiving org (Donate)','Take-back note','Evidence photo captured?'];
+  const matHeader=['Asset name','Material detail','If other detail','Expected volume','Expected unit','Expected status',
+    'Actual material status (Bump-out)','Receiving org (Donate)','Take-back program name','Evidence photo captured?'];
   rows.push(matHeader);
   (fc.materials||[]).forEach(function(m){
-    const a=m.actual||{};
     rows.push([
-      m.detail||'',m.detailOther||'',m.vol||'',m.vunit||'',m.stat||'',
-      a.detail||'',a.detailOther||'',a.vol||'',a.vunit||'',a.stat||'',
-      a.receivingOrg||'',a.takeBackNote||'',
-      a.evidence?'Yes — view in app':'No'
+      m.assetName||'',m.detail||'',m.detailOther||'',m.vol||'',m.vunit||'',m.stat||'',
+      m.outcome||'',m.receivingOrg||'',m.takeBackProgram||'',
+      m.evidence?'Yes — view in app':'No'
     ]);
   });
   rows.push([]);
@@ -1902,7 +1855,7 @@ function _doFcExportXLS(){
 
   const wb=XLSX.utils.book_new();
   const ws=XLSX.utils.aoa_to_sheet(rows);
-  ws['!cols']=[{wch:26},{wch:22},{wch:16},{wch:14},{wch:24},{wch:20},{wch:20},{wch:14},{wch:14},
+  ws['!cols']=[{wch:26},{wch:22},{wch:16},{wch:14},{wch:14},{wch:24},
     {wch:24},{wch:20},{wch:24},{wch:20}];
   XLSX.utils.book_append_sheet(wb,ws,'Forecast');
   XLSX.writeFile(wb,code+'.xlsx');
@@ -2533,7 +2486,7 @@ function renderAdminFcDashboard(rawForecasts){
   function fcWeightedPct(field){
     let sum=0,n=0,anyData=false;
     for(const f of filtered){
-      const mats=(f.materials||[]).map(m=>({stat:m.stat,outcome:(m.actual&&m.actual.stat)||''}));
+      const mats=(f.materials||[]).map(m=>({stat:m.stat,outcome:fcMatOutcome(m)}));
       if(!mats.length)continue;
       n++;
       const s=circStats(mats,field);
@@ -2560,8 +2513,8 @@ function renderAdminFcDashboard(rawForecasts){
   const stCts={};for(const m of allMats)if(m.stat)stCts[m.stat]=(stCts[m.stat]||0)+1;
 
   // Actuals breakdown
-  const withActual=allMats.filter(m=>m.actual&&m.actual.stat);
-  const actCts={};for(const m of allMats)if(m.actual&&m.actual.stat)actCts[m.actual.stat]=(actCts[m.actual.stat]||0)+1;
+  const withActual=allMats.filter(m=>fcMatOutcome(m));
+  const actCts={};for(const m of allMats){const o=fcMatOutcome(m);if(o)actCts[o]=(actCts[o]||0)+1;}
 
   // Circularity by organisation (leaders)
   const fcCirc=filtered.map(f=>{
@@ -2665,14 +2618,15 @@ function renderAdminFcDashboard(rawForecasts){
 function exportAdminFcCSV(){
   loadAdminForecasts().then(forecasts=>{
     if(!forecasts.length){showToast('No forecasts to export');return;}
-    const rows=[['Organisation','Project','Role','Contact name','Contact email','Event year','TA-ID','Material','Expected volume','Unit','Expected status','Actual status']];
+    const rows=[['Organisation','Website','Project','Role','Contact name','Contact email','Event year','TA-ID','Asset name','Material','Expected volume','Unit','Expected status','Actual material status (Bump-out)','Receiving org (Donate)','Take-back program name']];
     for(const f of forecasts){
       const code=fcCode(f.id);
       for(const m of (f.materials||[])){
         rows.push([
-          f.profile.org||'',f.profile.project||'',f.profile.role||'',f.profile.contactName||'',f.profile.contactEmail||'',
+          f.profile.org||'',f.profile.website||'',f.profile.project||'',f.profile.role||'',f.profile.contactName||'',f.profile.contactEmail||'',
           f.profile.eventYear||'',code,
-          m.detail==='Other'?(m.detailOther||'Other'):(m.detail||''),m.vol||'',m.vunit||'',m.stat||'',(m.actual&&m.actual.stat)||''
+          m.assetName||'',m.detail==='Other'?(m.detailOther||'Other'):(m.detail||''),m.vol||'',m.vunit||'',m.stat||'',fcMatOutcome(m),
+          m.receivingOrg||'',m.takeBackProgram||(m.actual&&(m.actual.takeBackProgram||m.actual.takeBackNote))||''
         ]);
       }
     }
