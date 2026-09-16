@@ -932,7 +932,7 @@ if(EMAILJS_READY && typeof emailjs !== 'undefined'){
 // Superseded EmailJS above — sends now go through a Netlify Function
 // (config'd on the Netlify side) so the API key never sits in client code.
 // Same-origin call since the app is now deployed on Netlify itself.
-const NETLIFY_EMAIL_URL = '/.netlify/functions/send-email';
+const NETLIFY_EMAIL_URL = '/.netlify/functions/send-confirmation';
 
 async function sendCheckinEmail({toName, toEmail, code, action, type}){
   if(!toEmail){return;} // no email address on file — skip silently
