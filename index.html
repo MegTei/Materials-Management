@@ -1563,6 +1563,23 @@ function renderFcLanding(){
 
 function fcStartNew(){S._fcExpanded={};S.fc={mode:'new',draft:newForecast()};S.screen='home';render();}
 function fcBackToLanding(){S.fc={mode:'landing'};S.screen='home';render();}
+// The Summary page's "Save & exit" — the data itself was already persisted by the
+// Details page's plain Save (fcSaveForecast); this is the point the user is actually
+// done, so it's where the confirmation email belongs, then exits to the landing view.
+function fcSaveAndExit(){
+  const fc=S.fc.saved;
+  if(fc){
+    const p=fc.profile;
+    sendCheckinEmail({
+      toName : p.contactName,
+      toEmail: p.contactEmail,
+      code   : fcCode(fc.id),
+      action : S.fc.isUpdate ? 'updated' : 'created',
+      type   : 'forecast'
+    });
+  }
+  fcBackToLanding();
+}
 
 function renderFcForm(){
   const fc=S.fc.draft;
@@ -1616,7 +1633,7 @@ function renderFcForm(){
   // "&larr; Back" on the left and the bold blue primary action on the right,
   // both in the same .acts row, instead of a floating top-corner Back button
   // paired with an unrelated full-width CTA at the bottom.
-  h+='<div class="acts"><button onclick="fcBackToLanding()">&larr; Back</button><button id="fc-save-forecast-btn" onclick="fcSaveForecast()" style="background:linear-gradient(135deg,#0091D2,#0072A8);color:#fff;border-color:#0072A8;font-weight:700;padding:9px 20px;box-shadow:0 2px 8px rgba(0,145,210,.3)">'+(isUpdate?'Save updates':'Save forecast')+' &#10003;</button></div>';
+  h+='<div class="acts"><button onclick="fcBackToLanding()">&larr; Back</button><button id="fc-save-forecast-btn" onclick="fcSaveForecast()" style="background:linear-gradient(135deg,#0091D2,#0072A8);color:#fff;border-color:#0072A8;font-weight:700;padding:9px 20px;box-shadow:0 2px 8px rgba(0,145,210,.3)">Save &#10003;</button></div>';
 
   h+='</div>';
   document.getElementById('main').innerHTML=h;
@@ -1754,13 +1771,10 @@ async function fcSaveForecast(){
   if(allOutcomesFilled&&!wasAlreadyLogged)fc.actualsLoggedAt=Date.now();
   const isUpdate=!!S.fc.isUpdate;
   const res=await forecastDB.save(fc);
-  sendCheckinEmail({
-    toName : p.contactName,
-    toEmail: p.contactEmail,
-    code   : fcCode(fc.id),
-    action : isUpdate ? 'updated' : 'created',
-    type   : 'forecast'
-  }); // fire-and-forget email confirmation
+  // This is the Details page's plain "Save" — it persists (and takes the user to the
+  // Summary page to review) but does NOT send the confirmation email. Only the
+  // Summary page's own "Save & exit" button (fcSaveAndExit) sends that, since that's
+  // the point the user is actually done, not just checkpointing progress.
   S.fc={mode:'summary',saved:fc,saveSource:res.source,isUpdate};
   S.screen='home';
   const savedMsg=allOutcomesFilled&&!wasAlreadyLogged?'Actuals saved':isUpdate?'Progress saved':'Forecast saved';
@@ -1821,7 +1835,7 @@ function renderFcSummary(){
   const actualRows=Object.entries(actualCts).sort((a,b)=>b[1]-a[1]).map(([s,n])=>'<div class="srow"><div class="sdot" style="background:'+(STCOL[s]||'#9ca3af')+'"></div><div style="flex:1;color:#1a1a1a">'+esc(s)+'</div><div style="font-weight:600;min-width:20px;text-align:right">'+n+'</div></div>').join('');
   if(stRows)h+='<div class="card"><div style="display:grid;grid-template-columns:1fr 1fr;gap:16px"><div><div class="sechd" style="margin-top:0">Materials by expected status</div>'+stRows+'</div><div><div class="sechd" style="margin-top:0;color:#0091D2">Materials ACTUALS POST EVENT</div>'+(actualRows||'<div style="font-size:13px;color:#aaa;margin-top:6px">Return with your TA-ID after the event to log actuals.</div>')+'</div></div></div>';
 
-  h+='<div class="acts"><button onclick="fcBackFromSummary()">&larr; Back</button><button onclick="window.print()">Print / PDF</button><button onclick="fcExportXLS()">Export XLS</button><button onclick="fcBackToLanding()" style="background:#0091D2;color:#fff;border-color:#0091D2;font-weight:700">Done</button></div>';
+  h+='<div class="acts"><button onclick="fcBackFromSummary()">&larr; Back</button><button onclick="window.print()">Print / PDF</button><button onclick="fcExportXLS()">Export XLS</button><button onclick="fcSaveAndExit()" style="background:#0091D2;color:#fff;border-color:#0091D2;font-weight:700">Save &amp; exit</button></div>';
   h+='</div>';
   document.getElementById('main').innerHTML=h;
 }
@@ -3033,7 +3047,7 @@ function stepAbout(plan){
     </div>
     <div class="fg" id="p-dept-wrap" style="display:${TA_ROLES.includes(p.role)?'':'none'}"><label>Department *</label><select id="p-dept"><option value="">Select department...</option>${mkOpts(TA_DEPARTMENTS,p.department||'')}</select></div>
     <div class="g2">
-      <div class="fg"><label>Contact email *</label><input type="email" id="p-email" value="${esc(p.email)}" placeholder="email@company.com"><div class="fhint">A confirmation is emailed here when you save</div></div>
+      <div class="fg"><label>Contact email *</label><input type="email" id="p-email" value="${esc(p.email)}" placeholder="email@company.com"><div class="fhint">A confirmation is emailed here when you Save &amp; exit on the Summary step</div></div>
       <div class="fg"><label>Editor name * <span style="font-size:10px;color:#aaa;font-weight:400">(who is making changes)</span></label><input type="text" id="p-editor" value="${esc(p.editorName)}" placeholder="Name of person editing"></div>
     </div>
     <div id="about-errors" style="display:none;background:#FCEBEB;border:1px solid #f5c6c6;border-radius:8px;padding:10px 14px;font-size:13px;color:#A32D2D;margin-top:4px"></div>
@@ -3047,7 +3061,7 @@ function stepAbout(plan){
     </div>
     <div class="fg"><label>Storage details for reuse materials / assets *</label><textarea id="p-store" rows="2" placeholder="e.g. TA storage facility / your warehouse / client storage...">${esc(p.storageDetails)}</textarea></div>
   </div>
-  <div class="acts"><button onclick="goHome()">Cancel</button><button onclick="goNext()">Next: Assets &amp; Materials &rarr;</button></div>`;
+  <div class="acts"><button onclick="goHome()">Cancel</button>${S.plan._example?'':'<button onclick="saveAboutProgress()">Save</button>'}<button onclick="goNext()">Next: Assets &amp; Materials &rarr;</button></div>`;
 }
 
 
@@ -3114,12 +3128,27 @@ function saveAbout(){
   // Valid — clear errors and write values
   if(errBox)errBox.style.display='none';
   S.plan._aboutInvalid=false;
+  harvestAboutFields();
+}
+
+// Copies the About step's form fields into S.plan.profile as-is — shared by
+// saveAbout() (validates first, only called via "Next") and saveAboutProgress()
+// (the step's plain "Save" button, which checkpoints whatever's there so far
+// without blocking on required fields).
+function harvestAboutFields(){
+  const g=id=>{const e=document.getElementById(id);return e?e.value.trim():''};
   const p=S.plan.profile;
   p.date=g('p-date');p.businessName=g('p-biz');p.ownerName=g('p-own');
   p.email=g('p-email');p.role=g('p-role');p.editorName=g('p-editor');
   p.wasteTarget=g('p-waste');p.reuseTarget=g('p-reuse');p.storageDetails=g('p-store');
   p.aoYear=g('p-aoyear');
   p.department=TA_ROLES.includes(p.role)?g('p-dept'):'';
+}
+// About step's plain "Save" — checkpoints progress (no email, no navigation), unlike
+// the Summary step's "Save & exit".
+function saveAboutProgress(){
+  harvestAboutFields();
+  saveProgress();
 }
 
 // ── Step 1: Assets & Materials ────────────────────────────────────────────────
@@ -3143,7 +3172,7 @@ function stepAssets(plan){
     <p>Add a new asset or item to your plan. Each asset can hold one or more materials.<br>Select from the <strong>AO Target Materials List</strong> within each asset card — <a href="https://megtei.github.io/Materials_Methods_Plan/" target="_blank" style="color:#0091D2;font-weight:600">view the full list &#8599;</a></p>
     <button class="btn-primary" onclick="addAsset()">+ Add asset / item</button>
   </div>
-  <div class="acts"><button onclick="goPrev()">&larr; Back</button><button onclick="goNext()">Review &amp; Save &rarr;</button></div>`;
+  <div class="acts"><button onclick="goPrev()">&larr; Back</button>${S.plan._example?'':'<button onclick="saveProgress()">Save</button>'}<button onclick="goNext()">Review &amp; Save &rarr;</button></div>`;
 }
 
 function foldEvery50(items,label){
@@ -4038,7 +4067,7 @@ function stepSummary(plan){
   const storageHtml=p.storageDetails?'<div style="margin-top:10px"><div style="font-size:12px;color:#888">Storage</div><div style="font-size:13px;margin-top:2px;color:#1a1a1a">'+esc(p.storageDetails)+'</div></div>':'';
   const circBody=sc.total>0?'<div style="display:flex;justify-content:space-between;font-size:12px;color:#888;margin-bottom:4px"><span>Circularity rate</span><span style="font-weight:600;color:'+cl+'">'+pctText(sc.pctExact)+'</span></div><div class="strack"><div class="sfill" style="width:'+sc.pct+'%;background:'+cl+'"></div></div><div style="font-size:11px;color:#aaa;margin-top:3px">AO target: 10% improvement per year</div>':'<div style="font-size:13px;color:#888;margin-top:4px">Add materials with an expected status to see your score.</div>';
   const customHtml=customMats.length?'<div style="font-size:12px;color:#888">Custom: '+customMats.map(m=>'<strong>'+esc(m.name||'Unnamed')+'</strong>').join(', ')+'</div>':'';
-  const saveBtnHtml=S.plan._example?'':'<button onclick="savePlan()" style="background:linear-gradient(135deg,#0091D2,#0072A8);color:#fff;border-color:#0072A8;font-weight:700;padding:9px 20px;box-shadow:0 2px 8px rgba(0,145,210,.3)">Save plan &#10003;</button>';
+  const saveBtnHtml=S.plan._example?'':'<button onclick="savePlan()" style="background:linear-gradient(135deg,#0091D2,#0072A8);color:#fff;border-color:#0072A8;font-weight:700;padding:9px 20px;box-shadow:0 2px 8px rgba(0,145,210,.3)">Save &amp; exit &#10003;</button>';
   const unsavedBadge=S._unsaved&&!S.plan._example?'<span id="unsaved-badge" style="font-size:11px;font-weight:700;color:#854F0B;background:#FAEEDA;border:1px solid #f5ddb7;border-radius:6px;padding:3px 9px;white-space:nowrap">&#9679; Unsaved changes</span>':'';
 
   let h='';
@@ -4070,7 +4099,7 @@ function stepSummary(plan){
   // Consent notice — shown only for real plans (not example), only when a save button is present
   const consentHtml = S.plan._example ? '' :
     '<div style="margin-top:1rem;padding:10px 14px;background:#CFE7E9;border:1px solid #e0ddd6;border-radius:8px;font-size:11.5px;color:#777;line-height:1.65">'
-    +'By clicking <strong style="color:#1a1a1a">Save plan</strong>, you consent to Tennis Australia collecting your name and email to save your materials plan. '
+    +'By clicking <strong style="color:#1a1a1a">Save &amp; exit</strong>, you consent to Tennis Australia collecting your name and email to save your materials plan. '
     +'Your data is securely routed to and stored on Australian servers and infrastructure. '
     +'We never sell your data or use it for secondary purposes without consent. '
     +'<a onclick="switchTab(\'faq\');setTimeout(()=>{const el=document.getElementById(\'faq-privacy\');if(el){el.classList.add(\'open\');const ic=document.getElementById(\'icon-faq-privacy\');if(ic)ic.classList.add(\'open\');}},100);return false;" href="#" style="color:#0091D2;font-weight:600;text-decoration:underline">View our full Privacy Policy</a> to learn more.'
@@ -4442,8 +4471,14 @@ function importPlanXLS(input){
       S.plan=plan;
       S.formOrigin=isUpdate?'update':'new';S.screen='form';
       S.plan.step=2; // Go to summary to review
+      // Uploading a spreadsheet only stages the data locally (storageSave above) — it is
+      // NOT yet saved to the cloud, and is not the "save" action itself. The confirmation
+      // email belongs to that later, explicit save: firing it here as well meant every
+      // XLS upload sent its own email, then a second one when the user actually clicked
+      // "Save & exit" on this Summary screen. So: no email on import — S._unsaved stays
+      // true, the Summary page's own unsaved-changes prompt covers getting the user to
+      // save, and savePlan() is the single place the email fires.
       S._unsaved=true; // imported plan should still be saved via savePlan to cloud
-      sendPlanEmail(plan, !isUpdate); // send email: created if not an update
       showToast(isUpdate?'Plan updated from XLS':'Plan imported from XLS');
       S.xlsUpdateTargetId=null; // consume the update-target guard
       S.adminUploadTargetId=null;
@@ -5183,8 +5218,44 @@ function savePlan(){
       if(warnBanner)warnBanner.remove();
       const badge=document.getElementById('unsaved-badge');
       if(badge)badge.remove();
-      showSavedModal(planCode(S.plan.id), res.source);
-      sendPlanEmail(S.plan, isNew); // fire-and-forget email confirmation
+      // "Save & exit": send the confirmation right here, at the moment the save
+      // actually happens — not deferred to some later "leave" action, since a user
+      // who saves and then just leaves the tab open would otherwise never trigger it.
+      sendPlanEmail(S.plan, isNew);
+      const code=planCode(S.plan.id);
+      // Land on the home screen underneath the confirmation modal, so closing the
+      // modal (or clicking outside it) already shows Home — the button is "Save &
+      // exit", so exiting shouldn't need a second, separate step.
+      S.screen='home';render();
+      showSavedModal(code, res.source);
+    } else {
+      showToast('Save failed - please try again');
+    }
+  });
+}
+
+// The plain "Save" button on the About and Assets & Materials steps — checkpoints
+// progress to the cloud (same backend as savePlan) but, unlike Summary's "Save &
+// exit", does NOT send the confirmation email or navigate anywhere. Those steps are
+// mid-way through the plan, not the point the user is actually done.
+function saveProgress(){
+  if(S.plan._example){showToast('Example plans cannot be saved');return;}
+  const editor=S.plan.profile.editorName||S.plan.profile.ownerName||'Unknown';
+  const now=Date.now();
+  if(!S.plan.audit)S.plan.audit=[];
+  if(!S.plan.createdAt)S.plan.createdAt=now;
+  S.plan.lastEditedBy=editor;
+  S.plan.lastEditedAt=now;
+  S.plan.audit.push({who:editor,when:now,action:'Saved progress'});
+  planDB.save(S.plan).then(res=>{
+    const i=S.plans.findIndex(p=>p.id===S.plan.id);
+    if(i>=0)S.plans[i]=JSON.parse(JSON.stringify(S.plan));
+    else S.plans.unshift(JSON.parse(JSON.stringify(S.plan)));
+    if(res.ok){
+      S._unsaved=false;
+      const badge=document.getElementById('unsaved-badge');
+      if(badge)badge.remove();
+      showToast(res.source==='cloud'?'Progress saved':'Progress saved locally'+(SUPABASE_READY?'':' (Supabase not configured)'));
     } else {
       showToast('Save failed - please try again');
     }
