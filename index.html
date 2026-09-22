@@ -578,6 +578,7 @@ async function syncRemoteTML(){
       const {ts, data} = JSON.parse(raw);
       if(Array.isArray(data) && data.length && Date.now()-ts < TML_CACHE_TTL){
         TML.splice(0, TML.length, ...data);
+        tmlInvalidateIndex();
         return;
       }
     }
@@ -587,6 +588,7 @@ async function syncRemoteTML(){
     const data = await r.json();
     if(!Array.isArray(data) || !data.length) throw new Error('empty payload');
     TML.splice(0, TML.length, ...data);
+    tmlInvalidateIndex();
     localStorage.setItem(TML_CACHE_KEY, JSON.stringify({ts:Date.now(), data}));
   } catch(e){
     // Silently fall back to embedded TML — no user-visible error
@@ -827,6 +829,68 @@ function renderTMLInfo(ref){
   const icon=t.status==='yes'?'♻':t.status==='no'?'⚠':'~';
   const recLabel=t.rec==='Yes'?'AO Recommended':t.rec==='No'?'Limit / Not Recommended':'Conditional / TBC';
   return`<div class="tml-info ${cls}"><span class="tml-info-icon">${icon}</span><div><strong>${esc(recLabel)}</strong><br><span style="font-weight:600;opacity:.65;font-size:10.5px;text-transform:uppercase;letter-spacing:.04em">Circular:</span> ${esc(t.circ)}</div></div>`;
+}
+
+// ── TML fuzzy match (XLS import) ────────────────────────────────────────────
+// When an uploaded plan leaves the TML Ref column (col I) blank but the
+// free-text Material Name (col J) is meaningful — e.g. "17mm structural ply" —
+// attempt a best-effort match to a Target Materials List entry so the row
+// doesn't land unattributed. This doesn't need to catch every row: a
+// confident match beats forcing everything through "Other", and a genuinely
+// ambiguous description (ties, or too little overlap) is deliberately left
+// unmatched rather than guessed — a wrong TML ref is worse than none.
+const TML_STOP=new Set(['with','and','the','for','by','or','of','a','an','to','in','on','at','type']);
+const TML_SYN={alloy:'aluminium',plywood:'ply'};
+function tmlSplitCompound(s){return String(s||'').replace(/([a-z])([A-Z])/g,'$1 $2');}
+function tmlTokenize(s){
+  let t=tmlSplitCompound(s).toLowerCase();
+  t=t.replace(/non[\s-]+structural/g,'nonstructural');
+  // dimension strings (2400x1200x17mm, 90x45, 3x3m) carry no material identity
+  t=t.replace(/\b\d+(\.\d+)?\s*[x×]\s*\d+(\.\d+)?(\s*[x×]\s*\d+(\.\d+)?)?\s*(mm|cm|m)?\b/g,' ');
+  t=t.replace(/\b\d+(\.\d+)?\s*(mm|cm|m|kg|gsm|l)\b/g,' ');
+  t=t.replace(/\b\d+\b/g,' ');
+  t=t.replace(/[^a-z0-9]+/g,' ').replace(/\s+/g,' ').trim();
+  if(!t)return[];
+  return t.split(' ').filter(w=>w&&!TML_STOP.has(w)).map(w=>TML_SYN[w]||w);
+}
+// Crude common-prefix stemmer so "framing"/"frames", "structural"/"structure"
+// etc. count as the same token without a real NLP dependency.
+function tmlStem(w){return w.length>=5?w.slice(0,5):w;}
+function tmlTokEq(a,b){return tmlStem(a)===tmlStem(b);}
+let _tmlIndex=null;
+function tmlInvalidateIndex(){_tmlIndex=null;}
+function tmlBuildIndex(){
+  _tmlIndex=TML.map(function(t){
+    const m=/\(([^)]*)\)/.exec(t.name);
+    const qual=m?m[1]:'';
+    const main=t.name.replace(/\([^)]*\)/g,'');
+    return{ref:t.ref,mainToks:tmlTokenize(main),qualToks:tmlTokenize(qual)};
+  });
+}
+function matchTMLRef(text){
+  if(!text)return null;
+  if(_tmlIndex===null)tmlBuildIndex();
+  const inToks=tmlTokenize(text);
+  if(!inToks.length)return null;
+  const cands=[];
+  for(const e of _tmlIndex){
+    if(!e.mainToks.length)continue;
+    let inter=0;
+    for(const mt of e.mainToks){if(inToks.some(it=>tmlTokEq(mt,it)))inter++;}
+    const recall=inter/e.mainToks.length;
+    // Require most of the TML entry's core name to be present, not just one
+    // stray shared word (e.g. "steel" alone shouldn't claim a branded product).
+    if(inter>=1&&recall>=0.66){
+      let bonus=0;
+      for(const qt of e.qualToks){if(inToks.some(it=>tmlTokEq(qt,it)))bonus++;}
+      cands.push({recall,inter,bonus,ref:e.ref});
+    }
+  }
+  if(!cands.length)return null;
+  cands.sort((a,b)=>(b.recall-a.recall)||(b.inter-a.inter)||(b.bonus-a.bonus));
+  const top=cands[0];
+  const tie=cands.some(c=>c!==top&&c.recall===top.recall&&c.inter===top.inter&&c.bonus===top.bonus&&c.ref!==top.ref);
+  return tie?null:top.ref;
 }
 
 // ── Data constructors ─────────────────────────────────────────────────────────
@@ -4331,8 +4395,11 @@ function importPlanXLS(input){
         // Volume may be dimensions/text, not just a number — keep numeric if it parses, else keep trimmed text
         const volNum=parseFloat(volRaw);
         const volSafe=(volRaw&&!isNaN(volNum))?String(Math.max(0,volNum)):clamp(volRaw,40);
-        // TA migration default: route every material to 5a (custom name) unless a real TML ref exists
-        const tmlRef=(taUpload&&!tmlRefRaw)?'OTHER':clamp(tmlRefRaw,10);
+        // TA migration default: route every material to 5a (custom name) unless a real TML ref
+        // exists — or a confident match can be made from the free-text Material Name (col J)
+        // against the Target Materials List. See matchTMLRef() above.
+        const tmlRefGuess=tmlRefRaw?'':matchTMLRef(matName);
+        const tmlRef=tmlRefRaw?clamp(tmlRefRaw,10):(tmlRefGuess||(taUpload?'OTHER':''));
         // Field 5a (material name) maps to Material Name (col I)
         assetMap[key].materials.push(
           {id:uid(),cat:'',app:clamp(taUpload?appNorm(app):app,150),tmlRef:tmlRef,name:clamp(matName,200),
