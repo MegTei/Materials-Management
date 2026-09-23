@@ -111,6 +111,306 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,te
 .tml-ref-badge{display:inline-block;font-size:10px;font-weight:700;padding:1px 6px;border-radius:4px;background:rgba(0,0,0,.07);margin-right:4px;letter-spacing:.03em;vertical-align:middle}
 .name-sub-label{font-size:11px;color:#999;margin-top:5px;margin-bottom:2px;display:block}
 
+
+/* ══ UX uplift v2 ══════════════════════════════════════════════════════════ */
+:root{--ux-navy:#003A5D;--ux-ink:#0C1B47;--ux-blue:#0072A8;--ux-sky:#0091D2;--ux-sel:#E8F4FC;--ux-seltx:#005F8C;--ux-line:#D5DDE5;--ux-soft:#E1E7ED;--ux-mute:#5B6B7B;--ux-body:#3E4F60;--ux-good:#1F8A4C;--ux-waste:#A32E2E;--ux-unsure:#6B7885;--ux-req:#A32E2E}
+.ux-serif{font-family:inherit}
+/* About: one question at a time */
+.abq-card{background:#fff;border-radius:16px;box-shadow:0 1px 2px rgba(12,27,71,.06),0 8px 28px rgba(12,27,71,.08);overflow:hidden;margin-bottom:12px}
+.abq-bar{height:5px;background:#DCE8F2}
+.abq-fill{height:5px;background:var(--ux-sky);border-radius:0 3px 3px 0;transition:width .3s;width:20%}
+.abq-body{padding:28px 30px 24px}
+.abq-meta{display:flex;justify-content:space-between;font-size:12px;color:var(--ux-mute);margin-bottom:18px}
+.abq-meta b{font-weight:700;letter-spacing:.06em;text-transform:uppercase}
+.abq-panel{display:none}.abq-panel.on{display:block}
+.abq-h{font-size:24px;line-height:1.25;font-weight:800;color:var(--ux-ink);letter-spacing:-.02em;margin-bottom:18px}
+.abq-compact .abq-meta{margin-bottom:16px}
+.abq-compact .fg label{font-size:13.5px}
+.abq-allmode .abq-panel .abq-h{font-size:18px;margin:0 0 14px}
+.abq-allmode .abq-panel+.abq-panel{margin-top:22px;padding-top:22px;border-top:1px solid var(--ux-soft)}
+.abq-subhd{margin:26px 0 14px;padding-top:20px;border-top:1px solid var(--ux-soft)}
+.abq-sec{font-size:17px;font-weight:800;letter-spacing:-.01em;margin:26px 0 14px}
+.abq-sub{font-size:14px;color:#4A5A6A;margin-bottom:20px}
+.abq-card:not(.intro-hero) .abq-sub a{color:var(--ux-blue);font-weight:700}
+.abq-grp{font-size:11px;font-weight:700;color:var(--ux-mute);text-transform:uppercase;letter-spacing:.07em;margin:4px 0 10px}
+.tile-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-bottom:18px}
+.tile-grid.g3t{grid-template-columns:repeat(3,minmax(0,1fr))}
+.tile{height:104px;border-radius:12px;border:1.5px solid var(--ux-line);background:#fff;color:var(--ux-body);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;font-size:13.5px;font-weight:600;padding:8px;text-align:center;line-height:1.25}
+.tile svg{width:28px;height:28px;flex-shrink:0}
+.tile.row{height:56px;flex-direction:row;justify-content:flex-start;gap:10px;padding:0 14px;text-align:left}
+.tile.row svg{width:18px;height:18px}
+.tile.row .tk{margin-left:auto;font-weight:800;font-size:15px}
+.tile.short{height:60px;font-size:13px}
+.tile:hover{border-color:#9FC3DA;background:#F7FBFE}
+.tile.sel,.chip.sel{border-color:var(--ux-sky);background:var(--ux-sel);color:var(--ux-seltx);box-shadow:0 0 0 3px rgba(0,145,210,.14)}
+.tile-grid.err .tile{border-color:#dc2626}
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px}
+.chip{height:40px;padding:0 16px;border-radius:999px;border:1.5px solid var(--ux-line);background:#fff;color:var(--ux-body);font-size:13.5px;font-weight:600}
+.chip small{font-size:11px;font-weight:700;opacity:.8;margin-left:4px}
+.abq .fg label{font-size:14px;font-weight:700;color:var(--ux-ink);margin-bottom:8px}
+.ux-assets .fg label{font-size:13px;font-weight:700;color:var(--ux-ink);margin-bottom:4px;display:flex;align-items:center;flex-wrap:wrap}
+.ux-assets .acard input,.ux-assets .acard select,.ux-assets .acard textarea,.ux-assets #asset-search{border:1px solid var(--ux-line);border-radius:8px;color:var(--ux-ink)}
+.abq input,.abq select,.abq textarea{border:1.5px solid var(--ux-line);border-radius:10px;font-size:14px;color:var(--ux-ink)}
+.abq input,.abq select{height:44px;padding:0 14px}
+.abq textarea{padding:11px 14px}
+.abq .fhint{font-size:12px;color:var(--ux-mute);margin-top:5px}
+.abq-q{font-size:15px;font-weight:700;color:var(--ux-ink);margin:18px 0 10px}
+.abq-q span{font-weight:400;color:var(--ux-mute)}
+.abq-nav{display:flex;align-items:center;gap:10px;margin-top:22px;padding-top:18px;border-top:1px solid var(--ux-soft)}
+.abq-next{height:46px;padding:0 28px;border:none!important;border-radius:8px;background:var(--ux-blue)!important;color:#fff!important;font-size:14.5px;font-weight:700}
+.abq-next:hover{background:#005F8C!important}
+.abq-arr{width:42px;height:42px;padding:0;border:none;background:transparent;color:var(--ux-ink);display:flex;align-items:center;justify-content:center;border-radius:8px}
+.abq-arr svg{width:18px;height:18px}
+.abq-link{border:none;background:none;color:var(--ux-mute);font-weight:600;padding:0 14px;height:46px;border-radius:8px}
+.abq-link:hover{background:#F2F5F8}
+.abq-recap{border:1px solid var(--ux-soft);border-radius:12px;margin-bottom:14px}
+.abq-recap .rr{display:flex;gap:12px;padding:12px 16px;border-bottom:1px solid var(--ux-soft);font-size:13.5px;align-items:baseline}
+.abq-recap .rr:last-child{border-bottom:none}
+.abq-recap .rk{width:110px;flex-shrink:0;color:var(--ux-mute)}
+.abq-recap .rv{flex:1;font-weight:600;color:var(--ux-ink);word-break:break-word}
+.abq-recap .rv.miss{color:#dc2626;font-weight:600}
+.abq-recap .re{border:none;background:none;color:var(--ux-blue);font-weight:700;font-size:12.5px;padding:4px 6px}
+.intro-hero{background:linear-gradient(135deg,#003A5D 0%,#004C78 70%,#0091D2 100%);color:#fff}
+.intro-hero .abq-bar{background:rgba(255,255,255,.18)}
+.intro-hero .abq-fill{background:#0AE6FF}
+.intro-hero .abq-meta{color:rgba(255,255,255,.7)}
+.intro-hero .abq-h{color:#fff}
+.intro-hero .abq-sub{color:rgba(255,255,255,.88)}
+.tile-grid.g2t{grid-template-columns:repeat(2,minmax(0,1fr))}
+.tile.big{height:auto;min-height:88px;flex-direction:row;justify-content:flex-start;text-align:left;gap:16px;padding:18px 20px}
+.tile.big svg{width:30px;height:30px}
+.tile.big .tb-t{display:block;font-size:16px;font-weight:700;color:var(--ux-ink)}
+.tile.big .tb-s{display:block;font-size:13px;font-weight:400;color:var(--ux-body);line-height:1.4}
+.tile.big.sel .tb-t{color:var(--ux-seltx)}
+.how-list{list-style:none;margin:0;padding:0}
+.how-list li{display:flex;gap:4px;align-items:flex-start;padding:13px 0;border-bottom:1px solid var(--ux-soft)}
+.how-list li:last-child{border-bottom:none;padding-bottom:0}
+.how-list .qn{margin-top:1px}
+.how-list .hl-t{font-size:14.5px;font-weight:700;color:var(--ux-ink);margin-bottom:2px}
+.how-list .hl-s{font-size:13.5px;color:var(--ux-body);line-height:1.5}
+@media (max-width:560px){.tile-grid.g2t{grid-template-columns:1fr}}
+/* Storage notice: soft card, no side bar */
+.backend-notice{background:#F4F7FA!important;border:1px solid var(--ux-soft)!important;border-left:1px solid var(--ux-soft)!important;border-radius:12px!important;color:var(--ux-body)!important}
+/* Forecast */
+.fc-land-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.fc-land-card{background:#fff;border-radius:12px;padding:18px;color:var(--ux-ink);display:flex;flex-direction:column}
+.fc-land-hd{display:flex;align-items:center;font-size:16px;font-weight:700;margin-bottom:6px}
+.fc-land-card p{font-size:13px;color:var(--ux-body);line-height:1.55;margin:0 0 14px;flex:1}
+.fc-land-card .abq-next{align-self:flex-start}
+.fc-land-card .retrieve-row input{height:44px;border:1.5px solid var(--ux-line);border-radius:8px}
+.fc-land-card .retrieve-row button{height:44px;background:var(--ux-blue);border-color:var(--ux-blue)}
+@media (max-width:640px){.fc-land-grid{grid-template-columns:1fr}}
+.ux-fc .card{border:none;border-radius:16px;box-shadow:0 1px 2px rgba(12,27,71,.06),0 6px 22px rgba(12,27,71,.07);padding:18px 20px;margin-bottom:14px}
+.ux-fc input,.ux-fc select,.ux-fc textarea{border:1px solid var(--ux-line);border-radius:8px;color:var(--ux-ink)}
+.ux-fc .btn-add-mat{height:40px!important;padding:0 14px!important}
+.ux-summary .hbox{background:#fff;border:none;border-radius:16px;box-shadow:0 1px 2px rgba(12,27,71,.06),0 6px 22px rgba(12,27,71,.07);font-size:13px;color:var(--ux-body);padding:16px 20px}
+.ux-summary .acts button.abq-link,.ux-summary .acts button.abq-link:first-child{border:none!important;background:none!important;color:var(--ux-mute)!important;box-shadow:none!important;padding:0 14px}
+.ux-summary .acts button.abq-link:hover{background:#E4E9EE!important}
+/* Remove-material × (plan and forecast): bold blue, no box */
+.ux-assets .mat-row-hd button[title="Remove material"]{width:32px!important;height:32px!important;padding:0!important;display:flex;align-items:center;justify-content:center;font-size:22px!important;font-weight:800;color:var(--ux-blue)!important;background:none!important;border:none!important;border-radius:8px!important}
+.ux-assets .mat-row-hd button[title="Remove material"]:hover{background:var(--ux-sel)!important;color:var(--ux-navy)!important}
+/* Homepage */
+.ux-home{padding:1.25rem 1rem 2rem}
+.ux-home .purpose-hero{margin:0 0 14px;border-radius:16px;padding:30px 30px 28px!important}
+.ux-home .purpose-hero h2{font-size:28px}
+.ux-home .purpose-hero p{max-width:620px}
+.ux-home .plans-section{margin:0 0 14px;background:#fff!important;border:none;border-radius:16px;box-shadow:0 1px 2px rgba(12,27,71,.06),0 6px 22px rgba(12,27,71,.07);padding:22px 24px}
+.ux-home .sechd{font-size:12px;font-weight:800;color:var(--ux-mute);letter-spacing:.07em}
+.ux-home .sechd::before{display:none}
+.ux-home > div[style*="margin:0 -1rem"]{margin:0 0 14px!important;border-radius:16px;overflow:hidden}
+.ux-home .atm-sub{font-size:13px;color:var(--ux-body)}
+.ux-home .atm-item{border-radius:8px}
+/* Admin portal + FAQ */
+#main .admin-hero{margin:0 0 14px!important;border-radius:16px;padding:26px 28px!important}
+#main .admin-hero h2{font-size:24px!important;letter-spacing:-.02em}
+#main .admin-hero p{font-size:13px!important;opacity:.88!important}
+#main .admin-section{margin:0 0 14px!important;border:none!important;border-radius:16px;box-shadow:0 1px 2px rgba(12,27,71,.06),0 6px 22px rgba(12,27,71,.07);padding:20px 22px!important;background:#fff}
+#main .admin-section[style*="display:flex"]{background:transparent!important;box-shadow:none!important;padding:0!important}
+#main .admin-section .sechd,#main .faq-section .sechd{font-size:12px;font-weight:800;color:var(--ux-mute);letter-spacing:.07em}
+#main .admin-section .sechd::before,#main .faq-section .sechd::before{display:none}
+#main .met{background:#F4F7FA;border-radius:12px}
+#main .admin-section.alt{background:#fff!important}
+#main .admin-section.alt > div[style*="display:grid"]{grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:14px!important}
+@media (max-width:640px){#main .admin-section.alt > div[style*="display:grid"]{grid-template-columns:1fr!important}}
+#main .insight-card{border:1px solid var(--ux-soft)!important;border-radius:12px!important}
+#main .insight-row{border-bottom-color:var(--ux-soft)}
+#main .admin-table{border:1px solid var(--ux-soft);border-radius:12px;border-collapse:separate;border-spacing:0;overflow:hidden}
+#main .admin-table th{background:#F4F7FA;color:var(--ux-mute);border-bottom:1px solid var(--ux-soft)}
+#main .admin-table td{border-bottom-color:var(--ux-soft)}
+#main .admin-table tr:last-child td{border-bottom:none}
+#main .admin-table tr:hover td{background:#F7FAFC}
+#main .admin-login{border:none;border-radius:16px;box-shadow:0 1px 2px rgba(12,27,71,.06),0 8px 28px rgba(12,27,71,.08);max-width:420px;padding:28px 30px}
+#main .admin-login h3{font-size:22px;font-weight:800;text-transform:none;letter-spacing:-.02em;color:var(--ux-ink);margin-bottom:6px}
+#main .admin-login p{font-size:13.5px;color:#4A5A6A}
+#main .admin-login input{height:44px;border:1.5px solid var(--ux-line);border-radius:10px;font-size:14px}
+#main .admin-login .fg label{font-size:14px;font-weight:700;color:var(--ux-ink)}
+#main .btn-primary{background:var(--ux-blue);border-color:var(--ux-blue);border-radius:8px}
+#main .btn-primary:hover{background:#005F8C;border-color:#005F8C}
+#main .admin-login .btn-primary{height:46px;font-size:14.5px}
+#main .faq-item{border:none!important;border-radius:12px;box-shadow:0 1px 2px rgba(12,27,71,.06),0 4px 14px rgba(12,27,71,.06)}
+#main .faq-q{padding:14px 16px}
+#main .faq-q-text{font-size:14px;color:var(--ux-ink)}
+#main .faq-a{font-size:13.5px;color:var(--ux-body)}
+#main .faq-tip{border-radius:8px}
+#main .admin-section .mreq-btn{height:44px;padding:0 18px;border:none;border-radius:8px;background:var(--ux-blue);color:#fff}
+#main .admin-section .mreq-btn:hover{background:#005F8C;color:#fff}
+#main .admin-section[style*="display:flex"] button{height:40px;border-radius:8px;font-weight:700;font-size:13px}
+/* Review & Save panels (plan + forecast) */
+.ux-summary .plan-id-badge{justify-content:space-between;padding:16px 18px}
+.ux-summary .plan-id-code{font-size:20px;letter-spacing:.1em}
+.ux-summary .plan-id-copy-btn{height:40px;padding:0 16px;background:#fff;color:var(--ux-blue);border:1.5px solid var(--ux-blue);font-size:13px;flex-shrink:0}
+.ux-summary .plan-id-copy-btn:hover{background:var(--ux-sel)}
+.ux-summary .plan-id-copy-btn.done{background:#E3F5EA;color:#1F6B3E;border-color:#1F8A4C}
+.ux-summary .acts{gap:6px}
+.ux-summary .acts button.sum-sec{display:inline-flex;align-items:center;gap:7px;height:44px;padding:0 14px;border:none!important;background:none!important;color:var(--ux-blue)!important;box-shadow:none!important;font-weight:700}
+.ux-summary .acts button.sum-sec:hover{background:var(--ux-sel)!important}
+.ux-summary #unsaved-badge{background:none!important;border:none!important;padding:0 10px!important;font-size:12.5px!important;color:#9A5B0B!important}
+/* Assets page groups */
+.agrp{margin-bottom:10px}
+.agrp-hd{width:100%;display:flex;align-items:center;gap:10px;height:44px;padding:0 6px;background:none;border:none;border-bottom:1px solid var(--ux-soft);border-radius:0;text-align:left;cursor:pointer}
+.agrp-hd:hover{background:none}
+.agrp-name{font-size:12.5px;font-weight:800;color:var(--ux-navy);letter-spacing:.06em;text-transform:uppercase}
+.agrp-n{font-size:11.5px;font-weight:700;color:var(--ux-mute);background:#E1E7ED;border-radius:999px;padding:2px 9px}
+.agrp-lines{padding:0 6px}
+.agrp-line{display:grid;grid-template-columns:44px minmax(0,1fr) 100px 110px;align-items:baseline;gap:10px;padding:8px 0;border-bottom:1px solid #F0F3F6;font-size:13.5px}
+.agrp-line:last-child{border-bottom:none}
+.al-n{color:var(--ux-mute);font-size:12px;font-weight:700}
+.al-name{color:var(--ux-ink);font-weight:600;min-width:0}
+.al-loc{color:var(--ux-mute);font-weight:400;font-size:12.5px;margin-left:8px}
+.al-m{color:var(--ux-mute);font-size:12.5px;text-align:right}
+.al-c{font-weight:700;font-size:12.5px;text-align:right}
+.ux-summary .agrp-bd{padding-top:4px}
+@media (max-width:560px){.agrp-line{grid-template-columns:36px minmax(0,1fr) 90px}.al-m{display:none}}
+.agrp-stat{font-size:12px;color:var(--ux-mute);white-space:nowrap}
+.agrp-chev{margin-left:auto;font-size:11px;color:var(--ux-mute);transition:transform .2s}
+.agrp:not(.open) .agrp-chev{transform:rotate(-90deg)}
+.agrp-bd{display:none;padding-top:10px}
+.agrp.open .agrp-bd{display:block}
+.ux-assets .asset-del{margin-right:auto;height:34px;padding:0 14px;border:1.5px solid #E7B9B9;background:#fff;color:#A32E2E;font-weight:700;font-size:13px;border-radius:8px}
+.ux-assets .asset-del:hover{background:#A32E2E;border-color:#A32E2E;color:#fff}
+.ux-fc .fc-del-row{display:flex;align-items:center;gap:12px;margin:12px 0 10px}
+.ux-fc .asset-del{height:34px;padding:0 14px;border:1.5px solid #E7B9B9;background:#fff;color:#A32E2E;font-weight:700;font-size:13px;border-radius:8px}
+.ux-fc .asset-del:hover{background:#A32E2E;border-color:#A32E2E;color:#fff}
+.ux-fc .fc-bumpout{background:#EEF7F3;border:1.5px solid #BFE3D4;border-radius:12px;padding:14px 14px 4px;margin:10px 0 12px}
+.ux-fc .fc-bumpout .f7-box{border:none;background:none;padding:0}
+.ux-fc .fc-bumpout .f7-box label{color:var(--ux-ink)!important}
+.ux-fc .fc-bumpout .qn.gy{background:#1F8A4C}
+.ux-fc .fc-bumpout .f7-tag{background:#D6EFE3;color:#1F6B3E}
+.ux-fc .fc-bumpout select{background:#fff}
+.ux-fc .fc-bumpout > .fg:last-child{margin-bottom:10px}
+/* Wider page (header, tabs, content aligned) */
+.app{max-width:880px}
+.ao-hdr-wrap .ao-hdr{max-width:880px}
+.tab-nav .tab-nav-inner{max-width:880px}
+/* Progress segments (all form steps) */
+.seg{height:4px}
+.seg.done{background:#1F8A4C}.seg.active{background:var(--ux-sky)}
+.plbl.done{color:#1F8A4C}.plbl.active{color:var(--ux-blue)}
+/* Review & save: restyled, same content and actions */
+.ux-summary .card{border:none;border-radius:16px;box-shadow:0 1px 2px rgba(12,27,71,.06),0 6px 22px rgba(12,27,71,.07);padding:20px 22px;margin-bottom:14px}
+.ux-summary .sechd{font-size:12px;font-weight:800;color:var(--ux-mute);letter-spacing:.07em;margin-bottom:14px}
+.ux-summary .sechd::before{display:none}
+.ux-summary .met{background:#F4F7FA;border-radius:12px;padding:14px}
+.ux-summary .mval{font-size:26px;font-weight:700;color:var(--ux-ink)}
+.ux-summary .mlbl{font-size:12px;color:var(--ux-mute)}
+.ux-summary .strack{height:10px;border-radius:5px;background:var(--ux-soft)}
+.ux-summary .sfill{border-radius:5px}
+.ux-summary .srow{border-bottom-color:var(--ux-soft);font-size:13.5px;padding:9px 0}
+.ux-summary .sdot{width:10px;height:10px}
+.ux-summary .plan-id-badge{background:#F2F8FB;border:1.5px solid #CFE3EF;border-radius:12px}
+.ux-summary .plan-id-lbl{color:var(--ux-blue)}
+.ux-summary .plan-id-copy-btn{border-radius:8px}
+.ux-summary .fold-sec{border-color:var(--ux-soft)!important;border-radius:12px!important}
+.ux-summary .fold-sec>button{padding:12px 14px!important;min-height:44px}
+.ux-summary .smat-item{font-size:13px;color:var(--ux-body);padding:6px 0}
+.ux-summary .smat-dot{width:8px;height:8px}
+.ux-summary .acts{flex-wrap:wrap;align-items:center;border-top:none;padding-top:0}
+.ux-summary .acts button{height:44px;padding:0 18px;border-radius:8px;font-weight:700;border:1.5px solid var(--ux-line);background:#fff;color:#253545;box-shadow:none}
+.ux-summary .acts button:first-child{margin-right:auto}
+.ux-summary .acts button:last-child{background:var(--ux-blue)!important;border-color:var(--ux-blue)!important;color:#fff!important;padding:0 24px}
+.ux-summary .acts button:last-child:hover{background:#005F8C!important}
+.ux-summary div[style*="#CFE7E9"]{background:#F4F7FA!important;border-color:var(--ux-soft)!important;border-radius:12px!important;color:var(--ux-body)!important}
+.ux-summary div[style*="#EEF9F4"]{border-radius:12px!important}
+.abq-done{width:48px;height:48px;border-radius:50%;background:#E3F5EA;color:#1F7A45;display:flex;align-items:center;justify-content:center;margin-bottom:14px}
+/* Assets & materials: restyled, same fields */
+.ux-assets .hbox{background:#fff;border:none;border-radius:16px;box-shadow:0 1px 2px rgba(12,27,71,.06),0 6px 22px rgba(12,27,71,.07);font-size:13px;color:var(--ux-body);padding:16px 20px}
+.ux-assets .sechd,.ux-summary .sechd{font-size:12px;font-weight:800;color:var(--ux-mute);letter-spacing:.07em}
+.ux-assets .sechd::before{display:none}
+.ux-assets .acard{border:none;border-radius:16px;box-shadow:0 1px 2px rgba(12,27,71,.06),0 6px 22px rgba(12,27,71,.07);margin-bottom:14px}
+.ux-assets .acard-hd{padding:10px 14px}
+.ux-assets .aname{font-size:14px;font-weight:700;color:var(--ux-ink)}
+.ux-assets .acard-bd{background:#fff;border-left:none;border-top:1px solid var(--ux-soft);padding:14px 14px 8px}
+.ux-assets .acard-bd .fg{margin-bottom:10px}
+.ux-assets .mat-row{border:1px solid var(--ux-soft);border-radius:12px;padding:0 12px 2px;overflow:hidden;margin-bottom:8px}
+.ux-assets .mat-row-hd{margin:0 -12px 10px;padding:4px 12px;background:#F6F8FA;border-bottom:1px solid var(--ux-soft)}
+.ux-assets .mat-row-num{background:none;color:var(--ux-blue);font-size:11.5px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;padding:0}
+.ux-assets .mat-row-name{font-style:normal;color:var(--ux-ink);font-weight:600;font-size:12.5px}
+.ux-assets .mats-divider{border-top:none}
+.ux-assets .mats-divider-lbl{color:var(--ux-mute);font-weight:800}
+.qn{display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;border-radius:50%;background:var(--ux-navy);color:#fff;font-size:11.5px;font-weight:700;margin-right:9px;vertical-align:middle;flex-shrink:0}
+.ux-assets .qn{width:20px;height:20px;font-size:10.5px;margin-right:7px}
+.ux-assets .qn.sm{font-size:9px}
+.qn.sm{font-size:10px;background:var(--ux-blue)}
+.req{color:var(--ux-req)}
+.ux-assets .fg label .req{margin-left:3px}
+.ux-assets .name-sub-label{flex-basis:100%;font-size:11.5px;font-weight:400;color:#4A5A6A;margin:2px 0 0 27px}
+.ux-assets .tml-info{border-radius:8px;padding:8px 10px;font-size:12px;margin:6px 0 0}
+.ux-assets .btn-add-mat{height:34px;padding:0 14px;border:1.5px dashed #9FB3C4;background:#fff;color:var(--ux-navy);font-weight:700;font-size:13px;border-radius:8px}
+.ux-assets .add-asset-area{display:flex;align-items:center;gap:16px;text-align:left;background:#fff;border:none;border-radius:16px;box-shadow:0 1px 2px rgba(12,27,71,.06),0 6px 22px rgba(12,27,71,.07);padding:18px 20px;margin-bottom:14px}
+.ux-assets .add-asset-area .aa-ic{width:40px;height:40px;border-radius:50%;background:var(--ux-sel);color:var(--ux-blue);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.ux-assets .add-asset-area p{flex:1;margin:0;font-size:13.5px;color:var(--ux-body);line-height:1.5}
+.ux-assets .add-asset-area .btn-primary{height:44px;padding:0 20px;border-radius:8px;white-space:nowrap;flex-shrink:0}
+.ux-assets .add-asset-area .btn-primary.sec{background:#fff!important;color:var(--ux-blue)!important;border:1.5px solid var(--ux-blue)!important}
+@media (max-width:560px){.ux-assets .add-asset-area{flex-wrap:wrap}.ux-assets .add-asset-area .btn-primary{width:100%}}
+.ux-assets .acts{align-items:center;border-top:none;padding-top:0}
+.ux-assets .acts button.abq-link,.ux-assets .acts button.abq-link:last-child{border:none!important;background:none!important;color:var(--ux-mute)!important;box-shadow:none!important;padding:0 14px}
+.ux-assets .acts button.abq-link:hover{background:#E4E9EE!important}
+.ux-assets .acard-hd .del-btn{width:36px!important;height:36px!important;padding:0!important;display:flex;align-items:center;justify-content:center;font-size:26px!important;line-height:1;font-weight:800;color:var(--ux-blue)!important;background:none!important;border:none!important;border-radius:8px!important}
+.ux-assets .acard-hd .del-btn:hover{background:var(--ux-sel)!important;color:var(--ux-navy)!important}
+.ux-assets .acard-bd textarea[data-f="comments"]{height:36px;min-height:36px;resize:vertical}
+.ux-assets .acts #assets-back{margin-right:auto}
+.ux-assets .btn-primary,.ux-assets .acts button:last-child{background:var(--ux-blue);border-color:var(--ux-blue);color:#fff;font-weight:700}
+.ux-assets .acts button{height:44px;padding:0 18px;border-radius:8px;font-weight:700;border:1.5px solid var(--ux-line);background:#fff;color:#253545}
+.ux-assets .acts button:last-child{background:var(--ux-blue)!important;border-color:var(--ux-blue)!important;color:#fff!important}
+select.stat-sel[data-tone]{padding-left:28px!important;background-repeat:no-repeat}
+select.stat-sel[data-tone=good]{border-color:var(--ux-good)!important;background-image:radial-gradient(circle at 14px 50%,#1F8A4C 5px,transparent 5.5px)}
+select.stat-sel[data-tone=waste]{border-color:var(--ux-waste)!important;background-image:radial-gradient(circle at 14px 50%,#A32E2E 5px,transparent 5.5px)}
+select.stat-sel[data-tone=unsure]{border-color:var(--ux-unsure)!important;background-image:radial-gradient(circle at 14px 50%,#6B7885 5px,transparent 5.5px)}
+select.stat-sel[data-tone=""]{padding-left:10px!important}
+.f7-box{border:1px dashed var(--ux-line);border-radius:8px;padding:8px 10px;background:#FAFBFC}
+.f7-box label{color:var(--ux-mute)!important}
+.f7-tag{font-size:11px;font-weight:700;padding:3px 9px;border-radius:999px;background:#EEF2F5;color:#4A5A6A;margin-left:8px}
+.qn.gy{background:#C9D4DE}
+/* Feedback */
+#fb-tab{position:fixed;right:0;top:50%;transform:translateY(-50%);z-index:900;width:34px;height:112px;padding:0;border:none;border-radius:8px 0 0 8px;background:var(--ux-blue);color:#fff;font-size:12.5px;font-weight:700;writing-mode:vertical-rl;letter-spacing:.03em}
+#fb-tab:hover{background:#005F8C}
+#fb-ov{position:fixed;inset:0;background:rgba(12,27,71,.28);z-index:1000}
+#fb-dr{position:fixed;right:0;top:0;bottom:0;width:440px;max-width:100vw;background:#fff;z-index:1001;box-shadow:-12px 0 40px rgba(12,27,71,.18);display:flex;flex-direction:column;color:var(--ux-ink)}
+#fb-dr .fb-hd{display:flex;justify-content:space-between;align-items:flex-start;padding:22px 24px 16px;border-bottom:1px solid var(--ux-soft)}
+#fb-dr .fb-hd h2{font-size:22px;font-weight:800;letter-spacing:-.02em;margin-bottom:2px}
+#fb-dr .fb-hd p{font-size:13.5px;color:#4A5A6A}
+#fb-dr .fb-x{width:40px;height:40px;padding:0;border:none;background:none;color:var(--ux-mute);font-size:22px;line-height:1}
+#fb-dr .fb-bd{flex:1;overflow:auto;padding:18px 24px;display:flex;flex-direction:column;gap:22px}
+#fb-dr .fb-q{font-size:14px;font-weight:700;margin-bottom:10px}
+#fb-dr .fb-q span{font-weight:400;color:var(--ux-mute)}
+#fb-dr .fb-ck{display:flex;align-items:center;gap:11px;min-height:30px;font-size:14px;color:#253545;cursor:pointer}
+#fb-dr input[type=checkbox],#fb-dr input[type=radio]{width:18px;height:18px;margin:0;accent-color:var(--ux-blue);cursor:pointer;flex-shrink:0}
+#fb-dr .fb-mx{display:grid;grid-template-columns:minmax(0,1fr) 62px 62px 62px;align-items:center;min-height:42px;padding:0 10px;border-radius:8px;font-size:13px;font-weight:600;color:#253545}
+#fb-dr .fb-mx:nth-child(odd){background:#F4F7FA}
+#fb-dr .fb-mx.hd{min-height:0;background:none;font-size:11px;font-weight:700;color:var(--ux-mute);text-align:center;padding-bottom:4px}
+#fb-dr .fb-mx label{display:flex;justify-content:center}
+#fb-dr textarea{height:auto;min-height:84px;border:1.5px solid var(--ux-line);border-radius:10px;padding:11px 14px;font-size:14px;resize:none}
+#fb-dr .fb-cnt{font-size:12px;color:var(--ux-mute);text-align:right;margin-top:4px}
+#fb-dr .fb-shot{display:flex;align-items:center;gap:10px;font-size:12.5px;color:var(--ux-mute)}
+#fb-dr .fb-shot button{height:40px;border:1.5px solid var(--ux-line);border-radius:8px;font-weight:600;color:#253545;background:#fff}
+#fb-dr .fb-ft{display:flex;justify-content:space-between;align-items:center;padding:14px 24px 18px;border-top:1px solid var(--ux-soft)}
+#fb-dr .fb-send{height:46px;padding:0 26px;border:none;border-radius:8px;background:var(--ux-blue);color:#fff;font-weight:700;font-size:14.5px}
+#fb-dr .fb-send[disabled]{opacity:.6;cursor:wait}
+#fb-dr .fb-later{border:none;background:none;color:#4A5A6A;font-weight:600}
+#fb-dr .fb-ty{padding:56px 28px;text-align:center;display:flex;flex-direction:column;align-items:center;gap:14px}
+@media print{#fb-tab,#fb-dr,#fb-ov{display:none!important}}
+@media (max-width:560px){.tile-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.tile-grid.g3t{grid-template-columns:repeat(2,minmax(0,1fr))}.abq-body{padding:22px 18px}}
+
 /* Add asset CTA */
 .add-asset-area{border:2px dashed #b8d0f0;border-radius:10px;padding:1.25rem;text-align:center;margin-bottom:14px;background:#f8fbff}
 .add-asset-area p{font-size:12px;color:#999;margin-bottom:10px;line-height:1.5}
@@ -414,6 +714,87 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,te
 <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4.4.1/dist/email.min.js"
   integrity="sha384-SALc35EccAf6RzGw4iNsyj7kTPr33K7RoGzYu+7heZhT8s0GZouafRiCg1qy44AS"
   crossorigin="anonymous"></script>
+<style id="ux-compact">
+/* Headers, intro and step cards */
+#main .abq-body{padding:20px 22px 18px}
+#main .abq-h{font-size:20px;margin-bottom:12px}
+#main .abq-sub{font-size:12.5px;margin-bottom:14px}
+#main .abq-meta{font-size:11px;margin-bottom:12px}
+#main .abq-sec{font-size:15px}
+#main .abq-subhd{margin:18px 0 10px;padding-top:14px}
+#main .abq-card{margin-bottom:10px}
+/* About you / forecast details fields */
+#main .abq .fg{margin-bottom:10px}
+#main .abq .fg label{font-size:12.5px;margin-bottom:5px}
+#main .abq input,#main .abq select{height:38px;font-size:13px;padding:0 12px}
+#main .abq textarea{font-size:13px;padding:9px 12px}
+#main .abq .fhint{font-size:11px}
+#main .abq-q{font-size:13px;margin:12px 0 8px}
+#main .tile{height:84px;font-size:12.5px;gap:8px}
+#main .tile svg{width:24px;height:24px}
+#main .tile.big{min-height:70px;padding:14px 16px}
+#main .tile.big .tb-t{font-size:14px}
+#main .tile-grid{gap:10px;margin-bottom:12px}
+#main .chip{height:34px;font-size:12.5px;padding:0 14px}
+#main .abq-nav{margin-top:14px;padding-top:14px}
+#main .abq-next{height:40px;font-size:13.5px;padding:0 22px}
+#main .abq-link{height:40px;font-size:13px}
+#main .abq-allmode .abq-panel .abq-h{font-size:16px}
+#main .fc-land-hd{font-size:14px}
+#main .fc-land-card{padding:14px}
+#main .fc-land-card p{font-size:12.5px}
+#main .how-list .hl-t{font-size:13px}
+#main .how-list .hl-s{font-size:12.5px}
+#main .how-list li{padding:10px 0}
+/* Assets & materials + forecast materials */
+#main .ux-assets .hbox,#main .ux-summary .hbox{font-size:12px;padding:12px 16px}
+#main .ux-assets .fg label{font-size:12px;margin-bottom:3px}
+#main .ux-assets .qn{width:18px;height:18px;font-size:9.5px;margin-right:6px}
+#main .ux-assets .aname{font-size:13px}
+#main .ux-assets .acard-hd{padding:8px 12px}
+#main .ux-assets .acard-bd{padding:12px 12px 6px}
+#main .ux-assets .acard-bd .fg{margin-bottom:8px}
+#main .ux-assets .mat-row-num{font-size:10.5px}
+#main .ux-assets .mat-row-name{font-size:12px}
+#main .ux-assets .name-sub-label{font-size:11px;margin-left:24px}
+#main .ux-assets input,#main .ux-assets select,#main .ux-assets textarea{font-size:12.5px}
+#main .ux-assets .acts button,#main .ux-summary .acts button{height:40px;font-size:13px}
+#main .ux-assets .btn-add-mat,#main .asset-del{height:32px;font-size:12px}
+#main .add-asset-area{padding:14px 16px}
+#main .add-asset-area p{font-size:12.5px}
+#main .add-asset-area .btn-primary{height:40px;font-size:13px}
+#main .f7-tag{font-size:10px}
+#main .ux-fc .card{padding:14px 16px}
+#main .ux-fc .fc-bumpout{padding:12px 12px 2px}
+#main .agrp-hd{height:38px}
+#main .agrp-name{font-size:11.5px}
+/* Review & Save + forecast summary */
+#main .ux-summary .card{padding:16px 18px;margin-bottom:10px}
+#main .ux-summary .sechd{font-size:11px;margin-bottom:10px}
+#main .ux-summary .mval{font-size:22px}
+#main .ux-summary .mlbl{font-size:11px}
+#main .ux-summary .srow{font-size:12.5px;padding:7px 0}
+#main .ux-summary .plan-id-code{font-size:17px}
+#main .agrp-line{font-size:12.5px;padding:6px 0}
+#main .ux-page-h{font-size:20px;font-weight:800;color:var(--ux-ink);letter-spacing:-.02em;margin:4px 0 14px}
+#main .ux-assets .mat-row div[style*="display:flex;gap:8px;align-items:flex-end"]{margin-bottom:10px;gap:10px!important}
+#main .ux-assets .mat-row .fg[style*="margin-top:8px"]{margin-top:0!important}
+#main .ux-assets .mat-row .fg > label{min-height:18px}
+#main .ux-assets .mat-row .fg > label:not(:has(.qn)):not(:has(svg)){padding-left:24px}
+#main .ux-assets .mat-row .fc-bumpout .fg > label:not(:has(.qn)):not(:has(svg)){padding-left:24px}
+#main .ux-assets .mat-row div[style*="display:flex"] > .fg:not(:first-child) > label{padding-left:0!important}
+#main .ux-assets .acard-bd > .g2,#main .ux-assets .acard-bd > .fg{padding-left:13px;padding-right:13px}
+#main .ux-assets .acard-bd > .fold-sec{margin-left:13px!important;margin-right:13px!important}
+#main .ux-assets .acard-hd .aref,#main .ux-assets .acard-hd .aname{line-height:20px}
+#main .ux-assets .acard-hd .aref{position:relative;top:var(--aref-nudge,1px)}
+#main .ux-assets .asset-core{background:#F1F3F5;border:1px solid #E3E7EB;border-radius:12px;padding:12px 12px 2px;margin-bottom:12px}
+#main .ux-assets .asset-core > .g2,#main .ux-assets .asset-core > .fg{padding:0}
+#main .ux-assets .asset-core > .fold-sec{margin:0 0 10px!important;background:#fff}
+#main .ux-assets .asset-core input,#main .ux-assets .asset-core textarea{background:#fff}
+#main .ux-assets .asset-core .qn{background:#4A5561}
+#main .ux-assets .acard .mat-row .qn{background:var(--ux-sky)}
+#main .ux-assets .acard .mat-row .qn.gy{background:#C9D4DE}
+</style>
 </head>
 <body>
 <!-- Sticky highlighted header bar -->
@@ -615,7 +996,8 @@ function findByCode(code){
 function copyCode(el){
   const code=el.getAttribute('data-code');
   if(!code)return;
-  navigator.clipboard.writeText(code).then(()=>showToast('Plan ID copied'))
+  if(el&&el.classList&&el.classList.contains('plan-id-copy-btn')){const t=el.textContent;el.textContent='Copied \u2713';el.classList.add('done');setTimeout(()=>{el.textContent=t;el.classList.remove('done');},1600);}
+  navigator.clipboard.writeText(code).then(()=>showToast((el&&el.closest&&el.closest('.plan-id-badge')&&/TA-ID/.test(el.closest('.plan-id-badge').textContent))?'TA-ID copied':'Plan ID copied'))
     .catch(()=>showToast('Your ID: '+code));
 }
 
@@ -799,12 +1181,98 @@ function assetCirc(a){
   const cl=s.circular===s.total?'#33D900':s.circular===0?'#dc2626':'#EF9F27';
   return`<span style="font-size:10px;font-weight:700;color:${cl};flex-shrink:0">${s.circular}/${s.total}&nbsp;♻</span>`;
 }
+// UX v2: colour tone for the field-6 select (dot + border). Same rule as the score.
+function statTone(s){if(!s)return'';if(s==='Unsure yet'||s==='Not sure yet')return'unsure';return statRating(s)==='circular'?'good':'waste';}
 function fillClr(pct){return pct>=80?'#33D900':pct>=50?'#EF9F27':'#E24B4A'}
 // Forecast expected/actual status tag — reuses the materials plan's green/amber/red
 // circularity colour scale (fillClr) instead of the multi-colour statBdg() palette.
 function fcStatColor(s){if(!s)return'#8A97A2';if(s==='Unsure yet'||s==='Not sure yet')return'#EF9F27';return statRating(s)==='circular'?'#33D900':'#E24B4A';}
 function fcStatTag(s){if(!s)return'';const c=fcStatColor(s);return'<span class="bdg" style="background:'+c+'22;color:'+c+';border:1px solid '+c+'66">'+esc(s)+'</span>';}
 function statBdg(s){if(!s)return'';const m={'Reuse - next AO (stored at TA warehouse)':'gr','Reuse - next AO (stored by Agency/Builder)':'gr','Reuse - other event/ client (Agency/Builder)':'tl','Recycle - we will take off site (Agency/Builder)':'bl','Recycle on site with AO Take-back program':'bl','Repurpose - keep for another use':'pu','Reuse - next AO (stored by AO)':'gr','Reuse - next AO (stored by us)':'gr','Reuse - other event/ client':'tl','Recycle on site with AO take-back program':'bl','Recycle - we will take offsite':'bl','Repurpose - we will take offsite for another use':'pu','Donate':'pu','Mixed construction waste - AO onsite bins':'re','Unsure yet':'gy','Reuse \u2013 Next AO (stored at AO)':'gr','Reuse \u2013 Next AO (stored by us)':'gr','Reuse \u2013 Other Event / Client':'tl','Recycle':'bl','Repurpose – use material in another way':'pu','Mixed construction waste \u2013 AO onsite bin':'re','Not sure yet':'gy','Other':'gy'};return`<span class="bdg ${m[s]||'gy'}">${esc(s)}</span>`}
+
+
+// ── Feedback panel (UX v2) ─────────────────────────────────────────────────────
+// Writes one row to Supabase table `plan_feedback` (see plan_feedback_setup.sql).
+// Optional screenshot goes to the existing storage bucket under feedback/.
+// Failures are shown to the user; nothing is silently dropped.
+const FB_SLOW=['My material wasn’t on the AO Target Materials List','Unsure which precinct application to pick','Unsure what expected status to choose','Excel upload didn’t match my plan','Too many fields per material','Nothing — it was smooth'];
+const FB_ROWS=[['tml','AO Target Materials List'],['xlsx','Excel template & upload'],['score','Circularity score'],['faq','FAQs']];
+const FB_COLS=['Didn’t use','Helpful','Not helpful'];
+let FB_CTX={code:''};
+function fbMaybePrompt(code){
+  try{if(sessionStorage.getItem('fbPrompted'))return;sessionStorage.setItem('fbPrompted','1');}catch(e){}
+  setTimeout(()=>openFeedback(code),250);
+}
+function fbTab(){
+  if(document.getElementById('fb-tab'))return;
+  const t=document.createElement('button');t.id='fb-tab';t.type='button';t.textContent='Feedback';
+  t.onclick=function(){openFeedback();};document.body.appendChild(t);
+}
+function closeFeedback(){['fb-ov','fb-dr'].forEach(id=>{const e=document.getElementById(id);if(e)e.remove();});const t=document.getElementById('fb-tab');if(t)t.focus();}
+function openFeedback(code){
+  closeFeedback();
+  FB_CTX={code:code||(S.plan&&S.plan.id&&!S.plan._example?planCode(S.plan.id):'')};
+  const ov=document.createElement('div');ov.id='fb-ov';ov.onclick=closeFeedback;
+  const d=document.createElement('aside');d.id='fb-dr';d.setAttribute('role','dialog');d.setAttribute('aria-modal','true');d.setAttribute('aria-labelledby','fb-title');
+  d.innerHTML='<div class="fb-hd"><div><h2 id="fb-title" class="ux-serif">How was that?</h2><p>Two minutes helps us make the next AO easier.</p></div><button type="button" class="fb-x" aria-label="Close feedback" onclick="closeFeedback()">&times;</button></div>'
+   +'<div id="fb-main" style="display:flex;flex-direction:column;flex:1;min-height:0"><div class="fb-bd">'
+   +'<fieldset style="border:none"><legend class="fb-q">What slowed you down? <span>Choose all that apply</span></legend>'
+   +FB_SLOW.map((l,i)=>'<label class="fb-ck"><input type="checkbox" name="fb-slow" value="'+i+'">'+esc(l)+'</label>').join('')+'</fieldset>'
+   +'<div><div class="fb-q">How helpful were these?</div><div><div class="fb-mx hd"><span></span>'+FB_COLS.map(c=>'<span>'+esc(c)+'</span>').join('')+'</div>'
+   +FB_ROWS.map(r=>'<div class="fb-mx"><span>'+esc(r[1])+'</span>'+FB_COLS.map((c,j)=>'<label><input type="radio" name="fb-r-'+r[0]+'" value="'+j+'" aria-label="'+esc(r[1]+': '+c)+'"></label>').join('')+'</div>').join('')+'</div></div>'
+   +'<div><label class="fb-q" for="fb-text" style="display:block">Anything else we should fix or add?</label><textarea id="fb-text" maxlength="1000" placeholder="Tell us about your experience and how we can improve" oninput="document.getElementById(\'fb-cnt\').textContent=this.value.length+\' / 1000\'"></textarea><div class="fb-cnt" id="fb-cnt">0 / 1000</div></div>'
+   +'<div class="fb-shot"><input type="file" id="fb-file" accept="image/png,image/jpeg,image/webp" style="display:none" onchange="fbFilePicked(this)"><button type="button" onclick="document.getElementById(\'fb-file\').click()"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="vertical-align:-3px;margin-right:6px"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></svg>Add a screenshot</button><span id="fb-file-name">Optional</span></div>'
+   +'</div><div class="fb-ft"><button type="button" class="fb-later" onclick="closeFeedback()">Not now</button><button type="button" class="fb-send" id="fb-send" onclick="sendFeedback()">Send feedback</button></div></div>';
+  document.body.appendChild(ov);document.body.appendChild(d);
+  const first=d.querySelector('input');if(first)first.focus();
+  d.addEventListener('keydown',e=>{if(e.key==='Escape')closeFeedback();});
+}
+function fbFilePicked(inp){
+  const f=inp.files&&inp.files[0];const lbl=document.getElementById('fb-file-name');
+  if(!f){if(lbl)lbl.textContent='Optional';return;}
+  if(f.size>5*1024*1024){showToast('Screenshot must be under 5 MB');inp.value='';if(lbl)lbl.textContent='Optional';return;}
+  if(lbl)lbl.textContent=f.name;
+}
+async function sendFeedback(){
+  const btn=document.getElementById('fb-send');
+  const slow=[...document.querySelectorAll('input[name="fb-slow"]:checked')].map(x=>FB_SLOW[+x.value]);
+  const ratings={};FB_ROWS.forEach(r=>{const x=document.querySelector('input[name="fb-r-'+r[0]+'"]:checked');if(x)ratings[r[0]]=FB_COLS[+x.value];});
+  const comment=(document.getElementById('fb-text').value||'').trim().slice(0,1000);
+  const fileInp=document.getElementById('fb-file');const file=fileInp&&fileInp.files&&fileInp.files[0];
+  if(!slow.length&&!Object.keys(ratings).length&&!comment&&!file){showToast('Add at least one answer before sending');return;}
+  if(!sb){showToast('Feedback could not be sent: cloud storage is not connected');return;}
+  btn.disabled=true;btn.textContent='Sending…';
+  try{
+    let shotUrl='';
+    if(file){
+      const ext=(file.type.split('/')[1]||'png').replace('jpeg','jpg');
+      const rnd=[...crypto.getRandomValues(new Uint8Array(12))].map(b=>b.toString(16).padStart(2,'0')).join('');
+      const path='feedback/'+rnd+'.'+ext;
+      const up=await storageUploadWithRetry(path,file,file.type,1);
+      if(!up.ok)throw new Error('Screenshot upload failed: '+((up.error&&up.error.message)||'unknown error'));
+      shotUrl=sb.storage.from(STORAGE_BUCKET).getPublicUrl(path).data.publicUrl;
+    }
+    const p=(S.plan&&S.plan.profile)||{};
+    const { error }=await sb.from('plan_feedback').insert({
+      plan_code:FB_CTX.code||null,
+      role:p.role||null,
+      screen:String(S.screen||''),
+      slowdowns:slow,
+      ratings:ratings,
+      comment:comment||null,
+      screenshot_url:shotUrl||null
+    });
+    if(error)throw error;
+    const main=document.getElementById('fb-main');
+    if(main)main.innerHTML='<div class="fb-ty"><div class="abq-done" style="margin:0"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg></div><h3 class="ux-serif" style="font-size:22px;font-weight:600">Thanks — it’s with the AO sustainability team.</h3><p style="font-size:13.5px;color:#4A5A6A;max-width:300px">You can send more any time from the Feedback tab.</p><button type="button" onclick="closeFeedback()" style="height:42px;padding:0 20px;border-radius:8px;font-weight:600">Close</button></div>';
+  }catch(err){
+    console.error('Feedback send failed:',err);
+    showToast('Feedback not sent: '+(err.message||'please try again'));
+    btn.disabled=false;btn.textContent='Send feedback';
+  }
+}
+document.addEventListener('DOMContentLoaded',fbTab);
+if(document.readyState!=='loading')fbTab();
 
 // ── TML Helpers ───────────────────────────────────────────────────────────────
 function renderTMLOptions(selectedRef){
@@ -1294,7 +1762,7 @@ function focusRetrieve(){var el=document.getElementById('retrieve-input');if(el)
 function renderPlanTab(){
   const pb=document.getElementById('page-body-wrap');
   if(pb){pb.style.padding='0';}
-  let h='';
+  let h='<div class="ux-home">';
 
   // ── PAGE HERO ────────────────────────────────────────────────────
   h+='<div class="purpose-hero" style="position:relative;overflow:hidden;padding:2.1rem 1.25rem 1.9rem">';
@@ -1389,39 +1857,33 @@ function renderPlanTab(){
   h+='</div></div>';
   h+='</div>';
 
+  h+='</div>';
   document.getElementById('main').innerHTML=h;
 }
 function renderCreateIntro(){
   const pb=document.getElementById('page-body-wrap');
-  if(pb){pb.style.padding='0';}
+  if(pb){pb.style.padding='1.25rem 1rem 2rem';}
+  const tile=(fn,icon,t)=>'<button type="button" class="tile big" onclick="'+fn+'()">'+abqIcon(icon)+'<span class="tb-t">'+t+'</span></button>';
   let h='';
-
-  // ── PAGE HERO ────────────────────────────────────────────────────
-  h+='<div class="admin-hero">';
-  h+='<div style="font-size:10px;font-weight:800;letter-spacing:.12em;color:rgba(255,255,255,.55);text-transform:uppercase;margin-bottom:4px">AO27</div>';
-  h+='<h2 style="font-size:20px;font-weight:800;color:#fff;margin-bottom:.4rem;letter-spacing:-.02em">Create a materials management plan</h2>';
-  h+='<p style="font-size:12px;line-height:1.6;opacity:.85;max-width:520px">Complete a plan before the event to document assets and materials, set circularity and waste reduction targets. You&rsquo;ll need your AO27 scope and the Target Materials List.</p>';
+  h+='<div class="abq-card abq intro-hero">';
+  h+='<div class="abq-bar"><div class="abq-fill" style="width:6%"></div></div>';
+  h+='<div class="abq-body">';
+  h+='<div class="abq-meta"><b>AO27</b></div>';
+  h+='<h2 class="abq-h" style="margin-bottom:6px">Create a materials management plan</h2>';
+  h+='<p class="abq-sub">Complete a plan before the event to document assets and materials, set circularity and waste reduction targets. You&rsquo;ll need your AO27 scope and the Target Materials List.</p>';
+  h+='<div class="tile-grid g2t" style="margin-bottom:0">';
+  h+=tile('startTA','TA PM','I work for TA');
+  h+=tile('startExternal','Builder','I am an Agency/ Builder');
   h+='</div>';
-
-  // ── HOW IT WORKS ─────────────────────────────────────────────────
-  h+='<div class="cta-section" style="text-align:left;padding-top:1.25rem">';
-  h+='<div class="sechd sechd-first">How it works</div>';
-  h+='<div class="how-steps-h">';
-  h+='<div class="how-step-card"><div class="step-n">1</div><h4>About you</h4><p>Business details, your role, and your AO27 waste and reuse targets.</p></div>';
-  h+='<div class="how-step-card"><div class="step-n">2</div><h4>Assets &amp; Materials</h4><p>Add each asset in your scope with its materials, volumes and expected end-of-event status.</p></div>';
-  h+='<div class="how-step-card"><div class="step-n">3</div><h4>Review &amp; Save</h4><p>See your circularity score, flag any non-recommended materials, and save or print your plan.</p></div>';
-  h+='<div class="how-step-card" style="border-color:#33D900;background:#EEF9F4"><div class="step-n" style="background:#33D900">4</div><h4>Post event manifest</h4><p>Return at bump-out to record actual outcomes and complete your circularity report.</p></div>';
-  h+='</div>';
-  h+='<div class="mreq-card">';
-  h+='<div class="mreq-img fit"><img src="'+CREATE_IMG+'" alt="Create plan illustration"></div>';
-  h+='<div class="mreq-body">';
-  h+='<div class="mreq-title">New Plan</div>';
-  h+='<p class="mreq-text">Document your assets and materials, targets and submit your plan to TA before the event.</p>';
-  h+='<div class="mreq-divider"></div>';
-  h+='<div class="mreq-foot" style="display:flex;gap:10px;flex-wrap:wrap"><button class="mreq-btn" onclick="startTA()">I work for TA</button><button class="mreq-btn" onclick="startExternal()" style="background:#0091D2;color:#fff">I am an Agency/ Builder</button></div>';
   h+='</div></div>';
-  h+='</div>';
-
+  h+='<div class="abq-card"><div class="abq-body">';
+  h+='<h3 class="abq-sec" style="margin-top:0">How it works</h3>';
+  h+='<ol class="how-list">';
+  h+='<li><span class="qn">1</span><div><div class="hl-t">About you</div><div class="hl-s">Business details, your role, and your AO27 waste and reuse targets.</div></div></li>';
+  h+='<li><span class="qn">2</span><div><div class="hl-t">Assets &amp; Materials</div><div class="hl-s">Add each asset in your scope with its materials, volumes and expected end-of-event status.</div></div></li>';
+  h+='<li><span class="qn">3</span><div><div class="hl-t">Review &amp; Save</div><div class="hl-s">See your circularity score, flag any non-recommended materials, and save or print your plan.</div></div></li>';
+  h+='<li><span class="qn" style="background:#1F8A4C">4</span><div><div class="hl-t">Post event manifest</div><div class="hl-s">Return at bump-out to record actual outcomes and complete your circularity report.</div></div></li>';
+  h+='</ol></div></div>';
   document.getElementById('main').innerHTML=h;
 }
 
@@ -1430,49 +1892,35 @@ function renderCreateIntro(){
 function renderUpdateTab(){
   const pb=document.getElementById('page-body-wrap');
   if(pb){pb.style.padding='0';}
-  let h='';
-
-  // ── PAGE HERO ──────────────────────────────────
-  h+='<div class="admin-hero">';
-  h+='<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px">';
-  h+='<div>';
-  h+='<div style="font-size:10px;font-weight:800;letter-spacing:.12em;color:rgba(255,255,255,.55);text-transform:uppercase;margin-bottom:4px">AO27</div>';
-  h+='<h2 style="font-size:20px;font-weight:800;color:#fff;margin-bottom:.4rem;letter-spacing:-.02em">Update an existing plan</h2>';
-  h+='<p style="font-size:12px;line-height:1.6;opacity:.85;max-width:520px">There are two ways to update your plan. Choose one at a time — editing in the tool and uploading a spreadsheet at the same time can overwrite each other.</p>';
-  h+='</div></div></div>';
-
-  h+='<div style="padding:1.25rem 1rem">';
-
-  // ── OPTION 1: Edit in the tool ──────────────────────────────────────────
-  h+='<div class="card" style="border:1.5px solid #c5daf5">';
-  h+='<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px"><span style="display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:50%;background:#0091D2;color:#fff;font-size:12px;font-weight:800">1</span><div class="sechd" style="margin:0">Edit your plan in the tool</div></div>';
-  h+='<p style="font-size:13px;color:#666;line-height:1.6;margin-bottom:12px">Reload your plan with your Plan ID and make changes directly in the form — add or edit assets and materials, and enter post-event actuals at bump-out.</p>';
+  let h='<div style="padding:1.25rem 1rem 2rem">';
+  h+='<div class="abq-card abq intro-hero"><div class="abq-body">';
+  h+='<div class="abq-meta"><b>AO27</b></div>';
+  h+='<h2 class="abq-h" style="margin-bottom:6px">Update an existing plan</h2>';
+  h+='<p class="abq-sub">There are two ways to update your plan. Choose one at a time — editing in the tool and uploading a spreadsheet at the same time can overwrite each other.</p>';
+  h+='<div class="fc-land-grid">';
+  // Option 1: edit in the tool
+  h+='<div class="fc-land-card"><div class="fc-land-hd"><span class="qn">1</span>Edit your plan in the tool</div>';
+  h+='<p>Reload your plan with your Plan ID and make changes directly in the form — add or edit assets and materials, and enter post-event actuals at bump-out.</p>';
   h+='<div class="retrieve-row"><input type="text" id="retrieve-input" name="ao-plan-id-retrieve" autocomplete="off" autocapitalize="characters" autocorrect="off" spellcheck="false" placeholder="AO27-XXXX-XXXX" maxlength="14" oninput="this.value=this.value.toUpperCase().replace(/[^A-Z0-9-]/g,\'\');" onkeydown="if(event.keyCode===13)retrievePlan()"><button onclick="retrievePlan()">Load plan</button></div>';
-  h+='<div id="retrieve-msg" style="margin-top:.5rem;font-size:11px;color:#aaa"></div>';
+  h+='<div id="retrieve-msg" style="margin-top:.5rem;font-size:11px;color:#5B6B7B"></div>';
   h+='</div>';
-
-  // ── Divider ─────────────────────────────────────────────────────────────
-  h+='<div style="display:flex;align-items:center;gap:12px;margin:6px 2px 14px"><div style="flex:1;height:1px;background:#e0ddd6"></div><span style="font-size:11px;font-weight:700;color:#aaa;text-transform:uppercase;letter-spacing:.08em">or</span><div style="flex:1;height:1px;background:#e0ddd6"></div></div>';
-
-  // ── OPTION 2: Update from edited XLS ────────────────────────────────────
-  h+='<div class="card" style="border:1.5px solid #b7e4d0">';
-  h+='<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px"><span style="display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:50%;background:#0F6E56;color:#fff;font-size:12px;font-weight:800">2</span><div class="sechd" style="margin:0">Materials plan offline updates</div></div>';
-  h+='<p style="font-size:13px;color:#666;line-height:1.6;margin-bottom:12px">If you have made updates to your Materials Management plan offline in xls, provide your plan ID to upload and refresh.</p>';
+  // Option 2: update from edited XLS
+  h+='<div class="fc-land-card"><div class="fc-land-hd"><span class="qn" style="background:#1F8A4C">2</span>Materials plan offline updates</div>';
+  h+='<p>If you have made updates to your Materials Management plan offline in xls, provide your plan ID to upload and refresh.</p>';
   h+='<div class="retrieve-row"><input type="text" id="xls-update-input" name="ao-plan-id-xls" autocomplete="off" autocapitalize="characters" autocorrect="off" spellcheck="false" placeholder="AO27-XXXX-XXXX" maxlength="14" oninput="this.value=this.value.toUpperCase().replace(/[^A-Z0-9-]/g,\'\');" onkeydown="if(event.keyCode===13)prepareXlsUpdate()"><button onclick="prepareXlsUpdate()">Find plan</button></div>';
-  h+='<div id="xls-update-msg" style="margin-top:.5rem;font-size:11px;color:#aaa"></div>';
+  h+='<div id="xls-update-msg" style="margin-top:.5rem;font-size:11px;color:#5B6B7B"></div>';
   h+='<div id="xls-update-drop" style="display:none;margin-top:12px;padding:14px;border:1.5px dashed #b7e4d0;border-radius:10px;background:#F6FBF8">';
   h+='<div style="font-size:12.5px;color:#333;margin-bottom:10px">Located <strong id="xls-update-name"></strong>. Upload your <strong>AO Materials Management</strong> spreadsheet (.xlsx) to refresh the data.<br>Note: The Plan ID in the file must match.</div>';
   h+='<input type="file" accept=".xlsx" id="xls-update-file" style="display:none" onchange="importPlanXLS(this)">';
-  h+='<button class="mreq-btn" onclick="document.getElementById(&#39;xls-update-file&#39;).click()">&#8593; Upload edited spreadsheet</button>';
+  h+='<button class="abq-next" onclick="document.getElementById(&#39;xls-update-file&#39;).click()">&#8593; Upload edited spreadsheet</button>';
   h+='</div>';
   h+='</div>';
-
+  h+='</div></div></div>';
   const dbStatus=SUPABASE_READY
     ?'<span style="color:#0F6E56;font-weight:700">Cloud storage active.</span> Plans save to Supabase and can be retrieved on any device using your Plan ID.'
     :'<span style="color:#854F0B;font-weight:700">Cloud storage not configured.</span> Plans save to this browser only.';
-  h+='<div class="backend-notice" style="margin-top:1rem"><strong>Plan storage: </strong>'+dbStatus+'</div>';
+  h+='<div class="backend-notice" style="margin-top:.25rem"><strong>Plan storage: </strong>'+dbStatus+'</div>';
   h+='</div>';
-
   document.getElementById('main').innerHTML=h;
 }
 
@@ -1528,40 +1976,29 @@ function renderForecastTab(){
 }
 
 function renderFcLanding(){
-  let h='';
-  h+='<div class="admin-hero">';
-  h+='<div style="font-size:10px;font-weight:800;letter-spacing:.12em;color:rgba(255,255,255,.55);text-transform:uppercase;margin-bottom:4px">AO27</div>';
-  h+='<h2 style="font-size:20px;font-weight:800;color:#fff;margin-bottom:.4rem;letter-spacing:-.02em">Provide a waste &amp; reuse forecast</h2>';
-  h+='<p style="font-size:12px;line-height:1.6;opacity:.85;max-width:520px">Not doing a full materials management plan? Give TA a quick waste forecast now, then come back after the event to log what actually happened. This counts towards AO27&rsquo;s whole-of-event materials report.</p>';
-  h+='</div>';
-
-  h+='<div style="padding:1.25rem 1rem">';
-
-  h+='<div class="card" style="border:1.5px solid #c5daf5">';
-  h+='<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px"><span style="display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:50%;background:#0091D2;color:#fff;font-size:12px;font-weight:800">1</span><div class="sechd" style="margin:0">Provide a forecast</div></div>';
-  h+='<p style="font-size:13px;color:#666;line-height:1.6;margin-bottom:12px">TA PMs, Agencies and Builders complete this 10 min materials reuse and waste forecast before Dec 31.</p>';
-  h+='<button class="mreq-btn" onclick="fcStartNew()">Start a forecast &rarr;</button>';
-  h+='</div>';
-
-  h+='<div style="display:flex;align-items:center;gap:12px;margin:6px 2px 14px"><div style="flex:1;height:1px;background:#e0ddd6"></div><span style="font-size:11px;font-weight:700;color:#aaa;text-transform:uppercase;letter-spacing:.08em">or</span><div style="flex:1;height:1px;background:#e0ddd6"></div></div>';
-
-  h+='<div class="card" style="border:1.5px solid #b7e4d0">';
-  h+='<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px"><span style="display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:50%;background:#0F6E56;color:#fff;font-size:12px;font-weight:800">2</span><div class="sechd" style="margin:0">Updates &amp; post event</div></div>';
-  h+='<p style="font-size:13px;color:#666;line-height:1.6;margin-bottom:12px">Updates to your forecast can be made easily here. Use your TA-ID to make changes that TA bump-out ops need for bin management, and following bump-out, log what actually happened to materials and download your event report.</p>';
+  let h='<div style="padding:1.25rem 1rem 2rem">';
+  h+='<div class="abq-card abq intro-hero"><div class="abq-bar"><div class="abq-fill" style="width:6%"></div></div><div class="abq-body">';
+  h+='<div class="abq-meta"><b>AO27</b></div>';
+  h+='<h2 class="abq-h" style="margin-bottom:6px">Provide a waste &amp; reuse forecast</h2>';
+  h+='<p class="abq-sub">Not doing a full materials management plan? Give TA a quick waste forecast now, then come back after the event to log what actually happened. This counts towards AO27&rsquo;s whole-of-event materials report.</p>';
+  h+='<div class="fc-land-grid">';
+  h+='<div class="fc-land-card"><div class="fc-land-hd"><span class="qn">1</span>Create a forecast</div>';
+  h+='<p>TA PMs, Agencies and Builders complete this 10 min materials reuse and waste forecast before Dec 31.</p>';
+  h+='<button type="button" class="abq-next" onclick="fcStartNew()">Start a forecast &rarr;</button></div>';
+  h+='<div class="fc-land-card"><div class="fc-land-hd"><span class="qn" style="background:#1F8A4C">2</span>Updates &amp; post event</div>';
+  h+='<p>Updates to your forecast can be made easily here. Use your TA-ID to make changes that TA bump-out ops need for bin management, and following bump-out, log what actually happened to materials and download your event report.</p>';
   h+='<div class="retrieve-row"><input type="text" id="fc-retrieve-input" name="fc-code-retrieve" autocomplete="off" autocapitalize="characters" autocorrect="off" spellcheck="false" placeholder="AO27-FC-XXXX" maxlength="12" oninput="this.value=this.value.toUpperCase().replace(/[^A-Z0-9-]/g,&#39;&#39;);" onkeydown="if(event.keyCode===13)fcRetrieve()"><button onclick="fcRetrieve()">Load</button></div>';
-  h+='<div id="fc-retrieve-msg" style="margin-top:.5rem;font-size:11px;color:#aaa"></div>';
-  h+='</div>';
-
+  h+='<div id="fc-retrieve-msg" style="margin-top:.5rem;font-size:11px;color:#5B6B7B"></div></div>';
+  h+='</div></div></div>';
   const dbStatus=SUPABASE_READY
     ?'<span style="color:#0F6E56;font-weight:700">Cloud storage active.</span> Forecasts save to Supabase and can be retrieved on any device using your TA-ID.'
     :'<span style="color:#854F0B;font-weight:700">Cloud storage not configured.</span> Forecasts save to this browser only.';
-  h+='<div class="backend-notice" style="margin-top:1rem"><strong>Forecast storage: </strong>'+dbStatus+'</div>';
-
+  h+='<div class="backend-notice" style="margin-top:.25rem"><strong>Forecast storage: </strong>'+dbStatus+'</div>';
   h+='</div>';
   document.getElementById('main').innerHTML=h;
 }
 
-function fcStartNew(){S._fcExpanded={};S.fc={mode:'new',draft:newForecast()};S.screen='home';render();}
+function fcStartNew(){S._fcExpanded={};S._fcQ=0;S.fc={mode:'new',draft:newForecast(),stage:'details'};S.screen='home';render();}
 function fcBackToLanding(){S.fc={mode:'landing'};S.screen='home';render();}
 // The Summary page's "Save & exit" — the data itself was already persisted by the
 // Details page's plain Save (fcSaveForecast); this is the point the user is actually
@@ -1584,60 +2021,144 @@ function fcSaveAndExit(){
 function renderFcForm(){
   const fc=S.fc.draft;
   const isUpdate=!!S.fc.isUpdate;
-  let h='';
-  h+='<div class="admin-hero">';
-  h+='<div style="font-size:10px;font-weight:800;letter-spacing:.12em;color:rgba(255,255,255,.55);text-transform:uppercase;margin-bottom:4px">'+(isUpdate?fcCode(fc.id):'AO27')+'</div>';
-  h+='<h2 style="font-size:20px;font-weight:800;color:#fff;margin-bottom:.4rem;letter-spacing:-.02em">'+(isUpdate?'Update your forecast':'Provide a waste &amp; reuse forecast')+'</h2>';
-  h+='</div>';
-
-  h+='<div class="fc-page" style="padding:1.25rem 1rem">';
-
-  h+='<div class="hbox">'+(isUpdate
+  // Two stages on one screen: 'details' (stepped: role → details → targets) and 'forecast'
+  // (materials + anything else + Save). All fields save live to S.fc.draft as before.
+  if(!S.fc.stage)S.fc.stage='details';
+  if(S._fcQ==null||S._fcQFor!==fc.id){S._fcQ=0;S._fcQFor=fc.id;}
+  const pb=document.getElementById('page-body-wrap');if(pb)pb.style.padding='0';
+  let h='<div class="fc-page ux-assets ux-fc" style="padding:1.25rem 1rem 2rem">';
+  if(S.fc.stage==='details'){
+    const q=S._fcQ;
+    const all=isUpdate; // existing forecast: every detail on one page, captured but editable
+    if(all){
+      const yrs2=['AO27','AO28','AO29','AO30'].map(y=>'<option value="'+y+'"'+(fc.profile.eventYear===y?' selected':'')+'>'+y+'</option>').join('');
+      const rl=FC_ROLES.slice();if(fc.profile.role&&!rl.includes(fc.profile.role))rl.push(fc.profile.role);
+      h+='<div class="abq-card abq abq-compact"><div class="abq-bar"><div class="abq-fill" style="width:100%"></div></div><div class="abq-body">';
+      h+='<div class="abq-meta"><b>Your details</b><span>'+fcCode(fc.id)+'</span></div>';
+      h+='<div class="fg"><label>Organisation *</label><input type="text" data-f="org" value="'+esc(fc.profile.org)+'" placeholder="Business name or TA dept." onblur="fcUpProfile(this)"></div>';
+      h+='<div class="fg"><label>Website *</label><input type="url" data-f="website" value="'+esc(fc.profile.website)+'" placeholder="https://www.example.com" onblur="fcUpProfile(this)"></div>';
+      h+='<div class="fg"><label>Project *</label><input type="text" data-f="project" value="'+esc(fc.profile.project)+'" placeholder="Activation name/ precinct/ project" onblur="fcUpProfile(this)"></div>';
+      h+='<div style="display:flex;gap:8px"><div class="fg" style="flex:1"><label>Role *</label><select data-f="role" onchange="fcUpProfile(this)"><option value="">Select role...</option>'+mkOpts(rl,fc.profile.role)+'</select></div>';
+      h+='<div class="fg" style="width:180px"><label>Event year *</label><select data-f="eventYear" onchange="fcUpProfile(this)">'+yrs2+'</select></div></div>';
+      h+='<div class="g2"><div class="fg"><label>Contact name *</label><input type="text" data-f="contactName" value="'+esc(fc.profile.contactName)+'" placeholder="Full name" onblur="fcUpProfile(this)"></div>';
+      h+='<div class="fg"><label>Contact email *</label><input type="email" data-f="contactEmail" value="'+esc(fc.profile.contactEmail)+'" placeholder="email@company.com" onblur="fcUpProfile(this)"></div></div>';
+      h+='</div></div>';
+      h+='<div class="abq-card abq abq-compact"><div class="abq-body">';
+      h+='<div class="abq-meta"><b>Targets &amp; practices</b></div>';
+      h+='<div class="fg"><label>What are your reuse targets this year (percentage)? *</label><input type="text" data-f="reuseTarget" value="'+esc(fc.targets.reuseTarget)+'" placeholder="%" onblur="fcUpTargets(this)"></div>';
+      h+='<div class="fg"><label>What are your waste reduction targets this year (percentage)? *</label><input type="text" data-f="wasteTarget" value="'+esc(fc.targets.wasteTarget)+'" placeholder="%" onblur="fcUpTargets(this)"></div>';
+      h+='<div class="fg"><label>Estimate the proportion of materials to be disposed on site in bins (percentage) *</label><input type="text" data-f="disposedPct" value="'+esc(fc.targets.disposedPct)+'" placeholder="%" onblur="fcUpTargets(this)"></div>';
+      h+='<div class="fg"><label>To what extent do you use circular practices (modular design, finishes and fixes that don&rsquo;t contaminate materials, methods to optimise reuse or recycling)? *</label><select data-f="circPractices" onchange="fcUpTargets(this)"><option value="">Select...</option>'+mkOpts(['Very little <10%','Somewhat 10-40%','As much as possible 41-70%','All the time >71%'],fc.targets.circPractices)+'</select></div>';
+      h+='<div id="fc-q-err" style="display:none;background:#FCEBEB;border:1px solid #f5c6c6;border-radius:8px;padding:10px 14px;font-size:13px;color:#A32D2D;margin-top:12px"></div>';
+      h+='<div class="abq-nav"><span style="flex:1"></span><button type="button" class="abq-link" onclick="fcBackToLanding()">Cancel</button><button type="button" class="abq-next" onclick="fcQNext()">Next: Waste &amp; reuse forecast &rarr;</button></div>';
+      h+='</div></div></div>';
+      document.getElementById('main').innerHTML=h;
+      return;
+    }
+    const roles=FC_ROLES.slice();if(fc.profile.role&&!roles.includes(fc.profile.role))roles.push(fc.profile.role);
+    const tile=r=>'<button type="button" class="tile'+(fc.profile.role===r?' sel':'')+'" data-fcrole="'+esc(r)+'" onclick="fcPickRole(this)">'+fcRoleIcon(r)+esc(r)+'</button>';
+    const yrs=['AO27','AO28','AO29','AO30'].map(y=>'<option value="'+y+'"'+(fc.profile.eventYear===y?' selected':'')+'>'+y+'</option>').join('');
+    if(q===0&&!all)h+='<div class="abq-card abq intro-hero"><div class="abq-body"><div class="abq-meta"><b>'+(isUpdate?fcCode(fc.id):'AO27')+'</b></div><h2 class="abq-h" style="margin-bottom:10px">'+(isUpdate?'Update your forecast':'Provide a waste &amp; reuse forecast')+'</h2><p class="abq-sub" style="margin-bottom:0">'+(isUpdate
+      ?'Make changes to your forecast if needed prior to bump-out. Post-event, complete field 6 for each material to log what actually happened and unlock the verify photo upload &#8212; this becomes your event report.'
+      :'Project Leads (TA PMs, Agencies, Builders or other Contractors) delivering temporary infrastructure for the AO must provide waste and reuse forecasts for key materials. Create one forecast per precinct or activation if you work on more than one.<br><br>This will enable TA to track circularity and plan waste services for Bump Out.<br><br>Return here post Bump Out to report actual outcomes.<br><br>The waste &amp; reuse forecast tracks the adoption of circular practices and produces reporting for Partners and stakeholders.')+'</p></div></div>';
+    h+='<div class="abq-card abq'+(all?' abq-allmode':'')+'"><div class="abq-bar"><div class="abq-fill" style="width:'+(all?100:Math.round((q+1)/4*100))+'%"></div></div><div class="abq-body">';
+    h+='<div class="abq-meta"><b>'+((q===0&&!all)?'':(isUpdate?fcCode(fc.id):'AO27'))+'</b><span>'+(all?'':(q+1)+' / 3')+'</span></div>';
+    if(all)h+='<h2 class="abq-h">Update your forecast</h2>';
+    if(all||q===0){h+='<div class="abq-panel on">';
+      h+='<h2 class="abq-h">What is your role at the AO?</h2>';
+      h+='<div class="tile-grid g3t" id="fc-roles">'+roles.map(tile).join('')+'</div>';
+    h+='</div>';}
+    if(all||q===1){h+='<div class="abq-panel on">';
+      h+='<h2 class="abq-h">Your details</h2>';
+      h+='<div class="fg"><label>Organisation *</label><input type="text" data-f="org" value="'+esc(fc.profile.org)+'" placeholder="Business name or TA dept." onblur="fcUpProfile(this)"></div>';
+      h+='<div class="fg"><label>Website *</label><input type="url" data-f="website" value="'+esc(fc.profile.website)+'" placeholder="https://www.example.com" onblur="fcUpProfile(this)"></div>';
+      h+='<div class="g2"><div class="fg"><label>Project *</label><input type="text" data-f="project" value="'+esc(fc.profile.project)+'" placeholder="Activation name/ precinct/ project" onblur="fcUpProfile(this)"></div>';
+      h+='<div class="fg"><label>Event year *</label><select data-f="eventYear" onchange="fcUpProfile(this)">'+yrs+'</select></div></div>';
+      h+='<div class="g2"><div class="fg"><label>Contact name *</label><input type="text" data-f="contactName" value="'+esc(fc.profile.contactName)+'" placeholder="Full name" onblur="fcUpProfile(this)"></div>';
+      h+='<div class="fg"><label>Contact email *</label><input type="email" data-f="contactEmail" value="'+esc(fc.profile.contactEmail)+'" placeholder="email@company.com" onblur="fcUpProfile(this)"></div></div>';
+    h+='</div>';}
+    if(all||q===2){h+='<div class="abq-panel on">';
+      h+='<h2 class="abq-h">Targets &amp; practices</h2>';
+      h+='<div class="fg"><label>What are your reuse targets this year (percentage)? *</label><input type="text" data-f="reuseTarget" value="'+esc(fc.targets.reuseTarget)+'" placeholder="%" onblur="fcUpTargets(this)"></div>';
+      h+='<div class="fg"><label>What are your waste reduction targets this year (percentage)? *</label><input type="text" data-f="wasteTarget" value="'+esc(fc.targets.wasteTarget)+'" placeholder="%" onblur="fcUpTargets(this)"></div>';
+      h+='<div class="fg"><label>Estimate the proportion of materials to be disposed on site in bins (percentage) *</label><input type="text" data-f="disposedPct" value="'+esc(fc.targets.disposedPct)+'" placeholder="%" onblur="fcUpTargets(this)"></div>';
+      h+='<div class="fg"><label>To what extent do you use circular practices (modular design, finishes and fixes that don&rsquo;t contaminate materials, methods to optimise reuse or recycling)? *</label><select data-f="circPractices" onchange="fcUpTargets(this)"><option value="">Select...</option>'+mkOpts(['Very little <10%','Somewhat 10-40%','As much as possible 41-70%','All the time >71%'],fc.targets.circPractices)+'</select></div>';
+    h+='</div>';}
+    h+='<div id="fc-q-err" style="display:none;background:#FCEBEB;border:1px solid #f5c6c6;border-radius:8px;padding:10px 14px;font-size:13px;color:#A32D2D;margin-top:12px"></div>';
+    h+='<div class="abq-nav">';
+    h+='<button type="button" class="abq-link" onclick="fcQPrev()" style="visibility:'+(q>0&&!all?'visible':'hidden')+'">&larr; Back</button><span style="flex:1"></span>';
+    h+='<button type="button" class="abq-link" onclick="fcBackToLanding()">Cancel</button>';
+    h+='<button type="button" class="abq-next" onclick="fcQNext()">'+(q<2&&!all?'Next':'Next: Waste &amp; reuse forecast &rarr;')+'</button>';
+    h+='</div></div></div>';
+    h+='</div>';
+    document.getElementById('main').innerHTML=h;
+    return;
+  }
+  // ── Stage 2: forecast (materials, anything else, Save) ──
+  h+='<div class="abq-card"><div class="abq-bar"><div class="abq-fill" style="width:90%"></div></div><div class="abq-body" style="padding-bottom:22px">';
+  h+='<div class="abq-meta"><b>'+(isUpdate?fcCode(fc.id):'AO27')+'</b></div>';
+  h+='<h2 class="abq-h" style="margin-bottom:6px">'+(isUpdate?'Update your forecast':'Provide a waste &amp; reuse forecast')+'</h2>';
+  h+='<p class="abq-sub" style="margin-bottom:0">'+(isUpdate
     ?'Make changes to your forecast if needed prior to bump-out. Post-event, complete field 6 for each material to log what actually happened and unlock the verify photo upload &#8212; this becomes your event report.'
-    :'Project Leads (TA PMs, Agencies, Builders or other Contractors) delivering temporary infrastructure for the AO must provide waste and reuse forecasts for key materials. Create one forecast per precinct or activation if you work on more than one.<br><br>This will enable TA to track circularity and plan waste services for Bump Out.<br><br>Return here post Bump Out to report actual outcomes.<br><br>The waste &amp; reuse forecast tracks the adoption of circular practices and produces reporting for Partners and stakeholders.')+'</div>';
-
-  h+='<div class="card">';
-  h+='<div class="sechd sechd-first">Your details</div>';
-  h+='<div class="fg"><label>Organisation *</label><input type="text" data-f="org" value="'+esc(fc.profile.org)+'" placeholder="Business name or TA dept." onblur="fcUpProfile(this)"></div>';
-  h+='<div class="fg"><label>Website *</label><input type="url" data-f="website" value="'+esc(fc.profile.website)+'" placeholder="https://www.example.com" onblur="fcUpProfile(this)"></div>';
-  h+='<div class="fg"><label>Project *</label><input type="text" data-f="project" value="'+esc(fc.profile.project)+'" placeholder="Activation name/ precinct/ project" onblur="fcUpProfile(this)"></div>';
-  h+='<div style="display:flex;gap:8px"><div class="fg" style="flex:1"><label>Role *</label><select data-f="role" onchange="fcUpProfile(this)"><option value="">Select role...</option>'+mkOpts(FC_ROLES,fc.profile.role)+'</select></div>';
-  h+='<div class="fg" style="width:160px"><label>Event year *</label><select data-f="eventYear" onchange="fcUpProfile(this)"><option value="AO27"'+(fc.profile.eventYear==='AO27'?' selected':'')+'>AO27</option><option value="AO28"'+(fc.profile.eventYear==='AO28'?' selected':'')+'>AO28</option><option value="AO29"'+(fc.profile.eventYear==='AO29'?' selected':'')+'>AO29</option><option value="AO30"'+(fc.profile.eventYear==='AO30'?' selected':'')+'>AO30</option></select></div></div>';
-  h+='<div style="display:flex;gap:8px"><div class="fg" style="flex:1"><label>Contact name *</label><input type="text" data-f="contactName" value="'+esc(fc.profile.contactName)+'" placeholder="Full name" onblur="fcUpProfile(this)"></div>';
-  h+='<div class="fg" style="flex:1"><label>Contact email *</label><input type="email" data-f="contactEmail" value="'+esc(fc.profile.contactEmail)+'" placeholder="email@company.com" onblur="fcUpProfile(this)"></div></div>';
-  h+='</div>';
-
-  h+='<div class="card">';
-  h+='<div class="sechd sechd-first">Targets &amp; practices</div>';
-  h+='<div class="fg"><label>What are your reuse targets this year (percentage)? *</label><input type="text" data-f="reuseTarget" value="'+esc(fc.targets.reuseTarget)+'" placeholder="%" onblur="fcUpTargets(this)"></div>';
-  h+='<div class="fg"><label>What are your waste reduction targets this year (percentage)? *</label><input type="text" data-f="wasteTarget" value="'+esc(fc.targets.wasteTarget)+'" placeholder="%" onblur="fcUpTargets(this)"></div>';
-  h+='<div class="fg"><label>Estimate the proportion of materials to be disposed on site in bins (percentage) *</label><input type="text" data-f="disposedPct" value="'+esc(fc.targets.disposedPct)+'" placeholder="%" onblur="fcUpTargets(this)"></div>';
-  h+='<div class="fg"><label>To what extent do you use circular practices (modular design, finishes and fixes that don&rsquo;t contaminate materials, methods to optimise reuse or recycling)? *</label><select data-f="circPractices" onchange="fcUpTargets(this)"><option value="">Select...</option>'+mkOpts(['Very little <10%','Somewhat 10-40%','As much as possible 41-70%','All the time >71%'],fc.targets.circPractices)+'</select></div>';
-  h+='</div>';
-
+    :'Use the 80/20 rule for your materials &#8212; typically a small number of key materials make up the majority of build and waste volumes.<br>Focus on what is <a href="https://megtei.github.io/Materials_Methods_Plan/" target="_blank" rel="noopener">High Volume and High Impact.</a>')+'</p>';
+  h+='</div></div>';
   h+='<div class="sechd">Waste &amp; reuse forecast</div>';
-  h+='<div class="hbox" style="margin-bottom:14px">Use the 80/20 rule for your materials &#8212; typically a small number of key materials make up the majority of build and waste volumes.<br>Focus on what is <a href="https://megtei.github.io/Materials_Methods_Plan/" target="_blank" rel="noopener">High Volume and High Impact.</a></div>';
   h+='<div id="fc-mats">';
   fc.materials.forEach((m,i)=>{h+=fcMatRowHtml(m,i);});
   h+='</div>';
   h+='<button class="btn-add-mat" style="margin-bottom:1rem;display:block;width:100%;text-align:center;padding:10px" onclick="fcAddMaterial()">+ Add another material</button>';
-
   h+='<div class="card">';
   h+='<div class="sechd sechd-first">Anything else?</div>';
   h+=fcHazardBlockHtml();
   h+='<div class="fg"><label>Are you a circular hero and want to profile your story? *</label><select data-f="circularHero" onchange="fcUpNotes(this)"><option value="">Select...</option>'+mkOpts(['Yes','No'],fc.notes.circularHero)+'</select></div>';
   h+='<div class="fg"><label>We value feedback and continuously seek to improve &ndash; any thoughts, feelings, ideas &ndash; let us know</label><textarea rows="2" data-f="feedback" onblur="fcUpNotes(this)">'+esc(fc.notes.feedback)+'</textarea></div>';
   h+='</div>';
-
-  // Bottom nav bar matches the materials plan's own step pages: a plain
-  // "&larr; Back" on the left and the bold blue primary action on the right,
-  // both in the same .acts row, instead of a floating top-corner Back button
-  // paired with an unrelated full-width CTA at the bottom.
-  h+='<div class="acts"><button onclick="fcBackToLanding()">&larr; Back</button><button id="fc-save-forecast-btn" onclick="fcSaveForecast()" style="background:linear-gradient(135deg,#0091D2,#0072A8);color:#fff;border-color:#0072A8;font-weight:700;padding:9px 20px;box-shadow:0 2px 8px rgba(0,145,210,.3)">Save &#10003;</button></div>';
-
+  h+='<div class="acts"><button type="button" class="abq-link" style="margin-right:auto" onclick="fcToDetails()">&larr; Back</button><button type="button" class="abq-link" onclick="fcBackToLanding()">Cancel</button><button id="fc-save-forecast-btn" onclick="fcSaveForecast()" style="background:linear-gradient(135deg,#0091D2,#0072A8);color:#fff;border-color:#0072A8;font-weight:700;padding:9px 20px;box-shadow:0 2px 8px rgba(0,145,210,.3)">Save &#10003;</button></div>';
   h+='</div>';
   document.getElementById('main').innerHTML=h;
 }
+function fcRoleIcon(r){
+  const m={'TA PMs':'TA PM','Agency (TA Precinct)':'Agency','Agency (Partner)':'Agency','Builder (TA Precinct)':'Builder','Builder (Partner)':'Builder'};
+  return abqIcon(m[r]||'');
+}
+function fcPickRole(btn){
+  fcActive().profile.role=btn.dataset.fcrole;
+  document.querySelectorAll('.tile[data-fcrole]').forEach(t=>t.classList.toggle('sel',t===btn));
+  const g=document.getElementById('fc-roles');if(g)g.classList.remove('err');
+  const e=document.getElementById('fc-q-err');if(e)e.style.display='none';
+}
+// Per-question checks use the same rules and wording as fcSaveForecast(), which still
+// runs in full on Save.
+function fcQCheck(q){
+  const fc=fcActive(),p=fc.profile,t=fc.targets;let msg='';
+  if(q===0&&!p.role){msg='Please complete organisation, website, project, role, contact name and email.';const g=document.getElementById('fc-roles');if(g)g.classList.add('err');}
+  if(q===1){
+    if(!p.org||!p.website||!p.project||!p.contactName||!p.contactEmail)msg='Please complete organisation, website, project, role, contact name and email.';
+    else if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(p.contactEmail))msg='Please enter a valid contact email.';
+    const map={org:p.org,website:p.website,project:p.project,contactName:p.contactName,contactEmail:p.contactEmail&&/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(p.contactEmail)};
+    Object.keys(map).forEach(k=>{const el=document.querySelector('.ux-fc [data-f="'+k+'"]');if(el)el.style.borderColor=map[k]?'':'#dc2626';});
+  }
+  if(q===2){
+    if(!t.reuseTarget||!t.wasteTarget||!t.disposedPct||!t.circPractices)msg='Please complete all 4 questions in Targets & practices.';
+    ['reuseTarget','wasteTarget','disposedPct','circPractices'].forEach(k=>{const el=document.querySelector('.ux-fc [data-f="'+k+'"]');if(el)el.style.borderColor=t[k]?'':'#dc2626';});
+  }
+  const e=document.getElementById('fc-q-err');
+  if(msg){if(e){e.style.display='';e.textContent=msg;}return false;}
+  if(e)e.style.display='none';
+  return true;
+}
+function fcQNext(){
+  if(S.fc&&S.fc.isUpdate){for(let i=0;i<=2;i++){if(!fcQCheck(i))return;}S.fc.stage='forecast';renderFcForm();window.scrollTo({top:0,behavior:'smooth'});return;}
+  const q=S._fcQ||0;
+  if(!fcQCheck(q))return;
+  if(q<2){S._fcQ=q+1;renderFcForm();}
+  else{S.fc.stage='forecast';renderFcForm();}
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+// Clear a field's red "missing" border as soon as it's filled in (About you + Forecast details).
+if(!window._abqClearBound){window._abqClearBound=true;['input','change'].forEach(t=>document.addEventListener(t,e=>{const el=e.target;if(el&&el.closest&&el.closest('.abq')&&el.style&&el.style.borderColor&&String(el.value||'').trim())el.style.borderColor='';}));}
+function fcQPrev(){S._fcQ=Math.max(0,(S._fcQ||0)-1);renderFcForm();window.scrollTo({top:0,behavior:'smooth'});}
+function fcToDetails(){S.fc.stage='details';S._fcQ=2;renderFcForm();window.scrollTo({top:0,behavior:'smooth'});}
 
 // Fields 1-5 (forecast details) collapse to a one-line summary on a loaded/
 // updated forecast, since by then they're usually already set and the point
@@ -1670,30 +2191,32 @@ function fcMatRowHtml(m,idx){
   const expanded=S._fcExpanded[m.id];
   const summaryLine=[m.precinctLocation,m.assetName,m.detail==='Other'?m.detailOther:m.detail,m.vol?(m.vol+(m.vunit?' '+m.vunit:'')):'',m.stat].filter(Boolean).map(esc).join(' &middot; ')||'No details yet';
   const detailFields=expanded
-    ?('<div class="fg"><label>1. Precinct location *</label><input type="text" data-mid="'+m.id+'" data-f="precinctLocation" value="'+esc(m.precinctLocation)+'" placeholder="e.g. New Balance/ GSO" onblur="fcUpMat(this)"></div>'
+    ?('<div class="fg"><label><span class="qn">1</span>Precinct location <span class="req">*</span></label><input type="text" data-mid="'+m.id+'" data-f="precinctLocation" value="'+esc(m.precinctLocation)+'" placeholder="e.g. New Balance/ GSO" onblur="fcUpMat(this)"></div>'
       +'<div style="display:flex;gap:8px;align-items:flex-end">'
-      +'<div class="fg" style="flex:1;margin-bottom:0"><label>2. Description of asset/ materials *</label><input type="text" data-mid="'+m.id+'" data-f="assetName" value="'+esc(m.assetName)+'" placeholder="Activation facades/ photo wall" onblur="fcUpMat(this)"></div>'
-      +'<div class="fg" style="width:160px;margin-bottom:0"><label>Year built *</label><input type="text" data-mid="'+m.id+'" data-f="yearBuilt" value="'+esc(m.yearBuilt)+'" placeholder="e.g. 2023" onblur="fcUpMat(this)"></div>'
+      +'<div class="fg" style="flex:1;margin-bottom:0"><label><span class="qn">2</span>Description of asset/ materials <span class="req">*</span></label><input type="text" data-mid="'+m.id+'" data-f="assetName" value="'+esc(m.assetName)+'" placeholder="Activation facades/ photo wall" onblur="fcUpMat(this)"></div>'
+      +'<div class="fg" style="width:160px;margin-bottom:0"><label>Year built <span class="req">*</span></label><input type="text" data-mid="'+m.id+'" data-f="yearBuilt" value="'+esc(m.yearBuilt)+'" placeholder="e.g. 2023" onblur="fcUpMat(this)"></div>'
       +'</div>'
-      +'<div class="fg"><label>3. Material details *</label><select data-mid="'+m.id+'" data-f="detail" onchange="fcUpMat(this)">'+fcMatOptsHtml(m.detail)+'</select></div>'
-      +(showOther?'<div class="fg"><label>If other, list below *</label><input type="text" data-mid="'+m.id+'" data-f="detailOther" value="'+esc(m.detailOther)+'" placeholder="Describe the material" onblur="fcUpMat(this)"></div>':'')
+      +'<div class="fg"><label><span class="qn">3</span>Material details <span class="req">*</span></label><select data-mid="'+m.id+'" data-f="detail" onchange="fcUpMat(this)">'+fcMatOptsHtml(m.detail)+'</select></div>'
+      +(showOther?'<div class="fg"><label>If other, list below <span class="req">*</span></label><input type="text" data-mid="'+m.id+'" data-f="detailOther" value="'+esc(m.detailOther)+'" placeholder="Describe the material" onblur="fcUpMat(this)"></div>':'')
       +'<div style="display:flex;gap:8px;align-items:flex-end">'
-      +'<div class="fg" style="flex:1;margin-bottom:0"><label>4. Expected volume *</label><input type="text" data-mid="'+m.id+'" data-f="vol" value="'+esc(m.vol)+'" placeholder="10 sheets/ 2 rolls/ 5kg" onblur="fcUpMat(this)"></div>'
+      +'<div class="fg" style="flex:1;margin-bottom:0"><label><span class="qn">4</span>Expected volume <span class="req">*</span></label><input type="text" data-mid="'+m.id+'" data-f="vol" value="'+esc(m.vol)+'" placeholder="10 sheets/ 2 rolls/ 5kg" onblur="fcUpMat(this)"></div>'
       +'<div class="fg" style="width:180px;margin-bottom:0"><label>Unit</label><input type="text" list="vol-units" data-mid="'+m.id+'" data-f="vunit" value="'+esc(m.vunit)+'" placeholder="Kg/ sqm/ lm etc" autocomplete="off" onblur="fcUpMat(this)"></div>'
       +'</div>'
-      +'<div class="fg" style="margin-top:8px"><label>5. Expected status *</label><select data-mid="'+m.id+'" data-f="stat" onchange="fcUpMat(this)">'+mkOpts(STATS,m.stat,'Select status...')+'</select></div>'
-      +(isUpdate?'<button type="button" onclick="fcToggleMatCollapse(&#39;'+m.id+'&#39;)" style="background:none;border:none;color:#0091D2;font-size:12px;font-weight:700;cursor:pointer;text-decoration:underline;margin-bottom:8px">Collapse forecast details</button>':''))
+      +'<div class="fg" style="margin-top:8px"><label><span class="qn">5</span>Expected status <span class="req">*</span></label><select class="stat-sel" data-tone="'+statTone(m.stat)+'" data-mid="'+m.id+'" data-f="stat" onchange="fcUpMat(this)">'+mkOpts(STATS,m.stat,'Select status...')+'</select></div>'
+      +((isUpdate||fcMatIsSaved(m))?'<div class="fc-del-row">'+(fcMatIsSaved(m)?'<button type="button" class="asset-del" onclick="fcConfirmDelMaterial(&#39;'+m.id+'&#39;)">Delete material</button>':'')+(isUpdate?'<button type="button" onclick="fcToggleMatCollapse(&#39;'+m.id+'&#39;)" style="margin-left:auto;background:none;border:none;color:#0091D2;font-size:12px;font-weight:700;cursor:pointer;text-decoration:underline">Collapse forecast details</button>':'')+'</div>':''))
     :('<div class="fg" style="margin-bottom:10px"><div style="display:flex;align-items:center;gap:8px;background:#F7F6F2;border-radius:8px;padding:9px 12px;font-size:12px;color:#555"><span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">1&ndash;5. '+summaryLine+'</span>'+(m.stat?fcStatTag(m.stat):'')+'<button type="button" onclick="fcToggleMatCollapse(&#39;'+m.id+'&#39;)" style="background:none;border:none;color:#0091D2;font-weight:700;cursor:pointer;font-size:12px;flex-shrink:0">Edit</button></div></div>');
   return'<div class="mat-row" id="fcmr-'+m.id+'">'
     +'<div class="mat-row-hd">'
     +'<span class="mat-row-num">Material '+(idx+1)+'</span>'
-    +'<button onclick="fcDelMaterial(&#39;'+m.id+'&#39;)" style="background:none;border:none;cursor:pointer;color:#ccc;padding:8px 10px;font-size:14px;border-radius:6px;flex-shrink:0;margin-left:auto" title="Remove material">&times;</button>'
+    +(fcMatIsSaved(m)?'':'<button onclick="fcDelMaterial(&#39;'+m.id+'&#39;)" style="background:none;border:none;cursor:pointer;color:#ccc;padding:8px 10px;font-size:14px;border-radius:6px;flex-shrink:0;margin-left:auto" title="Remove material">&times;</button>')
     +'</div>'
     +detailFields
-    +'<div class="fg" style="margin-top:8px"><label style="color:#aaa">6. Actual material status (Bump-out) <span style="font-size:10px;font-weight:400">(complete post-event)</span></label><select data-mid="'+m.id+'" data-f="outcome" onchange="fcUpMat(this)">'+mkOpts(OUTCOMES,m.outcome,'Select actual status...')+'</select></div>'
+    +'<div class="fc-bumpout">'
+    +'<div class="fg f7-box" style="margin-top:0"><label><span class="qn gy">6</span>Actual material status (Bump-out)<span class="f7-tag">complete post-event</span></label><select data-mid="'+m.id+'" data-f="outcome" onchange="fcUpMat(this)">'+mkOpts(OUTCOMES,m.outcome,'Select actual status...')+'</select></div>'
     +(showDonate?'<div class="fg"><label>Receiving organisation</label><input type="text" data-mid="'+m.id+'" data-f="receivingOrg" value="'+esc(m.receivingOrg)+'" placeholder="Who received this?" onblur="fcUpMat(this)"></div>':'')
     +(showTakeback?'<div class="fg"><label>Take-back program name</label><input type="text" data-mid="'+m.id+'" data-f="takeBackProgram" value="'+esc(m.takeBackProgram)+'" placeholder="Name of the take-back program" onblur="fcUpMat(this)"></div>':'')
     +(hasOutcome?fcEvidenceBlock(m):'')
+    +'</div>'
     +'</div>';
 }
 
@@ -1741,6 +2264,20 @@ function fcAddMaterial(){
   const wrap=document.getElementById('fc-mats');
   if(wrap){let h='';S.fc.draft.materials.forEach((m,i)=>{h+=fcMatRowHtml(m,i);});wrap.innerHTML=h;}
 }
+// A forecast material counts as added once the forecast has been saved with it (or it was
+// loaded as part of a saved forecast). Until then the header × simply discards it.
+function fcMatIsSaved(m){
+  const fc=S.fc&&S.fc.draft;if(!fc)return false;
+  if(S._fcSavedFor!==fc.id){S._fcSavedFor=fc.id;S._fcSavedIds=new Set(S.fc.isUpdate?fc.materials.map(x=>x.id):[]);}
+  return !!(S._fcSavedIds&&S._fcSavedIds.has(m.id));
+}
+function fcConfirmDelMaterial(mid){
+  const fc=S.fc&&S.fc.draft;if(!fc)return;
+  const i=fc.materials.findIndex(x=>x.id===mid);if(i<0)return;
+  if(fc.materials.length<=1){showToast('A forecast needs at least one material.');return;}
+  if(!confirm('Delete Material '+(i+1)+' from this forecast?'))return;
+  fcDelMaterial(mid);
+}
 function fcDelMaterial(mid){
   if(S.fc.draft.materials.length<=1){showToast('A forecast needs at least one material.');return;}
   S.fc.draft.materials=S.fc.draft.materials.filter(m=>m.id!==mid);
@@ -1771,6 +2308,7 @@ async function fcSaveForecast(){
   if(allOutcomesFilled&&!wasAlreadyLogged)fc.actualsLoggedAt=Date.now();
   const isUpdate=!!S.fc.isUpdate;
   const res=await forecastDB.save(fc);
+  S._fcSavedFor=fc.id;S._fcSavedIds=new Set(fc.materials.map(x=>x.id));
   // This is the Details page's plain "Save" — it persists (and takes the user to the
   // Summary page to review) but does NOT send the confirmation email. Only the
   // Summary page's own "Save & exit" button (fcSaveAndExit) sends that, since that's
@@ -1808,12 +2346,12 @@ function renderFcSummary(){
   const circBody=sc.total>0?'<div style="display:flex;justify-content:space-between;font-size:12px;color:#888;margin-bottom:4px;margin-top:10px"><span>Circularity rate</span><span style="font-weight:600;color:'+cl+'">'+pctText(sc.pctExact)+'</span></div><div class="strack"><div class="sfill" style="width:'+sc.pct+'%;background:'+cl+'"></div></div><div style="font-size:11px;color:#aaa;margin-top:3px">AO target: 10% improvement per year</div>':'';
   const loggedActuals=!!fc.actualsLoggedAt;
   let h='';
-  h+='<div class="admin-hero">';
-  h+='<div style="font-size:10px;font-weight:800;letter-spacing:.12em;color:rgba(255,255,255,.55);text-transform:uppercase;margin-bottom:4px">AO27</div>';
-  h+='<h2 style="font-size:20px;font-weight:800;color:#fff;margin-bottom:.4rem;letter-spacing:-.02em">'+(loggedActuals?'Event report':'Forecast saved')+'</h2>';
-  h+='<p style="font-size:12px;line-height:1.6;opacity:.85;max-width:520px">'+(loggedActuals?'Your actuals are logged &#8212; print or export a copy of your event report below.':'Save your TA-ID below &#8212; you&rsquo;ll need it to log what actually happened after the event.')+'</p>';
-  h+='</div>';
-  h+='<div style="padding:1.25rem 1rem">';
+  h+='<div class="ux-summary" style="padding:1.25rem 1rem 2rem">';
+  h+='<div class="abq-card"><div class="abq-bar"><div class="abq-fill" style="width:100%"></div></div><div class="abq-body" style="padding-bottom:22px">';
+  h+='<div class="abq-meta"><b>AO27</b></div>';
+  h+='<h2 class="abq-h" style="margin-bottom:6px">'+(loggedActuals?'Event report':'Forecast saved')+'</h2>';
+  h+='<p class="abq-sub" style="margin-bottom:0">'+(loggedActuals?'Your actuals are logged &#8212; print or export a copy of your event report below.':'Save your TA-ID below &#8212; you&rsquo;ll need it to log what actually happened after the event.')+'</p>';
+  h+='</div></div>';
 
   if(!loggedActuals)h+='<div class="hbox"><strong>What happens following submission of your forecast?</strong><br><br>&bull; Simple post-event reporting &#8212; return here with your TA-ID to report your actuals using Q7</div>';
 
@@ -1835,7 +2373,7 @@ function renderFcSummary(){
   const actualRows=Object.entries(actualCts).sort((a,b)=>b[1]-a[1]).map(([s,n])=>'<div class="srow"><div class="sdot" style="background:'+(STCOL[s]||'#9ca3af')+'"></div><div style="flex:1;color:#1a1a1a">'+esc(s)+'</div><div style="font-weight:600;min-width:20px;text-align:right">'+n+'</div></div>').join('');
   if(stRows)h+='<div class="card"><div style="display:grid;grid-template-columns:1fr 1fr;gap:16px"><div><div class="sechd" style="margin-top:0">Materials by expected status</div>'+stRows+'</div><div><div class="sechd" style="margin-top:0;color:#0091D2">Materials ACTUALS POST EVENT</div>'+(actualRows||'<div style="font-size:13px;color:#aaa;margin-top:6px">Return with your TA-ID after the event to log actuals.</div>')+'</div></div></div>';
 
-  h+='<div class="acts"><button onclick="fcBackFromSummary()">&larr; Back</button><button onclick="window.print()">Print / PDF</button><button onclick="fcExportXLS()">Export XLS</button><button onclick="fcSaveAndExit()" style="background:#0091D2;color:#fff;border-color:#0091D2;font-weight:700">Save &amp; exit</button></div>';
+  h+='<div class="acts"><button type="button" class="abq-link" onclick="fcBackFromSummary()">&larr; Back</button><button type="button" class="sum-sec" onclick="window.print()"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9V2h12v7"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>Print / PDF</button><button type="button" class="sum-sec" onclick="fcExportXLS()"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m7 10 5 5 5-5"/><path d="M12 15V3"/></svg>Export XLS</button><button onclick="fcSaveAndExit()" style="background:#0091D2;color:#fff;border-color:#0091D2;font-weight:700">Save &amp; exit</button></div>';
   h+='</div>';
   document.getElementById('main').innerHTML=h;
 }
@@ -1921,7 +2459,7 @@ function fcEvidenceBlock(m){
   btns+='<button type="button" style="'+btnStyle+'" onclick="document.getElementById(&#39;fc-ev-'+m.id+'&#39;).click()">'+(hasImg?'Replace':'&#8593; Upload image')+'</button>';
   if(hasImg)btns+='<button type="button" style="'+btnStyle+';color:#A32D2D;border-color:#f0cfcf" onclick="fcRemoveEvidence(&#39;'+m.id+'&#39;)">Remove</button>';
   return '<div class="fg" style="margin-top:8px;margin-bottom:0">'
-    +'<label style="font-size:14px;font-weight:800;color:#003A5D">Verify</label>'
+    +'<label style="font-size:14px;font-weight:800;color:#003A5D;display:flex;align-items:center;gap:8px"><svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="#1E5A73" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink:0"><circle cx="12" cy="12" r="11"/><g transform="translate(12 12) scale(1.35) translate(-12 -11)" stroke-width="1.05"><path d="M12 5.2c-.9.7-2 1-3.2 1-.5 0-.8.4-.8.9v3.6c0 3 1.7 5.3 4 6.3 2.3-1 4-3.3 4-6.3V7.1c0-.5-.3-.9-.8-.9-1.2 0-2.3-.3-3.2-1z"/><path d="m10 11.4 1.5 1.5 2.8-2.8"/></g></svg>Verify</label>'
     +'<div style="font-size:12px;color:#888;margin-bottom:6px">To substantiate your report, provide evidence of any recycled/ reused materials with an image upload</div>'
     +'<div style="display:flex;gap:12px;align-items:center">'
     +thumb
@@ -2107,11 +2645,11 @@ function renderAdmin(){
 function adminSubTabBar(active,withSignOut){
   const tab=(id,label)=>{
     const on=active===id;
-    return '<button onclick="adminSwitchView(&#39;'+id+'&#39;)" style="font-size:12px;font-weight:700;padding:7px 16px;border-radius:8px;cursor:pointer;border:1.5px solid '+(on?'#0091D2':'#d0cdc7')+';background:'+(on?'#0091D2':'#fff')+';color:'+(on?'#fff':'#555')+';font-family:inherit">'+label+'</button>';
+    return '<button onclick="adminSwitchView(&#39;'+id+'&#39;)" style="font-size:13px;font-weight:700;height:40px;padding:0 16px;border-radius:8px;cursor:pointer;border:1.5px solid '+(on?'#0072A8':'#D5DDE5')+';background:'+(on?'#0072A8':'#fff')+';color:'+(on?'#fff':'#253545')+';font-family:inherit">'+label+'</button>';
   };
-  const signOut=withSignOut?'<button onclick="adminSignOut()" style="margin-left:auto;font-size:11px;padding:7px 14px;color:#888;border:1px solid #ddd;border-radius:8px;cursor:pointer;background:#fff">Sign out</button>':'';
+  const signOut=withSignOut?'<button onclick="adminSignOut()" style="margin-left:auto;font-size:13px;font-weight:600;height:40px;padding:0 14px;color:#5B6B7B;border:none;border-radius:8px;cursor:pointer;background:none">Sign out</button>':'';
   return '<div class="admin-section" style="display:flex;gap:8px;padding-top:1rem;padding-bottom:1rem">'
-    +tab('dashboard','Materials plans')+tab('forecasts','Forecasts')+tab('upload','Upload asset records')+signOut
+    +tab('dashboard','Materials plans')+tab('forecasts','Forecasts')+tab('upload','Upload /maintain material plans')+signOut
     +'</div>';
 }
 function adminSwitchView(v){S.adminView=v;renderAdmin();}
@@ -2150,7 +2688,37 @@ async function promoteSerialNumbers(){
   showToast(failed
     ? 'Promoted '+changedAssets+' across '+changedPlans+' plan(s) — '+failed+' did not sync to cloud'
     : 'Promoted '+changedAssets+' serial number'+(changedAssets===1?'':'s')+' across '+changedPlans+' plan(s)');
-  loadAdminPlansInto();
+  refreshRollForward();
+}
+// Bump-out roll-forward panel (Upload /maintain material plans view). Loads the same
+// authoritative admin plan set the dashboard uses, then renders the original panel.
+function rollForwardHtml(allPlans){
+  const pendingCount=allPlans.reduce((n,p)=>n+(p.assets||[]).filter(a=>String(a.serialNumberNew||'').trim()).length,0);
+  let h='<div class="admin-section">';
+  h+='<div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap">';
+  h+='<div style="flex:1;min-width:240px">';
+  h+='<div style="font-size:14px;font-weight:800;color:#003A5D;margin-bottom:4px">Bump-out roll-forward</div>';
+  h+='<div style="font-size:12.5px;color:#666;line-height:1.6">Promotes <strong>New serial number</strong> &rarr; <strong>Current serial number</strong> across all plans and clears the new field. Run once all bump-out data is complete. Assets with no new serial are left untouched.</div>';
+  h+='</div>';
+  if(pendingCount>0){
+    h+='<div style="text-align:right"><div style="font-size:20px;font-weight:800;color:#0072A8;line-height:1">'+pendingCount+'</div><div style="font-size:11px;color:#888">awaiting promotion</div></div>';
+    h+='<button onclick="promoteSerialNumbers()" class="btn-primary" style="height:44px;padding:0 18px;flex-shrink:0">Promote '+pendingCount+' serial number'+(pendingCount===1?'':'s')+'</button>';
+  }else{
+    h+='<span style="font-size:12px;font-weight:700;color:#0F6E56;background:#E1F5EE;border:1px solid #b2e8d2;border-radius:8px;padding:7px 14px;flex-shrink:0">Nothing to promote</span>';
+  }
+  h+='</div></div>';
+  return h;
+}
+function refreshRollForward(){
+  const slot=document.getElementById('admin-rollfwd');if(!slot)return;
+  loadAdminPlans().then(function(plans){
+    S._adminPlans=plans;
+    const el=document.getElementById('admin-rollfwd');
+    if(el)el.innerHTML=rollForwardHtml(plans.filter(p=>!isExamplePlan(p)));
+  }).catch(function(err){
+    const el=document.getElementById('admin-rollfwd');
+    if(el)el.innerHTML='<div class="admin-section" style="font-size:12.5px;color:#A32D2D">Could not load plans for the roll-forward: '+esc((err&&err.message)||'Unknown error')+' <button onclick="refreshRollForward()" style="margin-left:8px">Retry</button></div>';
+  });
 }
 // Count-only pass (no mutation) so the confirm dialog is accurate before any write.
 function promoteAssetSerials_count(assets){
@@ -2161,7 +2729,7 @@ function promoteAssetSerials_count(assets){
 function renderAdminUpload(){
   document.getElementById('hd-btns').innerHTML='';
   const pb=document.getElementById('page-body-wrap');
-  if(pb)pb.style.padding='0';
+  if(pb)pb.style.padding='1.25rem 1rem 2rem';
   let h='';
   h+='<div class="admin-hero"><div>';
   h+='<div style="font-size:10px;font-weight:800;letter-spacing:.12em;color:rgba(255,255,255,.55);text-transform:uppercase;margin-bottom:4px">Admin</div>';
@@ -2180,7 +2748,7 @@ function renderAdminUpload(){
 
   const card=(roleType,title,desc)=>{
     const inputId='admin-xls-'+roleType;
-    return '<div class="admin-section'+(roleType==='EXT'?' alt':'')+'">'
+    return '<div class="admin-section">'
       +'<div style="font-size:14px;font-weight:800;color:#003A5D;margin-bottom:4px">'+title+'</div>'
       +'<div style="font-size:12.5px;color:#666;line-height:1.6;margin-bottom:12px;max-width:560px">'+desc+'</div>'
       +'<input type="file" accept=".xlsx" id="'+inputId+'" style="display:none" onchange="adminUploadXLS(this,&#39;'+roleType+'&#39;)">'
@@ -2191,7 +2759,9 @@ function renderAdminUpload(){
   h+=card('TA','Internal — TA roles','For event organisers and internal TA teams who already track assets in spreadsheets. Their records carry more detail (serial numbers, year built, builder/supplier). Upload here to create a TA plan with that data pre-populated.');
   h+=card('EXT','External — Agencies, builders, partners, contractors','For external partners migrating an existing asset or materials list. Upload here to create an external plan; missing fields can be completed in the plan afterwards.');
 
+  h+='<div id="admin-rollfwd"><div class="admin-section" style="font-size:12.5px;color:#5B6B7B">Loading bump-out roll-forward…</div></div>';
   document.getElementById('main').innerHTML=h;
+  refreshRollForward();
 }
 
 // Look up a plan by code using the ADMIN client. The dashboard's RLS policy requires
@@ -2357,25 +2927,6 @@ function renderAdminDashboard(rawPlans){
   h+='<button onclick="adminSignOut()" style="font-size:11px;padding:6px 14px;color:rgba(255,255,255,.7);border:1px solid rgba(255,255,255,.25);border-radius:7px;cursor:pointer;background:rgba(255,255,255,.1);flex-shrink:0;margin-top:2px">Sign out</button>';
   h+='</div></div>';
   h+=adminSubTabBar('dashboard',false);
-
-  // ── Bump-out roll-forward ─────────────────────────────────────────────────
-  // Once all bump-out data is in, promote every asset's "New serial number"
-  // into "Current serial number" and clear the new field, ready for next year.
-  // Counted across ALL plans (not the year filter) so the roll-forward is complete.
-  const pendingCount=allPlans.reduce((n,p)=>n+(p.assets||[]).filter(a=>String(a.serialNumberNew||'').trim()).length,0);
-  h+='<div class="admin-section" style="padding-top:0;padding-bottom:1rem">';
-  h+='<div style="background:#fff;border:1px solid #e8e5de;border-radius:10px;padding:14px 16px;display:flex;align-items:center;gap:14px;flex-wrap:wrap">';
-  h+='<div style="flex:1;min-width:240px">';
-  h+='<div style="font-size:13px;font-weight:700;color:#0C1B47;margin-bottom:3px">Bump-out roll-forward</div>';
-  h+='<div style="font-size:12px;color:#666;line-height:1.5">Promotes <strong>New serial number</strong> &rarr; <strong>Current serial number</strong> across all plans and clears the new field. Run once all bump-out data is complete. Assets with no new serial are left untouched.</div>';
-  h+='</div>';
-  if(pendingCount>0){
-    h+='<div style="text-align:right"><div style="font-size:20px;font-weight:800;color:#0091D2;line-height:1">'+pendingCount+'</div><div style="font-size:11px;color:#888">awaiting promotion</div></div>';
-    h+='<button onclick="promoteSerialNumbers()" style="font-size:12px;font-weight:700;padding:9px 18px;border-radius:8px;cursor:pointer;border:1.5px solid #0072A8;background:#0091D2;color:#fff;font-family:inherit;flex-shrink:0">Promote '+pendingCount+' serial number'+(pendingCount===1?'':'s')+'</button>';
-  }else{
-    h+='<span style="font-size:12px;font-weight:700;color:#0F6E56;background:#E1F5EE;border:1px solid #b2e8d2;border-radius:8px;padding:7px 14px;flex-shrink:0">Nothing to promote</span>';
-  }
-  h+='</div></div>';
 
   // ── Year filter ───────────────────────────────────────────────────────────
   if(years.length){
@@ -2914,7 +3465,7 @@ function exportAdminCSV(){
 function renderFAQ(){
   document.getElementById('hd-btns').innerHTML='';
   const pb=document.getElementById('page-body-wrap');
-  if(pb){pb.style.padding='0';}
+  if(pb){pb.style.padding='1.25rem 1rem 2rem';}
   const faqHero='<div class="admin-hero">'
     +'<div style="font-size:10px;font-weight:800;letter-spacing:.12em;color:rgba(255,255,255,.55);text-transform:uppercase;margin-bottom:4px">Australian Open</div>'
     +'<h2 style="font-size:20px;font-weight:800;color:#fff;margin-bottom:.4rem;letter-spacing:-.02em">Frequently Asked Questions</h2>'
@@ -2974,8 +3525,8 @@ function renderFAQ(){
     }
   ];
 
-  let h=faqHero+'<div class="faq-section" style="padding:1.25rem 1rem 0">';
-  h+='<div style="background:#f9f8f6;border-radius:10px;padding:14px 16px;margin-bottom:1.25rem;font-size:13px;color:#555;line-height:1.7">';
+  let h=faqHero+'<div class="faq-section" style="padding:0">';
+  h+='<div style="background:#fff;border-radius:16px;box-shadow:0 1px 2px rgba(12,27,71,.06),0 6px 22px rgba(12,27,71,.07);padding:16px 20px;margin-bottom:14px;font-size:13px;color:#555;line-height:1.7">';
   h+='<strong style="color:#1a1a1a">Frequently asked questions</strong> about the AO Materials Management program, Circular Design and how to use this tool.';
   h+='</div>';
 
@@ -2998,7 +3549,7 @@ function renderFAQ(){
     h+='</div>';
   }
   h+='</div>';
-  h+='<div style="padding:0 1rem 1.5rem"><div style="background:#E6F1FB;border-radius:10px;padding:13px 15px;font-size:12.5px;color:#0091D2;line-height:1.7;margin-bottom:1rem">';
+  h+='<div style="padding:0 0 1.5rem"><div style="background:#E6F1FB;border-radius:12px;padding:13px 15px;font-size:12.5px;color:#0091D2;line-height:1.7;margin-bottom:1rem">';
   h+='Have a question not covered here? Contact your TA project lead or visit the <a href="https://megtei.github.io/Materials_Methods_Plan/" target="_blank" style="font-weight:600;color:#0091D2">AO Target Materials &amp; Responsible Methods &#8599;</a>';
   h+='</div></div>';
   document.getElementById('main').innerHTML=h;
@@ -3025,7 +3576,7 @@ function renderForm(){
   const lbls=sn.map((n,i)=>`<div class="plbl ${i<step?'done':i===step?'active':''}">${n}</div>`).join('');
   let c=`<div style="margin-bottom:1.25rem"><div class="prog-segs">${segs}</div><div class="prog-lbls">${lbls}</div></div>`;
   if(isEg)c+=`<div style="background:#FAEEDA;border-radius:8px;padding:9px 12px;font-size:12px;color:#854F0B;margin-bottom:1rem;display:flex;align-items:center;gap:8px"><span>&#128196; This is an example plan only.</span></div>`;
-  if(step===0)c+=stepAbout(plan);
+  if(step===0){c+=stepAbout(plan);setTimeout(abqInit,0);}
   else if(step===1)c+=stepAssets(plan);
   else c+=stepSummary(plan);
   document.getElementById('main').innerHTML=c;
@@ -3034,36 +3585,241 @@ function renderForm(){
 // ── Step 0: About ─────────────────────────────────────────────────────────────
 function stepAbout(plan){
   const p=plan.profile;
-  return`<div style="margin-bottom:14px;padding:11px 14px;background:#EEF6FC;border:1px solid #c5e2f5;border-radius:8px;font-size:12.5px;color:#0A4B73;line-height:1.6">If you have a materials list and need support to upload, <a href="#" onclick="openSupportModal();return false;" style="color:#0091D2;font-weight:700;text-decoration:underline">let us know</a>.</div>
-  <div class="card">
-    <div class="sechd" style="margin-top:0">${S.plan.roleType==='TA'?'TA Department':'Business details'} <span style="font-size:10px;font-weight:400;color:#888;letter-spacing:0;text-transform:none">— all fields required</span></div>
+  const isTAtype=S.plan.roleType==='TA';
+  // Role list: identical source to the previous <select>. A saved value that is no
+  // longer in the list (legacy / imported) is kept as its own tile so it is never lost.
+  const roleList=(isTAtype?ROLES_TA:(S.plan.roleType==='EXT'?ROLES_EXTERNAL:ROLES)).slice();
+  if(p.role&&!roleList.includes(p.role))roleList.push(p.role);
+  const tile=r=>`<button type="button" class="tile${p.role===r?' sel':''}" data-role="${esc(r)}" onclick="abqPickRole(this)">${abqIcon(r)}${esc(r)}</button>`;
+  if(!S._abQ||S._abQ.id!==plan.id){S._abQ={id:plan.id,q:(p.role&&(p.businessName||p.department))?ABQ_LAST:0};S._abOther={};}
+  // Existing plans (loaded to update, imported, or the example) show every About field on one
+  // page — already captured, still editable — instead of stepping through the questions.
+  S._abAll=S.formOrigin==='update'||!!plan.imported||!!plan._example;
+  if(S._abAll)return abqCompactHtml(plan);
+  const precStr=Array.isArray(p.precincts)?p.precincts.join(', '):(p.precincts||'');
+  const chips=(kind)=>`<button type="button" class="chip" data-kind="${kind}" data-v="10%" onclick="abqPickPct(this)">10%<small>AO target</small></button>`
+    +`<button type="button" class="chip" data-kind="${kind}" data-v="other" onclick="abqPickOther(this)">Other</button>`;
+  return`<div class="abq-card abq${S._abAll?' abq-allmode':''}">
+    <div class="abq-bar"><div class="abq-fill" id="abq-fill"></div></div>
+    <div class="abq-body">
+      <div class="abq-meta"><b>About you</b><span id="abq-count"></span></div>
+
+      <div class="abq-panel" data-q="0">
+        <h2 class="abq-h">${isTAtype?'What is your role at the AO?':'Role in AO design &amp; build'}</h2>
+        <input type="hidden" id="p-role" value="${esc(p.role)}">
+        <div class="tile-grid" id="abq-roles-a">${roleList.map(tile).join('')}</div>
+        <div class="fg" id="p-dept-wrap" style="display:${TA_ROLES.includes(p.role)?'':'none'}"><label>Department *</label><select id="p-dept"><option value="">Select department...</option>${mkOpts(TA_DEPARTMENTS,p.department||'')}</select></div>
+      </div>
+
+      <div class="abq-panel" data-q="1">
+        <h2 class="abq-h">${isTAtype?'TA Department':'Business details'}</h2>
+        ${isTAtype
+          ?`<input type="hidden" id="p-biz" value="${esc(p.businessName)}">`
+          :`<div class="fg"><label>Business name *</label><input type="text" id="p-biz" value="${esc(p.businessName)}" placeholder="Your company name"></div>`}
+        <div class="g2">
+          <div class="fg"><label>Date *</label><input type="date" id="p-date" value="${esc(p.date)}"></div>
+          <div class="fg"><label>Plan owner / Contact *</label><input type="text" id="p-own" value="${esc(p.ownerName)}" placeholder="Full name"><div class="fhint">Responsible &amp; accountable for post-event reporting</div></div>
+        </div>
+        <div class="fg"><label>Contact email *</label><input type="email" id="p-email" value="${esc(p.email)}" placeholder="email@company.com"><div class="fhint">A confirmation is emailed here when you Save &amp; exit on the Summary step</div></div>
+        <input type="hidden" id="p-editor" value="${esc(p.editorName)}">
+      </div>
+
+      <div class="abq-panel" data-q="2">
+        <h2 class="abq-h">Which precincts or projects are you delivering? <span class="req">*</span></h2>
+        <div class="fg"><input type="text" id="p-precs" value="${esc(precStr)}" aria-label="Which precincts or projects are you delivering?"></div>
+        <div class="abq-meta abq-subhd"><b>Targets</b></div>
+        <div class="fg" style="max-width:200px"><label>AO Tournament year *</label><select id="p-aoyear"><option value="">Select year...</option>${['AO27','AO28','AO29','AO30'].map(y=>`<option value="${y}"${p.aoYear===y?' selected':''}>${y}</option>`).join('')}</select></div>
+        <div class="fg"><label>Your waste reduction target *</label>
+          <div class="chips">${chips('waste')}</div>
+          <div class="abq-other" id="p-waste-wrap"><input type="text" id="p-waste" value="${esc(p.wasteTarget)}" placeholder="e.g. 10% reduction of total waste volume" oninput="abqSyncChips()" aria-label="Your waste reduction target"></div>
+        </div>
+        <div class="fg"><label>Your reuse target *</label>
+          <div class="chips">${chips('reuse')}</div>
+          <div class="abq-other" id="p-reuse-wrap"><input type="text" id="p-reuse" value="${esc(p.reuseTarget)}" placeholder="e.g. 10% increase in reuse" oninput="abqSyncChips()" aria-label="Your reuse target"></div>
+        </div>
+        <div class="fg"><label>Storage details for reuse materials / assets *</label><textarea id="p-store" rows="2" placeholder="e.g. TA storage facility / your warehouse / client storage...">${esc(p.storageDetails)}</textarea></div>
+      </div>
+
+      <div id="about-errors" style="display:none;background:#FCEBEB;border:1px solid #f5c6c6;border-radius:8px;padding:10px 14px;font-size:13px;color:#A32D2D;margin-top:12px"></div>
+
+      <div class="abq-nav">
+        <button type="button" class="abq-link" id="abq-back" onclick="abqPrev()">&larr; Back</button>
+        <span style="flex:1"></span>
+        <button type="button" class="abq-link" onclick="goHome()">Cancel</button>
+        <button type="button" class="abq-next" id="abq-next" onclick="abqNext()">Next</button>
+      </div>
+    </div>
+  </div>
+  <div id="abq-support" style="display:none;margin-bottom:14px;padding:11px 14px;background:#EEF6FC;border:1px solid #c5e2f5;border-radius:8px;font-size:12.5px;color:#0A4B73;line-height:1.6">If you have a materials list and need support to upload, <a href="#" onclick="openSupportModal();return false;" style="color:#0091D2;font-weight:700;text-decoration:underline">let us know</a>.</div>`;
+}
+
+// Existing plan: every About field on one screen, laid out like the original form
+// (dropdowns, two-column grid) in the new styling. Same element ids, so saveAbout(),
+// harvestAboutFields() and goNext() are unchanged.
+function abqCompactHtml(plan){
+  const p=plan.profile;const isTAtype=S.plan.roleType==='TA';
+  const roleList=(isTAtype?ROLES_TA:(S.plan.roleType==='EXT'?ROLES_EXTERNAL:ROLES)).slice();
+  if(p.role&&!roleList.includes(p.role))roleList.push(p.role);
+  const precStr=Array.isArray(p.precincts)?p.precincts.join(', '):(p.precincts||'');
+  const yrs=['AO27','AO28','AO29','AO30'].map(y=>`<option value="${y}"${p.aoYear===y?' selected':''}>${y}</option>`).join('');
+  return`<div class="abq-card abq abq-compact"><div class="abq-bar"><div class="abq-fill" id="abq-fill" style="width:100%"></div></div><div class="abq-body">
+    <div class="abq-meta"><b>${isTAtype?'TA Department':'Business details'}</b><span id="abq-count"></span></div>
     <div class="g2">
       <div class="fg"><label>Date *</label><input type="date" id="p-date" value="${esc(p.date)}"></div>
-      <div class="fg"><label>${S.plan.roleType==='TA'?'Department name':'Business name'} *</label><input type="text" id="p-biz" value="${esc(p.businessName)}" placeholder="${S.plan.roleType==='TA'?'':'Your company name'}"></div>
+      ${isTAtype
+        ?`<input type="hidden" id="p-biz" value="${esc(p.businessName)}"><div></div>`
+        :`<div class="fg"><label>Business name *</label><input type="text" id="p-biz" value="${esc(p.businessName)}" placeholder="Your company name"></div>`}
     </div>
     <div class="g2">
-      <div class="fg"><label>Role in AO design &amp; build *</label><select id="p-role" onchange="toggleDeptField()"><option value="">Select role...</option>${mkOpts((S.plan.roleType==='TA'?ROLES_TA:(S.plan.roleType==='EXT'?ROLES_EXTERNAL:ROLES)),p.role)}</select></div>
+      <div class="fg"><label>Role in AO design &amp; build *</label><select id="p-role" onchange="toggleDeptField()"><option value="">Select role...</option>${mkOpts(roleList,p.role)}</select></div>
       <div class="fg"><label>Plan owner / Contact *</label><input type="text" id="p-own" value="${esc(p.ownerName)}" placeholder="Full name"><div class="fhint">Responsible &amp; accountable for post-event reporting</div></div>
     </div>
     <div class="fg" id="p-dept-wrap" style="display:${TA_ROLES.includes(p.role)?'':'none'}"><label>Department *</label><select id="p-dept"><option value="">Select department...</option>${mkOpts(TA_DEPARTMENTS,p.department||'')}</select></div>
     <div class="g2">
       <div class="fg"><label>Contact email *</label><input type="email" id="p-email" value="${esc(p.email)}" placeholder="email@company.com"><div class="fhint">A confirmation is emailed here when you Save &amp; exit on the Summary step</div></div>
-      <div class="fg"><label>Editor name * <span style="font-size:10px;color:#aaa;font-weight:400">(who is making changes)</span></label><input type="text" id="p-editor" value="${esc(p.editorName)}" placeholder="Name of person editing"></div>
+      <div></div>
     </div>
-    <div id="about-errors" style="display:none;background:#FCEBEB;border:1px solid #f5c6c6;border-radius:8px;padding:10px 14px;font-size:13px;color:#A32D2D;margin-top:4px"></div>
-  </div>
-  <div class="card">
-    <div class="sechd" style="margin-top:0">AO27 targets <span style="font-size:10px;font-weight:400;color:#888;letter-spacing:0;text-transform:none">— all fields required</span></div>
-    <div class="fg" style="max-width:200px"><label>AO Tournament year</label><select id="p-aoyear"><option value="">Select year...</option><option value="AO27"${p.aoYear==='AO27'?' selected':''}>AO27</option><option value="AO28"${p.aoYear==='AO28'?' selected':''}>AO28</option><option value="AO29"${p.aoYear==='AO29'?' selected':''}>AO29</option><option value="AO30"${p.aoYear==='AO30'?' selected':''}>AO30</option></select><div class="fhint">Used to group data across years in the admin portal</div></div>
+    <input type="hidden" id="p-editor" value="${esc(p.editorName)}">
+  </div></div>
+  <div class="abq-card abq abq-compact"><div class="abq-body">
+    <div class="abq-meta"><b>Targets</b></div>
+    <div class="fg"><label>Which precincts or projects are you delivering? *</label><input type="text" id="p-precs" value="${esc(precStr)}"></div>
+    <div class="fg" style="max-width:260px"><label>AO Tournament year *</label><select id="p-aoyear"><option value="">Select year...</option>${yrs}</select></div>
     <div class="g2">
       <div class="fg"><label>Your waste reduction target *</label><input type="text" id="p-waste" value="${esc(p.wasteTarget)}" placeholder="e.g. 10% reduction of total waste volume"><div class="fhint">AO target: 10% reduction of total waste volume</div></div>
       <div class="fg"><label>Your reuse target *</label><input type="text" id="p-reuse" value="${esc(p.reuseTarget)}" placeholder="e.g. 10% increase in reuse"><div class="fhint">AO target: 10% increase in reuse</div></div>
     </div>
     <div class="fg"><label>Storage details for reuse materials / assets *</label><textarea id="p-store" rows="2" placeholder="e.g. TA storage facility / your warehouse / client storage...">${esc(p.storageDetails)}</textarea></div>
-  </div>
-  <div class="acts"><button onclick="goHome()">Cancel</button>${S.plan._example?'':'<button onclick="saveAboutProgress()">Save</button>'}<button onclick="goNext()">Next: Assets &amp; Materials &rarr;</button></div>`;
+    <div id="about-errors" style="display:none;background:#FCEBEB;border:1px solid #f5c6c6;border-radius:8px;padding:10px 14px;font-size:13px;color:#A32D2D;margin-top:12px"></div>
+    <div class="abq-nav">
+      <button type="button" class="abq-link" id="abq-back" style="visibility:hidden">&larr; Back</button>
+      <span style="flex:1"></span>
+      <button type="button" class="abq-link" onclick="goHome()">Cancel</button>
+      <button type="button" class="abq-next" id="abq-next" onclick="abqNext()">Next: Assets &amp; Materials &rarr;</button>
+    </div>
+  </div></div>`;
 }
 
+// ── About step helpers (UX v2) ─────────────────────────────────────────────────
+// All About inputs stay in the DOM (panels are only hidden), so saveAbout(),
+// harvestAboutFields(), saveAboutProgress() and goNext() work exactly as before.
+const ABQ_PCTS=['10%'];
+const ABQ_LAST=2;
+function abqIcon(r){
+  const P={
+    bulb:'<path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5"/><path d="M9 18h6"/><path d="M10 22h4"/>',
+    hammer:'<path d="m15 12-8.373 8.373a1 1 0 1 1-3-3L12 9"/><path d="m18 15 4-4"/><path d="m21.5 11.5-1.914-1.914A2 2 0 0 1 19 8.172V7l-2.26-2.26a6 6 0 0 0-4.202-1.756L9 2.96l.92.82A6.18 6.18 0 0 1 12 8.4V10l2 2h1.172a2 2 0 0 1 1.414.586L18.5 14.5"/>',
+    pen:'<path d="M15.707 21.293a1 1 0 0 1-1.414 0l-1.586-1.586a1 1 0 0 1 0-1.414l5.586-5.586a1 1 0 0 1 1.414 0l1.586 1.586a1 1 0 0 1 0 1.414z"/><path d="m18 13-1.375-6.874a1 1 0 0 0-.746-.776L3.235 2.028a1 1 0 0 0-1.207 1.207L5.35 15.879a1 1 0 0 0 .776.746L13 18"/><path d="m2.3 2.3 7.286 7.286"/><circle cx="11" cy="11" r="2"/>',
+    wrench:'<path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/>',
+    clip:'<rect width="8" height="4" x="8" y="2" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="M12 11h4"/><path d="M12 16h4"/><path d="M8 11h.01"/><path d="M8 16h.01"/>',
+    layout:'<rect width="18" height="7" x="3" y="3" rx="1"/><rect width="9" height="7" x="3" y="14" rx="1"/><rect width="5" height="7" x="16" y="14" rx="1"/>',
+    hat:'<path d="M10 10V5a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v5"/><path d="M14 6a6 6 0 0 1 6 6v3"/><path d="M4 15v-3a6 6 0 0 1 6-6"/><rect x="2" y="15" width="20" height="4" rx="1"/>',
+    truck:'<path d="M14 18V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v11a1 1 0 0 0 1 1h2"/><path d="M15 18H9"/><path d="M19 18h2a1 1 0 0 0 1-1v-3.65a1 1 0 0 0-.22-.624l-3.48-4.35A1 1 0 0 0 17.52 8H14"/><circle cx="17" cy="18" r="2"/><circle cx="7" cy="18" r="2"/>',
+    user:'<circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/>'
+  };
+  const m={'Agency':'bulb','Builder':'hammer','Designer':'pen','Sub-contractor':'wrench','TA PM':'clip','TA Design':'layout','TA Build':'hat','TA delivery team':'truck'};
+  return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'+P[m[r]||'user']+'</svg>';
+}
+function abqEl(id){return document.getElementById(id);}
+function abqVal(id){const e=abqEl(id);return e?e.value.trim():'';}
+function abqInit(){
+  if(!abqEl('abq-fill'))return;
+  abqSyncChips();
+  abqShow(S._abQ?S._abQ.q:0);
+}
+function abqShow(q){
+  q=Math.max(0,Math.min(ABQ_LAST,q));
+  if(S._abQ)S._abQ.q=q;
+  document.querySelectorAll('.abq-panel').forEach(el=>el.classList.toggle('on',S._abAll||+el.dataset.q===q));
+  const f=abqEl('abq-fill');if(f)f.style.width=Math.round((q+1)/(ABQ_LAST+1)*100)+'%';
+  const c=abqEl('abq-count');if(c)c.textContent=S._abAll?'':(q+1)+' / '+(ABQ_LAST+1);
+  const n=abqEl('abq-next');if(n)n.innerHTML=(S._abAll||q>=ABQ_LAST)?'Next: Assets &amp; Materials &rarr;':'Next';
+  const sup=abqEl('abq-support');if(sup)sup.style.display=(q===0&&!S._abAll)?'':'none';
+  const bk=abqEl('abq-back');if(bk)bk.style.visibility=(q>0&&!S._abAll)?'visible':'hidden';
+  if(S._abAll&&f)f.style.width='100%';
+}
+function abqLenient(){
+  const roleVal=abqVal('p-role');
+  return TA_ROLES.includes(roleVal)||S.plan.roleType==='TA'||S.plan.imported||S.plan._example;
+}
+// Per-question check mirrors saveAbout()'s required list and email rule, scoped to the
+// fields on the current panel. saveAbout() still runs in full on the last question.
+const ABQ_REQ={
+  0:[{id:'p-role',label:'Role in AO design & build'}],
+  1:[{id:'p-date',label:'Date'},{id:'p-biz',label:'Business name'},{id:'p-own',label:'Plan owner / Contact'},{id:'p-email',label:'Contact email'}],
+  2:[{id:'p-precs',label:'Which precincts or projects are you delivering?'},{id:'p-aoyear',label:'AO Tournament year'},{id:'p-waste',label:'Waste reduction target'},{id:'p-reuse',label:'Reuse target'},{id:'p-store',label:'Storage details'}]
+};
+function abqCheck(q){
+  const box=abqEl('about-errors');
+  let req=(ABQ_REQ[q]||[]).slice();
+  if(q===0&&TA_ROLES.includes(abqVal('p-role')))req.push({id:'p-dept',label:'Department'});
+  if(abqLenient())req=[];
+  const missing=[];
+  req.forEach(f=>{const el=abqEl(f.id);if(el)el.style.borderColor='';if(!abqVal(f.id)){missing.push(f.label);if(el)el.style.borderColor='#dc2626';}});
+  const g=abqEl('abq-roles-a');if(g)g.classList.toggle('err',q===0&&missing.includes('Role in AO design & build'));
+  if(q===1){const ev=abqVal('p-email');if(ev&&!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(ev)){missing.push('Contact email (please enter a valid address)');const el=abqEl('p-email');if(el)el.style.borderColor='#dc2626';}}
+  if(missing.length){
+    if(box){box.style.display='';box.innerHTML='<strong>Please complete all required fields before continuing:</strong><ul style="margin:.35rem 0 0 1.25rem;padding:0">'+missing.map(m=>'<li>'+esc(m)+'</li>').join('')+'</ul>';}
+    return false;
+  }
+  if(box)box.style.display='none';
+  return true;
+}
+function abqNext(){
+  if(S._abAll){for(let i=0;i<=ABQ_LAST;i++){if(!abqCheck(i)){const b=abqEl('about-errors');if(b)b.scrollIntoView({behavior:'smooth',block:'nearest'});return;}}goNext();return;}
+  const q=S._abQ?S._abQ.q:0;
+  if(q<ABQ_LAST){if(abqCheck(q))abqShow(q+1);return;}
+  if(!abqCheck(q))return;
+  // Final question: the original, unchanged validation + navigation.
+  goNext();
+  if(S.plan&&S.plan.step===0&&S.plan._aboutInvalid){
+    // Jump to the first panel holding a field saveAbout() flagged.
+    for(let i=0;i<=ABQ_LAST;i++){
+      const panel=document.querySelector('.abq-panel[data-q="'+i+'"]');
+      if(!panel)continue;
+      const bad=[...panel.querySelectorAll('input,select,textarea')].some(el=>el.style.borderColor==='rgb(220, 38, 38)'||el.style.borderColor==='#dc2626');
+      const roleBad=i===0&&!abqVal('p-role')&&!abqLenient();
+      if(bad||roleBad){abqShow(i);if(roleBad)abqCheck(0);break;}
+    }
+  }
+}
+function abqPrev(){const q=S._abQ?S._abQ.q:0;const b=abqEl('about-errors');if(b)b.style.display='none';abqShow(q-1);}
+function abqPickRole(btn){
+  const v=btn.dataset.role;const r=abqEl('p-role');if(r)r.value=v;
+  document.querySelectorAll('.tile[data-role]').forEach(t=>t.classList.toggle('sel',t===btn));
+  const g=abqEl('abq-roles-a');if(g)g.classList.remove('err');
+  toggleDeptField();
+}
+function abqPickPct(btn){
+  const id=btn.dataset.kind==='waste'?'p-waste':'p-reuse';
+  const el=abqEl(id);if(!el)return;
+  el.value=btn.dataset.v+(btn.dataset.kind==='waste'?' reduction of total waste volume':' increase in reuse');
+  el.style.borderColor='';
+  if(S._abOther)S._abOther[btn.dataset.kind]=false;
+  abqSyncChips();
+}
+// "Other": clears the preset and reveals the (required) free-text box.
+function abqPickOther(btn){
+  const k=btn.dataset.kind;const el=abqEl(k==='waste'?'p-waste':'p-reuse');if(!el)return;
+  if(!S._abOther)S._abOther={};
+  S._abOther[k]=true;
+  if(abqPresetOf(el.value.trim(),k))el.value='';
+  abqSyncChips();el.focus();
+}
+function abqPresetOf(v,k){
+  const tail=k==='waste'?' reduction of total waste volume':' increase in reuse';
+  return ABQ_PCTS.find(x=>v===x+tail)||'';
+}
+function abqSyncChips(){
+  if(!S._abOther)S._abOther={};
+  ['waste','reuse'].forEach(k=>{
+    const v=abqVal(k==='waste'?'p-waste':'p-reuse');
+    const preset=abqPresetOf(v,k);
+    const other=S._abOther[k]===true||(!!v&&!preset);
+    document.querySelectorAll('.chip[data-kind="'+k+'"]').forEach(c=>c.classList.toggle('sel',c.dataset.v==='other'?other:(!other&&c.dataset.v===preset)));
+    const w=abqEl('p-'+k+'-wrap');if(w)w.style.display=(other||!v)?'':'none';
+  });
+}
 
 function toggleDeptField(){
   const role=document.getElementById('p-role');
@@ -3087,10 +3843,11 @@ function saveAbout(){
     {id:'p-own',    label:'Plan owner / Contact'},
     {id:'p-email',  label:'Contact email'},
     {id:'p-role',   label:'Role in AO design & build'},
-    {id:'p-editor', label:'Editor name'},
     {id:'p-waste',  label:'Waste reduction target'},
     {id:'p-reuse',  label:'Reuse target'},
     {id:'p-store',  label:'Storage details'},
+    {id:'p-precs',  label:'Which precincts or projects are you delivering?'},
+    {id:'p-aoyear', label:'AO Tournament year'},
     ...(TA_ROLES.includes(roleVal)?[{id:'p-dept',label:'Department'}]:[]),
   ];
 
@@ -3137,12 +3894,16 @@ function saveAbout(){
 // without blocking on required fields).
 function harvestAboutFields(){
   const g=id=>{const e=document.getElementById(id);return e?e.value.trim():''};
-  const p=S.plan.profile;
+  const p=S.plan.profile;const _prevDept=p.department||'';
   p.date=g('p-date');p.businessName=g('p-biz');p.ownerName=g('p-own');
   p.email=g('p-email');p.role=g('p-role');p.editorName=g('p-editor');
   p.wasteTarget=g('p-waste');p.reuseTarget=g('p-reuse');p.storageDetails=g('p-store');
   p.aoYear=g('p-aoyear');
   p.department=TA_ROLES.includes(p.role)?g('p-dept'):'';
+  if(document.getElementById('p-precs'))p.precincts=g('p-precs');
+  // TA path: Department name field removed from screen (duplicate of Department) — the plan's
+  // business name follows the selected Department unless it was set to something else.
+  if(S.plan.roleType==='TA'&&p.department&&(!p.businessName||p.businessName===_prevDept))p.businessName=p.department;
 }
 // About step's plain "Save" — checkpoints progress (no email, no navigation), unlike
 // the Summary step's "Save & exit".
@@ -3155,10 +3916,13 @@ function saveAboutProgress(){
 function stepAssets(plan){
   setTimeout(refreshAssets,0);
   const q=esc(S._assetQ||'');
-  return`<div class="sechd" style="margin-top:0">Instructions</div>
-  <div class="hbox">Add each <strong>asset or item</strong> in your scope.<br><br>Each asset can contain multiple materials — for example, a facade panel may use ACM, structural ply and a fabric skin.<br><br>We are focused on the high impact&lt;&gt;high volume materials — those that are majority of your procurement. Fields marked * are required. Complete fields 1–6 now; field 7 (Actual Outcome) is completed post-event.</div>
+  const _pp=plan.profile.precincts;const _mine=(Array.isArray(_pp)?_pp:String(_pp||'').split(',')).map(x=>String(x).trim()).filter(Boolean);
+  const _isUpd=(S.formOrigin==='update'||!!plan.imported)&&!plan._example;
+  const _precOpts=[...new Set([..._mine,...PRECS])];
+  return`<div class="ux-assets"><datalist id="prec-list">${_precOpts.map(v=>`<option value="${esc(v)}"></option>`).join('')}</datalist>${_isUpd?'<h2 class="ux-page-h">Update assets and materials</h2>':'<div class="sechd" style="margin-top:0">Instructions</div>'}
+  ${_isUpd?'':`<div class="hbox">Add each <strong>asset or material</strong> in your scope.<br>Each asset may contain multiple materials — for example, a facade panel may use ACM and structural ply.<br><br>We are focused on the high impact&lt;&gt;high volume materials — those that are majority of your procurement.  Complete fields 1–6 now; field 7 (Actual Outcome) is completed post-event.</div>`}
   <datalist id="vol-units">${VOLS.map(v=>`<option value="${esc(v)}"></option>`).join('')}</datalist>
-  <div class="sechd">Search</div>
+  <div id="asset-search-wrap" style="display:${assetSearchVisible()?'':'none'}"><div class="sechd">Search</div>
   <div style="position:relative;margin-bottom:12px">
     <span style="position:absolute;left:11px;top:50%;transform:translateY(-50%);font-size:13px;color:#aaa;pointer-events:none">&#128269;</span>
     <input type="text" id="asset-search" value="${q}" autocomplete="off" spellcheck="false"
@@ -3166,13 +3930,14 @@ function stepAssets(plan){
       style="padding-left:32px;padding-right:32px" oninput="assetSearch(this)">
     <button type="button" onclick="clearAssetSearch()" title="Clear search"
       style="position:absolute;right:6px;top:50%;transform:translateY(-50%);width:auto;background:none;border:none;cursor:pointer;color:#bbb;font-size:16px;padding:2px 6px;line-height:1">&times;</button>
-  </div>
+  </div></div>
   <div id="asset-list"></div>
   <div class="add-asset-area">
-    <p>Add a new asset or item to your plan. Each asset can hold one or more materials.<br>Select from the <strong>AO Target Materials List</strong> within each asset card — <a href="https://megtei.github.io/Materials_Methods_Plan/" target="_blank" style="color:#0091D2;font-weight:600">view the full list &#8599;</a></p>
-    <button class="btn-primary" onclick="addAsset()">+ Add asset / item</button>
+    <span class="aa-ic"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14"/><path d="M5 12h14"/></svg></span>
+    <p>Add a new asset or item to your plan. Each asset can hold one or more materials.</p>
+    <button class="btn-primary${(plan.assets||[]).length?' sec':''}" id="add-asset-btn" onclick="addAsset()">+ Add asset / item</button>
   </div>
-  <div class="acts"><button onclick="goPrev()">&larr; Back</button>${S.plan._example?'':'<button onclick="saveProgress()">Save</button>'}<button onclick="goNext()">Review &amp; Save &rarr;</button></div>`;
+  <div class="acts" id="assets-acts">${assetsActsHtml()}</div></div>`;
 }
 
 function foldEvery50(items,label){
@@ -3211,6 +3976,54 @@ function foldByApp(assets,items,label){
   return h;
 }
 
+// Assets page: group asset cards by precinct application (field 4 of the first material),
+// for every plan type. Groups start open; open/closed state is remembered across re-renders
+// so adding or editing an asset doesn't collapse the list. A search opens every group.
+function groupAssetsByApp(assets,cards,searching,withStats){
+  const groups={},order=[];
+  for(let i=0;i<cards.length;i++){
+    const a=assets[i]||{};const m=(a.materials&&a.materials[0])||{};
+    let k=(m.app&&String(m.app).trim())?String(m.app).trim():'Uncategorised';
+    const canon=PREC_APPS.find(o=>o.toLowerCase()===k.toLowerCase());if(canon)k=canon; // same category, any casing
+    if(!groups[k]){groups[k]=[];order.push(k);}
+    groups[k].push(cards[i]);
+    (groups[k].assets||(groups[k].assets=[])).push(a);
+    (groups[k].idx||(groups[k].idx=[])).push(i);
+  }
+  order.sort((x,y)=>x==='Uncategorised'?1:y==='Uncategorised'?-1:x.localeCompare(y));
+  if(!S._grpOpen)S._grpOpen={};
+  let h='';
+  for(const k of order){
+    const open=searching||S._grpOpen[k]!==false;
+    h+='<div class="agrp'+(open?' open':'')+'" data-grp="'+esc(k)+'">';
+    let stats='';
+    if(withStats){
+      const mats=(groups[k].assets||[]).flatMap(a=>a.materials||[]);const cs=circStats(mats,'stat');
+      const cl=!cs.total?'#8A97A2':cs.circular===cs.total?'#1F8A4C':cs.circular===0?'#A32E2E':'#C77B0A';
+      stats='<span class="agrp-stat">'+mats.length+' material'+(mats.length===1?'':'s')+'</span>'+(cs.total?'<span class="agrp-stat" style="color:'+cl+';font-weight:800">'+cs.circular+'/'+cs.total+' &#9851;</span>':'');
+    }
+    h+='<button type="button" class="agrp-hd" aria-expanded="'+open+'" onclick="toggleAssetGroup(this)"><span class="agrp-name">'+esc(k)+'</span><span class="agrp-n">'+groups[k].length+' asset'+(groups[k].length===1?'':'s')+'</span>'+(stats?'<span style="margin-left:auto;display:flex;gap:12px">'+stats+'</span>':'')+'<span class="agrp-chev" aria-hidden="true"'+(stats?' style="margin-left:14px"':'')+'>&#9660;</span></button>';
+    let body=groups[k].join('');
+    if(withStats){
+      body='<div class="agrp-lines">'+(groups[k].assets||[]).map((a,j)=>{
+        const mats=a.materials||[];const cs=circStats(mats,'stat');
+        const cl=!cs.total?'#8A97A2':cs.circular===cs.total?'#1F8A4C':cs.circular===0?'#A32E2E':'#C77B0A';
+        return '<div class="agrp-line"><span class="al-n">#'+(groups[k].idx[j]+1)+'</span>'
+          +'<span class="al-name">'+esc(a.assetName||'Unnamed asset')+(a.prec?'<span class="al-loc">'+esc(a.prec)+'</span>':'')+'</span>'
+          +'<span class="al-m">'+mats.length+' material'+(mats.length===1?'':'s')+'</span>'
+          +'<span class="al-c" style="color:'+cl+'">'+(cs.total?cs.circular+'/'+cs.total+' circular':'No status')+'</span></div>';
+      }).join('')+'</div>';
+    }
+    h+='<div class="agrp-bd">'+body+'</div></div>';
+  }
+  return h;
+}
+function toggleAssetGroup(btn){
+  const g=btn.closest('.agrp');if(!g)return;
+  const open=!g.classList.contains('open');
+  g.classList.toggle('open',open);btn.setAttribute('aria-expanded',open);
+  if(!S._grpOpen)S._grpOpen={};S._grpOpen[g.dataset.grp]=open;
+}
 function toggleFold(btn){
   const open=btn.dataset.open==='1';
   btn.dataset.open=open?'0':'1';
@@ -3240,10 +4053,33 @@ function clearAssetSearch(){
   refreshAssets();
 }
 
+// Assets page buttons. Empty plan: Back + Exit only (nothing to save or review yet).
+// With assets: Back on the left; Cancel, Save and the highlighted Review & Save on the right.
+function assetsActsHtml(){
+  const has=!!(S.plan&&(S.plan.assets||[]).length);
+  const back='<button type="button" class="abq-link" id="assets-back" onclick="goPrev()">&larr; Back</button>';
+  if(!has)return back+'<button type="button" class="abq-link" onclick="assetsExit()">Exit</button>';
+  return back+'<button type="button" class="abq-link" onclick="assetsExit()">Cancel</button>'
+    +(S.plan._example?'':'<button type="button" onclick="saveProgress()">Save</button>')
+    +'<button type="button" onclick="goNext()">Next: Review &rarr;</button>';
+}
+// Leaving from the Assets page asks first when there are unsaved changes (same dialog as Summary).
+function assetsExit(){
+  const dirty=S._unsaved&&!(S.plan&&S.plan._example)&&(S.plan.assets||[]).length;
+  if(dirty&&typeof confirmLeaveIfUnsaved==='function'){confirmLeaveIfUnsaved(()=>{S._unsaved=false;S.screen='home';render();});return;}
+  goHome();
+}
+function assetSearchVisible(){
+  const pl=S.plan;if(!pl||!(pl.assets||[]).length)return false;
+  return !!(pl.imported||S.formOrigin!=='new'||(S.plans||[]).some(x=>x.id===pl.id)||S._assetQ);
+}
 function refreshAssets(){
   const el=document.getElementById('asset-list');if(!el)return;
   const all=S.plan.assets||[];const sc=calcScore(all);const cl=fillClr(sc.pct);
   const q=S._assetQ||'';
+  const _sw=document.getElementById('asset-search-wrap');if(_sw)_sw.style.display=assetSearchVisible()?'':'none';
+  const _acts=document.getElementById('assets-acts');if(_acts)_acts.innerHTML=assetsActsHtml();
+  const _ab=document.getElementById('add-asset-btn');if(_ab)_ab.classList.toggle('sec',all.length>0);
   // Keep original positions so the "#N" reference stays stable while filtering.
   const idxs=[];for(let i=0;i<all.length;i++)if(assetMatchesQ(all[i],q))idxs.push(i);
   let h='';
@@ -3256,7 +4092,7 @@ function refreshAssets(){
     }else{
       const shown=idxs.map(i=>all[i]);
       const _cards=[];for(let k=0;k<idxs.length;k++)_cards.push(assetCard(all[idxs[k]],idxs[k]));
-      h+=foldByApp(shown,_cards,'Assets');
+      h+=groupAssetsByApp(shown,_cards,!!q);
     }
   }else{
     h=`<div style="text-align:center;padding:1.5rem 1rem;color:#888;font-size:13px">No assets added yet. Use the button below to add your first asset.</div>`;
@@ -3854,7 +4690,7 @@ async function removeAssetImage(aid,slot){
 // Renders two independent photo slots: the original reference image, and a
 // second "Bump-out photo" slot for the asset's actual end-of-event condition.
 function assetImageBlock(a){
-  return imgSlotBlock(a,1,'Image')+imgSlotBlock(a,2,'Bump-out photo');
+  return '<div class="g2">'+imgSlotBlock(a,1,'Image')+imgSlotBlock(a,2,'Bump-out photo')+'</div>';
 }
 function imgSlotBlock(a,slot,label){
   const F=imgSlotFields(slot);
@@ -3899,19 +4735,19 @@ function assetCard(a,i){
         <div class="fold-body" style="display:none;padding:0">
           <div style="padding:12px">
             <div class="g2" style="margin-bottom:0">
-              <div class="fg"><label>Asset ID</label><input type="text" data-aid="${a.id}" data-f="assetId" value="${esc(a.assetId||'')}" placeholder="e.g. PS-AR-01" onblur="upAsset(this)"></div>
-              <div class="fg"><label>Current serial number</label><input type="text" data-aid="${a.id}" data-f="serialNumber" value="${esc(a.serialNumber||'')}" placeholder="e.g. MEDIA OPS 26001" onblur="upAsset(this)"></div>
+              <div class="fg"><label>Asset ID (optional)</label><input type="text" data-aid="${a.id}" data-f="assetId" value="${esc(a.assetId||'')}" placeholder="If you use a tracking system" onblur="upAsset(this)"></div>
+              <div class="fg"><label>Current serial number</label><input type="text" data-aid="${a.id}" data-f="serialNumber" value="${esc(a.serialNumber||'')}" placeholder="Current year Warehouse ref #" onblur="upAsset(this)"></div>
             </div>
             <div class="g2" style="margin-bottom:0">
               <div class="fg"><label>New serial number</label><input type="text" data-aid="${a.id}" data-f="serialNumberNew" value="${esc(a.serialNumberNew||'')}" placeholder="Leave blank until bump-out\u2026" onblur="upAsset(this)"></div>
-              <div class="fg"><label>No. of items</label><input type="text" data-aid="${a.id}" data-f="noOfItems" value="${esc(a.noOfItems||'')}" placeholder="e.g. 2" onblur="upAsset(this)"></div>
+              <div class="fg"><label>No. of items</label><input type="text" data-aid="${a.id}" data-f="noOfItems" value="${esc(a.noOfItems||'')}" onblur="upAsset(this)"></div>
             </div>
             <div class="g2" style="margin-bottom:0">
-              <div class="fg"><label>Year built</label><input type="text" data-aid="${a.id}" data-f="yearBuilt" value="${esc(a.yearBuilt||'')}" placeholder="e.g. 2023" onblur="upAsset(this)"></div>
+              <div class="fg"><label>Year built</label><input type="text" data-aid="${a.id}" data-f="yearBuilt" value="${esc(a.yearBuilt||'')}" onblur="upAsset(this)"></div>
               <div class="fg"><label>Builder / supplier</label><input type="text" data-aid="${a.id}" data-f="builderSupplier" value="${esc(a.builderSupplier||'')}" onblur="upAsset(this)"></div>
             </div>
             ${assetImageBlock(a)}
-            <div class="fg"><label>Comments</label><textarea data-aid="${a.id}" data-f="comments" rows="2" onblur="upAsset(this)">${esc(a.comments||'')}</textarea></div>
+            <div class="fg"><label>Comments</label><textarea data-aid="${a.id}" data-f="comments" rows="1" onblur="upAsset(this)">${esc(a.comments||'')}</textarea></div>
           </div>
         </div>
       </div>`:'';
@@ -3922,35 +4758,37 @@ function assetCard(a,i){
       <span class="aname">${esc(displayName)}</span>${serialBdg}
       <span style="flex:1;min-width:0"></span>
       ${assetCirc(a)}
-      <button class="del-btn" onclick="event.stopPropagation();delAsset('${a.id}')" style="background:none;border:none;cursor:pointer;color:#ccc;padding:10px 12px;font-size:16px;border-radius:6px;flex-shrink:0" title="Delete asset">&times;</button>
+      ${assetIsSaved(a)?'':`<button class="del-btn" onclick="event.stopPropagation();delAsset('${a.id}')" style="background:none;border:none;cursor:pointer;color:#ccc;padding:10px 12px;font-size:16px;border-radius:6px;flex-shrink:0" title="Delete asset">&times;</button>`}
       <span id="arr-${a.id}" style="font-size:10px;color:#aaa;flex-shrink:0">${a.expanded?'&#9650;':'&#9660;'}</span>
     </div>
     <div class="acard-bd" id="abd-${a.id}" ${a.expanded?'':'style="display:none"'}>
-
+      <div class="asset-core">
       <div class="g2" style="margin-bottom:0">
         <div class="fg">
-          <label>1. AO Location / Precinct *</label>
-          <input type="text" data-aid="${a.id}" data-f="prec" value="${esc(a.prec)}" placeholder="e.g. Garden Square, Rod Laver Arena, Show Courts…" onblur="upAsset(this)">
+          <label><span class="qn">1</span>AO Location / Precinct <span class="req">*</span></label>
+          <input type="text" list="prec-list" autocomplete="off" data-aid="${a.id}" data-f="prec" value="${esc(a.prec)}" placeholder="e.g. New Balance/ GSO" onblur="upAsset(this)">
         </div>
         <div class="fg">
-          <label>2. Asset / item name *</label>
-          <input type="text" data-aid="${a.id}" data-f="assetName" value="${esc(a.assetName)}" placeholder="e.g. FOH Reception Desk, Marquee, Wayfinding Totems…" onblur="upAsset(this)">
+          <label><span class="qn">2</span>Asset / item name <span class="req">*</span></label>
+          <input type="text" data-aid="${a.id}" data-f="assetName" value="${esc(a.assetName)}" placeholder="Activation facades/ photo wall" onblur="upAsset(this)">
         </div>
       </div>
 
       <div class="fg">
-        <label>3. Description</label>
+        <label><span class="qn">3</span>Description</label>
         <textarea data-aid="${a.id}" data-f="desc" rows="2" placeholder="e.g. 2 × bespoke FOH desks, thematic branding overlay across 3 zones…" onblur="upAsset(this)">${esc(a.desc)}</textarea>
       </div>
 
 ${taBlock}
+      </div>
       <div class="mats-divider">
         <span class="mats-divider-lbl">Materials in this asset (${a.materials.length})</span>
       </div>
       <div id="mats-${a.id}">${matsHtml}</div>
 
       <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:12px;padding-top:10px;border-top:1px solid #e8e5de">
-        <button class="btn-add-mat" onclick="addAssetMat('${a.id}')">+ Add material</button>
+        ${assetIsSaved(a)?`<button type="button" class="asset-del" onclick="confirmDelAsset('${a.id}')">Delete asset</button>`:''}
+        <button class="btn-add-mat" onclick="addAssetMat('${a.id}')">+ Add another material to this asset</button>
         <button onclick="saveAsset('${a.id}')" style="font-size:12px;padding:5px 16px;color:#0F6E56;background:#E1F5EE;border-color:#b7e4d0;font-weight:600">Save asset ✓</button>
       </div>
 
@@ -3967,11 +4805,11 @@ function matRowHtml(aid,m,idx){
   // silently dropped — the user can still change it, but nothing is lost on render.
   const outVal=m.outcome||'';
   const outLegacy=outVal&&!OUTCOMES.includes(outVal);
-  const outOpts=`<option value="">Select actual outcome...</option>`
+  const outOpts=`<option value="">Select actual status...</option>`
     +(outLegacy?`<option value="${esc(outVal)}" selected>${esc(outVal)}</option>`:'')
     +OUTCOMES.map(v=>`<option${v===outVal?' selected':''}>${esc(v)}</option>`).join('');
   // Field 7 "Other material" shown when no TML selected or OTHER selected
-  const showF7=(!m.tmlRef||m.tmlRef==='OTHER');
+  const showF7=(m.tmlRef==='OTHER'||(!m.tmlRef&&!!m.name));
   const matLabel=m.name||(m.cat?m.cat.split('(')[0].trim():'')||'Material '+(idx+1);
   // Precinct application: preserve an imported value that isn't in the option list
   const appList=(S.plan.roleType==='TA'?PREC_APPS_TA:PREC_APPS);
@@ -3985,15 +4823,15 @@ function matRowHtml(aid,m,idx){
       <button onclick="delAssetMat('${aid}','${m.id}')" style="background:none;border:none;cursor:pointer;color:#ccc;padding:8px 10px;font-size:14px;border-radius:6px;flex-shrink:0" title="Remove material">&times;</button>
     </div>
     ${idx===0?`<div class="fg">
-      <label>4. Precinct application *</label>
+      <label><span class="qn">4</span>Precinct application <span class="req">*</span></label>
       <select data-aid="${aid}" data-mid="${m.id}" data-f="app" onchange="upAssetMat(this)">
         ${appOpts}
       </select>
     </div>`:''}
     <div class="fg">
-      <label>5. Material details *<span class="name-sub-label">Select from AO Target Materials List (<a href="https://megtei.github.io/Materials_Methods_Plan/" target="_blank" style="color:#0091D2;font-weight:700">view full list &#8599;</a>) or tell us at 5a</span></label>
+      <label><span class="qn">5</span>Material details <span class="req">*</span><span class="name-sub-label">Select from AO Target Materials List (<a href="https://megtei.github.io/Materials_Methods_Plan/" target="_blank" style="color:#0091D2;font-weight:700">view full list &#8599;</a>) or tell us at 5a</span></label>
       <select data-aid="${aid}" data-mid="${m.id}" data-f="tmlRef" onchange="pickAssetMatTML(this)">
-        <option value="">- Select from AO Target Materials List -</option>
+        <option value="">- Select material -</option>
         <option value="OTHER"${m.tmlRef==='OTHER'?' selected':''}>Not AO target material \u2013 go to 5a</option>
         <option value="" disabled style="color:#ccc">\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500</option>
         ${renderTMLOptions(m.tmlRef)}
@@ -4001,19 +4839,19 @@ function matRowHtml(aid,m,idx){
       ${tmlInfo}
     </div>
     <div class="fg" id="f7-${m.id}"${showF7?'':' style="display:none"'}>
-      <label>5a. If not on the AO target materials list, provide material name here *</label>
-      <input type="text" data-aid="${aid}" data-mid="${m.id}" data-f="name" value="${esc(m.name)}" placeholder="Enter material name\u2026" onblur="upAssetMat(this)">
+      <label><span class="qn sm">5a</span>If not on the AO target materials list, provide material name here <span class="req">*</span></label>
+      <input type="text" data-aid="${aid}" data-mid="${m.id}" data-f="name" value="${esc(m.name)}" placeholder="Describe the material" onblur="upAssetMat(this)">
     </div>
     <div style="display:flex;gap:8px;align-items:flex-end">
-      <div class="fg" style="flex:1;margin-bottom:0"><label>Volume${S.plan.roleType==='TA'?'':' *'}</label><input type="text" data-aid="${aid}" data-mid="${m.id}" data-f="vol" value="${esc(m.vol)}" placeholder="e.g. 50" onblur="upAssetMat(this)"></div>
-      <div class="fg" style="width:120px;margin-bottom:0"><label>Unit${S.plan.roleType==='TA'?'':' *'}</label><input type="text" list="vol-units" data-aid="${aid}" data-mid="${m.id}" data-f="vunit" value="${esc(vunitVal)}" placeholder="e.g. sheets" autocomplete="off" onblur="upAssetMat(this)"></div>
+      <div class="fg" style="flex:1;margin-bottom:0"><label>Volume (estimate) <span class="req">*</span></label><input type="text" data-aid="${aid}" data-mid="${m.id}" data-f="vol" value="${esc(m.vol)}" placeholder="10 sheets/ 2 rolls/ 5kg" onblur="upAssetMat(this)"></div>
+      <div class="fg" style="width:120px;margin-bottom:0"><label>Unit${S.plan.roleType==='TA'?'':' <span class="req">*</span>'}</label><input type="text" list="vol-units" data-aid="${aid}" data-mid="${m.id}" data-f="vunit" value="${esc(vunitVal)}" placeholder="Kg/ sqm/ lm etc" autocomplete="off" onblur="upAssetMat(this)"></div>
     </div>
     <div class="fg" style="margin-top:8px">
-      <label>6. Expected material status at end of event *</label>
-      <select data-aid="${aid}" data-mid="${m.id}" data-f="stat" onchange="upAssetMat(this)">${mkOpts(STATS,m.stat,'Select status...')}</select>
+      <label><span class="qn">6</span>Expected material status at end of event <span class="req">*</span></label>
+      <select class="stat-sel" data-tone="${statTone(m.stat)}" data-aid="${aid}" data-mid="${m.id}" data-f="stat" onchange="upAssetMat(this);this.dataset.tone=statTone(this.value)">${mkOpts(STATS,m.stat,'Select status...')}</select>
     </div>
-    <div class="fg">
-      <label style="color:#aaa">7. Actual outcome <span style="font-size:10px;font-weight:400">(complete post-event)</span></label>
+    <div class="fg f7-box">
+      <label><span class="qn gy">7</span>Actual outcome<span class="f7-tag">complete post-event</span></label>
       <select data-aid="${aid}" data-mid="${m.id}" data-f="outcome" onchange="upAssetMat(this);toggleOutcomeOther(this,'${aid}','${m.id}')">${outOpts}</select>
       ${m.outcome==='Other'?`<input type="text" data-aid="${aid}" data-mid="${m.id}" data-f="outcomeOther" value="${esc(m.outcomeOther||'')}" placeholder="Please specify..." onblur="upAssetMat(this)" style="margin-top:6px">`:'<span id="outcome-other-'+aid+'-'+m.id+'" style="display:none"><input type="text" data-aid="'+aid+'" data-mid="'+m.id+'" data-f="outcomeOther" value="'+esc(m.outcomeOther||'')+'" placeholder="Please specify..." onblur="upAssetMat(this)" style="margin-top:6px"></span>'}
     </div>
@@ -4035,7 +4873,7 @@ function stepSummary(plan){
   const customMats=allMats.filter(m=>!m.tmlRef||m.tmlRef==='OTHER');
   const flaggedAssets=assets.filter(a=>a.materials.some(m=>{if(!m.tmlRef||m.tmlRef==='OTHER')return false;const t=TML.find(x=>x.ref===m.tmlRef);return t&&t.status==='no';}));
   const flaggedBlock=flaggedAssets.length?'<div class="card"><div class="sechd" style="margin-top:0;color:#854F0B">Limit use if possible or seek alternatives ('+flaggedAssets.length+')</div><div style="background:#FAEEDA;border-radius:8px;padding:10px 12px;font-size:13px;color:#854F0B;margin-bottom:12px">Review these assets. Consider switching to AO recommended alternatives where possible. <a href="https://megtei.github.io/Materials_Methods_Plan/" target="_blank" style="color:#854F0B;font-weight:700;text-decoration:underline">View AO Target Materials List &#8599;</a></div>'+flaggedAssets.map(a=>{const flagMats=a.materials.filter(m=>{if(!m.tmlRef||m.tmlRef==='OTHER')return false;const t=TML.find(x=>x.ref===m.tmlRef);return t&&t.status==='no';});return'<div class="srow"><span class="bdg am">'+esc(a.assetName||'Asset')+'</span><span style="flex:1;margin:0 8px;color:#555;font-size:12px">'+flagMats.map(m=>esc(m.name||m.tmlRef)).join(', ')+'</span></div>';}).join('')+'</div>':'';
-  const assetRows=foldByApp(assets,assets.map((a,idx2)=>{
+  const assetRows=groupAssetsByApp(assets,assets.map((a,idx2)=>{
     const precLabel=a.prec||'';
     const matList=a.materials.map(m=>{
       const statClr=STCOL[m.stat]||'#94a3b8';
@@ -4061,7 +4899,7 @@ function stepSummary(plan){
       +'</button>'
       +'<div class="fold-body" style="display:none;padding:0 12px 10px 12px">'+descHtml+'<div class="smat-list">'+matList+'</div></div>'
     +'</div>';
-  }),'Assets');
+  }),false,true);
 
   const lastEditedHtml=plan.lastEditedBy?'<div style="margin-top:10px;padding-top:10px;border-top:1px solid #e8e5de"><div style="display:flex;justify-content:space-between;align-items:baseline"><div style="font-size:12px;color:#888">Last edited by</div><div style="font-size:11px;color:#aaa">'+(plan.lastEditedAt?fmtDate(plan.lastEditedAt):'')+'</div></div><div style="font-size:13px;font-weight:600;color:#0091D2;margin-top:2px">'+esc(plan.lastEditedBy)+'</div></div>':'';
   const storageHtml=p.storageDetails?'<div style="margin-top:10px"><div style="font-size:12px;color:#888">Storage</div><div style="font-size:13px;margin-top:2px;color:#1a1a1a">'+esc(p.storageDetails)+'</div></div>':'';
@@ -4070,7 +4908,12 @@ function stepSummary(plan){
   const saveBtnHtml=S.plan._example?'':'<button onclick="savePlan()" style="background:linear-gradient(135deg,#0091D2,#0072A8);color:#fff;border-color:#0072A8;font-weight:700;padding:9px 20px;box-shadow:0 2px 8px rgba(0,145,210,.3)">Save &amp; exit &#10003;</button>';
   const unsavedBadge=S._unsaved&&!S.plan._example?'<span id="unsaved-badge" style="font-size:11px;font-weight:700;color:#854F0B;background:#FAEEDA;border:1px solid #f5ddb7;border-radius:6px;padding:3px 9px;white-space:nowrap">&#9679; Unsaved changes</span>':'';
 
-  let h='';
+  let h='<div class="ux-summary">';
+  h+='<div class="abq-card"><div class="abq-bar"><div class="abq-fill" style="width:100%"></div></div><div class="abq-body" style="padding-bottom:22px">';
+  h+='<div class="abq-meta"><b>'+esc(p.aoYear||'AO27')+'</b></div>';
+  h+='<h2 class="abq-h" style="margin-bottom:6px">Review &amp; Save</h2>';
+  h+='<p class="abq-sub" style="margin-bottom:0">See your circularity score, flag any non-recommended materials, and save or print your plan.</p>';
+  h+='</div></div>';
   h+='<div class="card">';
   h+='<div class="sechd" style="margin-top:0">Plan details</div>';
   h+='<div class="g2"><div><div style="font-size:12px;color:#888">Business</div><div style="font-size:14px;font-weight:600;margin-top:2px">'+(esc(p.businessName)||'-')+'</div></div><div><div style="font-size:12px;color:#888">Plan owner</div><div style="font-size:14px;margin-top:2px">'+(esc(p.ownerName)||'-')+'</div></div></div>';
@@ -4089,7 +4932,7 @@ function stepSummary(plan){
   h+='</div>';
   const actualCts={};for(const m of allMats)if(m.outcome&&m.outcome!=='')actualCts[m.outcome]=(actualCts[m.outcome]||0)+1;
   const actualRows=Object.entries(actualCts).sort((a,b)=>b[1]-a[1]).map(([s,n])=>'<div class="srow"><div class="sdot" style="background:'+(STCOL[s]||'#9ca3af')+'"></div><div style="flex:1;color:#1a1a1a">'+esc(s)+'</div><div style="font-weight:600;min-width:20px;text-align:right">'+n+'</div></div>').join('');
-  if(allMats.length&&stRows)h+='<div class="card"><div style="display:grid;grid-template-columns:1fr 1fr;gap:16px"><div><div class="sechd" style="margin-top:0">Materials by expected status</div>'+stRows+'</div><div><div class="sechd" style="margin-top:0;color:#0091D2">Materials ACTUALS POST EVENT</div>'+(actualRows||'<div style="font-size:13px;color:#aaa;margin-top:6px">Complete field 8 at bump-out to track actuals.</div>')+'</div></div></div>';
+  if(allMats.length&&stRows)h+='<div class="card"><div style="display:grid;grid-template-columns:1fr 1fr;gap:16px"><div><div class="sechd" style="margin-top:0">Materials by expected status</div>'+stRows+'</div><div><div class="sechd" style="margin-top:0;color:#0091D2">Materials ACTUALS POST EVENT</div>'+(actualRows||'<div style="font-size:13px;color:#aaa;margin-top:6px">Complete field 7 at bump-out to track actuals.</div>')+'</div></div></div>';
   h+='<div class="card"><div class="sechd" style="margin-top:0">AO Target Materials coverage</div><div class="g2"><div class="met"><div class="mval" style="color:#0091D2">'+tmlMats.length+'</div><div class="mlbl">From AO Target List</div></div><div class="met"><div class="mval" style="color:#888">'+customMats.length+'</div><div class="mlbl">Custom / unlisted</div></div></div></div>';
   h+=flaggedBlock;
   if(assets.length)h+='<div class="card"><div class="sechd" style="margin-top:0">Asset &amp; material detail</div>'+assetRows+'</div>';
@@ -4105,7 +4948,8 @@ function stepSummary(plan){
     +'<a onclick="switchTab(\'faq\');setTimeout(()=>{const el=document.getElementById(\'faq-privacy\');if(el){el.classList.add(\'open\');const ic=document.getElementById(\'icon-faq-privacy\');if(ic)ic.classList.add(\'open\');}},100);return false;" href="#" style="color:#0091D2;font-weight:600;text-decoration:underline">View our full Privacy Policy</a> to learn more.'
     +'</div>';
   h+=consentHtml;
-  h+='<div class="acts" style="margin-top:.75rem"><button onclick="goPrev()">&larr; Back</button>'+(S.plan._example?'<button onclick="goHome()" style="background:#0091D2;color:#fff;border-color:#0091D2;font-weight:700">&#8962; Home</button>':'<button onclick="window.print()">Print / PDF</button><button onclick="exportPlanXLS()">Export XLS</button>'+unsavedBadge+saveBtnHtml)+'</div>';
+  h+='<div class="acts" style="margin-top:.75rem"><button type="button" class="abq-link" onclick="goPrev()">&larr; Back</button>'+(S.plan._example?'<button onclick="goHome()" style="background:#0091D2;color:#fff;border-color:#0091D2;font-weight:700">&#8962; Home</button>':'<button type="button" class="sum-sec" onclick="window.print()"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9V2h12v7"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>Print / PDF</button><button type="button" class="sum-sec" onclick="exportPlanXLS()"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m7 10 5 5 5-5"/><path d="M12 15V3"/></svg>Export XLS</button>'+unsavedBadge+saveBtnHtml)+'</div>';
+  h+='</div>';
   return h;
 }
 
@@ -5126,6 +5970,7 @@ function goNext(){
         if(!m.tmlRef&&!lenient)errors.push(ml+': Select a material from the AO Target Materials List or choose "Not AO target material" (field 6)');
         if(m.tmlRef==='OTHER'&&!m.name&&!lenient)errors.push(ml+': Material name required at 6a');
         if(!m.stat&&!lenient)errors.push(ml+': Expected status (field 7) is required');
+        if(!String(m.vol||'').trim()&&!S.plan.imported&&!S.plan._example)errors.push(ml+': Volume (estimate) is required');
       });
     });
     if(errors.length){
@@ -5289,7 +6134,7 @@ function showSavedModal(code, source){
   const closeBtn=document.createElement('button');
   closeBtn.style.cssText='width:100%;padding:9px;background:#f5f5f3;color:#555;border:1px solid #ddd;border-radius:8px;font-size:13px;cursor:pointer;font-family:inherit';
   closeBtn.textContent='Close';
-  closeBtn.onclick=function(){m.remove();};
+  closeBtn.onclick=function(){m.remove();fbMaybePrompt(code);};
   inner.appendChild(copyBtn);inner.appendChild(note);inner.appendChild(closeBtn);
   m.appendChild(inner);
   document.body.appendChild(m);
@@ -5302,7 +6147,7 @@ function showSavedModal(code, source){
       srcNote.innerHTML='<span style="color:#854F0B;font-weight:700">Saved locally only'+(SUPABASE_READY?'':' (Supabase not configured)')+'.</span> ';
     }
   }
-  m.addEventListener('click',function(e){if(e.target===m)m.remove();});
+  m.addEventListener('click',function(e){if(e.target===m){m.remove();fbMaybePrompt(code);}});
 }
 
 // ── Asset CRUD ────────────────────────────────────────────────────────────────
@@ -5341,6 +6186,17 @@ function addAsset(){
   refreshAssets();
   setTimeout(()=>{const els=document.querySelectorAll('.acard-bd');if(els.length)els[els.length-1].scrollIntoView({behavior:'smooth',block:'nearest'})},80);
 }
+// An asset counts as added once it's in the saved copy of the plan (Save asset ✓, Save,
+// or a loaded/imported plan). Until then the header × simply discards it.
+function assetIsSaved(a){
+  const saved=(S.plans||[]).find(p=>S.plan&&p.id===S.plan.id);
+  return !!(saved&&(saved.assets||[]).some(x=>x.id===a.id));
+}
+function confirmDelAsset(aid){
+  const a=(S.plan.assets||[]).find(x=>x.id===aid);if(!a)return;
+  if(!confirm('Delete "'+(a.assetName||'this asset')+'" and all its materials?'))return;
+  delAsset(aid);S._unsaved=true;
+}
 function delAsset(aid){
   S.plan.assets=S.plan.assets.filter(a=>a.id!==aid);
   refreshAssets();
@@ -5355,7 +6211,7 @@ function toggleAsset(aid){
 
 function saveAsset(aid){
   const ok=storageSave(S.plan);
-  if(ok){const i=S.plans.findIndex(p=>p.id===S.plan.id);if(i>=0)S.plans[i]=JSON.parse(JSON.stringify(S.plan));else S.plans.unshift(JSON.parse(JSON.stringify(S.plan)));showToast('Asset saved \u2713');}
+  if(ok){const i=S.plans.findIndex(p=>p.id===S.plan.id);if(i>=0)S.plans[i]=JSON.parse(JSON.stringify(S.plan));else S.plans.unshift(JSON.parse(JSON.stringify(S.plan)));showToast('Asset saved \u2713');refreshAssets();}
   else showToast('Save failed - please try again');
 }
 
