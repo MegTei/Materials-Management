@@ -794,6 +794,56 @@ select.stat-sel[data-tone=""]{padding-left:10px!important}
 #main .ux-assets .asset-core .qn{background:#4A5561}
 #main .ux-assets .acard .mat-row .qn{background:var(--ux-sky)}
 #main .ux-assets .acard .mat-row .qn.gy{background:#C9D4DE}
+#tab-update{display:none!important}
+@media (max-width:560px){#main #hub-tiles{grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}#main #hub-tiles .tile{padding:12px 6px;font-size:12px}}
+#main .hub-panel{display:none;margin-top:16px;padding:14px 16px;background:var(--ux-sel,#EEF6FB);border-radius:12px}
+#main .hub-panel.on{display:block}
+#main .hub-p{font-size:12.5px;color:var(--ux-body);margin:0 0 8px}
+#main .hub-msg{margin-top:.4rem;font-size:11px;color:#5B6B7B}
+#main .hub-panel .retrieve-row input{height:40px;font-size:13px;min-width:0;flex:1}
+#main .hub-panel .retrieve-row button{height:40px;font-size:13px;padding:0 14px}
+#main .hub-panel .stage-sub{border-top-color:rgba(12,27,71,.1)}
+#main .hub-h2{font-size:18px;font-weight:600;color:rgba(255,255,255,.92);margin:0 0 10px}
+#main .intro-hero .tile.big.sel{border-color:#0AE6FF;background:#fff;box-shadow:0 0 0 3px rgba(10,230,255,.45)}
+#main .hub-sub-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+#main .hub-sub{background:#fff;border-radius:12px;padding:14px 16px;display:flex;flex-direction:column}
+#main .hub-sub .hub-p{flex:1}
+#main .hub-sub-hd{display:flex;align-items:center;gap:8px;font-size:14px;font-weight:700;color:var(--ux-ink);margin-bottom:6px}
+@media (max-width:760px){#main .hub-sub-grid{grid-template-columns:1fr}}
+#main .hub-back{color:rgba(255,255,255,.85)!important;padding-left:0}
+#main .hub-back:hover{color:#fff!important}
+#main .stage-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+#main .stage-card{border:2px solid transparent}
+#main .stage-card.on{border-color:#0AE6FF}
+#main .stage-card .retrieve-row input{height:38px;font-size:12.5px;min-width:0}
+#main .stage-card .retrieve-row button{height:38px;font-size:12.5px;padding:0 12px}
+#main .stage-btns{display:flex;flex-direction:column;gap:8px}
+#main .stage-btns button{width:100%;justify-content:center}
+#main .stage-sec{height:40px;border:1.5px solid var(--ux-blue);background:#fff;color:var(--ux-blue);border-radius:8px;font-weight:700;font-size:13.5px}
+#main .stage-sec:hover{background:var(--ux-sel)}
+#main .stage-sub{font-size:11px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--ux-mute);margin:16px 0 4px;padding-top:12px;border-top:1px solid var(--ux-soft)}
+#main .stage-card #report-input + button,#main .stage-card .retrieve-row:has(#report-input){flex-wrap:wrap}
+#main .stage-card .retrieve-row:has(#report-input) input{flex:1 1 100%}
+#main .stage-card .retrieve-row:has(#report-input) button{flex:1 1 100%;background:#1F8A4C;border-color:#1F8A4C}
+@media (max-width:760px){#main .stage-grid{grid-template-columns:1fr}}
+#main .ux-assets:not(.report-mode) .acard .f7-box{display:none}
+#main .report-mode .mat-row:not(.rm-open) > :not(.mat-row-hd):not(.rm-sum):not(.f7-box){display:none!important}
+@media(max-width:760px){#main .stage-grid{grid-template-columns:1fr}}
+#main .report-mode .rm-sum{display:flex;align-items:center;gap:8px;background:#F7F6F2;border-radius:8px;padding:8px 12px;margin-bottom:10px;font-size:12px;color:#555}
+#main .report-mode .rm-txt{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#main .report-mode .rm-edit{background:none;border:none;color:var(--ux-sky);font-weight:700;font-size:12px;padding:4px 6px;flex-shrink:0}
+#main .report-mode .f7-box{background:#EEF7F3!important;border:1.5px solid #BFE3D4!important;border-style:solid!important;border-radius:12px;padding:12px!important;margin-bottom:10px}
+#main .report-mode .f7-box label{color:var(--ux-ink)!important}
+#main .report-mode .f7-box .qn{background:#1F8A4C!important}
+#main .report-mode .f7-box .f7-tag{background:#D6EFE3;color:#1F6B3E}
+#main .report-mode .mat-row-hd button[title="Remove material"],#main .report-mode .btn-add-mat,#main .report-mode .asset-del,#main .report-mode .add-asset-area,#main .report-mode .acard-hd .del-btn{display:none!important}
+#main .ux-page-sub{font-size:12.5px;color:var(--ux-body);margin:0 0 14px}
+#main .report-cta{display:flex;align-items:center;gap:16px;justify-content:space-between;background:#EEF7F3!important;border:1.5px solid #BFE3D4!important}
+#main .report-cta .abq-next{background:#1F8A4C!important;flex-shrink:0}
+#main .tile svg.ico-rich{width:30px;height:30px}
+#main .tile.big svg.ico-rich{width:34px;height:34px}
+#main .tile.sel{--ux-icofill:#BFE6F7}
+#main .tile .ta-logo{width:52px;height:auto;flex-shrink:0}
 </style>
 </head>
 <body>
@@ -824,7 +874,7 @@ select.stat-sel[data-tone=""]{padding-left:10px!important}
   <div class="tab-nav">
     <div class="tab-nav-inner">
       <button class="tab-btn active" id="tab-plan" onclick="switchTab('plan')">Home</button>
-      <button class="tab-btn" id="tab-new" onclick="goCreateIntro()">New materials plan</button>
+      <button class="tab-btn" id="tab-new" onclick="goCreateIntro()">Materials plan</button>
       <button class="tab-btn" id="tab-update" onclick="switchTab('update')">Update Materials plan</button>
       <button class="tab-btn" id="tab-forecast" onclick="switchTab('forecast')">Forecast</button>
       <button class="tab-btn" id="tab-faq" onclick="switchTab('faq')">FAQs</button>
@@ -1123,7 +1173,7 @@ const planDB = {
 async function retrievePlan(){
   const inp=document.getElementById('retrieve-input');
   const msg=document.getElementById('retrieve-msg');
-  const btn=document.querySelector('.retrieve-row button');
+  const btn=document.getElementById('retrieve-btn')||document.querySelector('.retrieve-row button');
   if(!inp)return;
   const code=inp.value.trim().toUpperCase();
   if(code.length<9){
@@ -1699,7 +1749,7 @@ function switchTab(tab){
   S.xlsUpdateTargetId=null;
   window.scrollTo({top:0,behavior:'smooth'});
   document.getElementById('tab-plan').classList.toggle('active',tab==='plan');
-  document.getElementById('tab-new').classList.toggle('active',tab==='new');
+  document.getElementById('tab-new').classList.toggle('active',tab==='new'||tab==='update');
   document.getElementById('tab-update').classList.toggle('active',tab==='update');
   document.getElementById('tab-forecast').classList.toggle('active',tab==='forecast');
   document.getElementById('tab-faq').classList.toggle('active',tab==='faq');
@@ -1712,6 +1762,7 @@ function switchTab(tab){
 }
 
 function render(){
+  if(S._reportMode&&(!S.plan||S._reportFor!==S.plan.id))S._reportMode=false;
   if(S.screen==='loading'){document.getElementById('main').innerHTML='<div style="padding:2rem;text-align:center;color:#888;font-size:13px">Loading...</div>';return}
   const tabNav=document.getElementById('tab-nav');
   tabNav.style.display='';
@@ -1720,7 +1771,7 @@ function render(){
     // Sync tab active states
     ['plan','new','update','forecast','faq','admin'].forEach(t=>{
       const el=document.getElementById('tab-'+t);
-      if(el)el.classList.toggle('active',t===S.tab);
+      if(el)el.classList.toggle('active',t===(S.tab==='update'?'new':S.tab));
     });
     if(S.tab==='update')renderUpdateTab();
     else if(S.tab==='forecast')renderForecastTab();
@@ -1734,13 +1785,19 @@ function render(){
       if(el)el.classList.toggle('active',t==='new');
     });
     renderCreateIntro();
+  } else if(S.screen==='create-start'){
+    ['plan','new','update','forecast','faq','admin'].forEach(t=>{
+      const el=document.getElementById('tab-'+t);
+      if(el)el.classList.toggle('active',t==='new');
+    });
+    renderCreateStart();
   } else {
     // Form view: keep tabs, highlight based on how this plan was opened
     // (new-plan flow vs. retrieving/importing an existing plan to update)
     const formTab=S.formOrigin==='update'?'update':(S.formOrigin==='new'?'new':'plan');
     ['plan','new','update','forecast','faq','admin'].forEach(t=>{
       const el=document.getElementById('tab-'+t);
-      if(el)el.classList.toggle('active',t===formTab);
+      if(el)el.classList.toggle('active',t===(formTab==='update'?'new':formTab));
     });
     renderForm();
   }
@@ -1860,7 +1917,7 @@ function renderPlanTab(){
   h+='</div>';
   document.getElementById('main').innerHTML=h;
 }
-function renderCreateIntro(){
+function renderCreateStart(){
   const pb=document.getElementById('page-body-wrap');
   if(pb){pb.style.padding='1.25rem 1rem 2rem';}
   const tile=(fn,icon,t)=>'<button type="button" class="tile big" onclick="'+fn+'()">'+abqIcon(icon)+'<span class="tb-t">'+t+'</span></button>';
@@ -1875,6 +1932,7 @@ function renderCreateIntro(){
   h+=tile('startTA','TA PM','I work for TA');
   h+=tile('startExternal','Builder','I am an Agency/ Builder');
   h+='</div>';
+  h+='<div class="abq-nav" style="border-top-color:rgba(255,255,255,.18)"><button type="button" class="abq-link hub-back" onclick="goCreateIntro()">&larr; Back</button></div>';
   h+='</div></div>';
   h+='<div class="abq-card"><div class="abq-body">';
   h+='<h3 class="abq-sec" style="margin-top:0">How it works</h3>';
@@ -1889,39 +1947,117 @@ function renderCreateIntro(){
 
 
 
-function renderUpdateTab(){
+// Materials plan hub: one question card with three stages (Create · Update/ maintain · End of event reporting).
+// Materials plan tab: front door (TA / Agency-Builder) then Create · Update/ maintain · End of event reporting, all on one page.
+function renderPlanHub(active){
   const pb=document.getElementById('page-body-wrap');
-  if(pb){pb.style.padding='0';}
-  let h='<div style="padding:1.25rem 1rem 2rem">';
+  if(pb){pb.style.padding='1.25rem 1rem 2rem';}
+  S._reportMode=false;
+  if(active==='update')S._hubSel='update';
+  else if(S._hubSel!=='update'&&S._hubSel!=='report'&&S._hubSel!=='create')S._hubSel=null;
+  const sel=S._hubSel, door=S._hubDoor||'';
+  const idRow=(id,btnLabel,fn)=>'<div class="retrieve-row"><input type="text" id="'+id+'" autocomplete="off" autocapitalize="characters" autocorrect="off" spellcheck="false" placeholder="AO27-XXXX-XXXX" maxlength="14" oninput="this.value=this.value.toUpperCase().replace(/[^A-Z0-9-]/g,\'\');" onkeydown="if(event.keyCode===13)'+fn+'()">'+(btnLabel?'<button onclick="'+fn+'()">'+btnLabel+'</button>':'')+'</div>';
+  const doorTile=(k,icon,t)=>'<button type="button" class="tile big'+(door===k?' sel':'')+'" data-door="'+k+'" onclick="hubDoor(\''+k+'\')">'+(k==='TA'?taLogoImg():abqIcon(icon))+'<span class="tb-t">'+t+'</span></button>';
+  const tile=(k,t)=>'<button type="button" class="tile'+(sel===k?' sel':'')+'" data-hub="'+k+'" onclick="hubPick(\''+k+'\')">'+hubIcon(k)+t+'</button>';
+  let h='';
+  // Front door
   h+='<div class="abq-card abq intro-hero"><div class="abq-body">';
   h+='<div class="abq-meta"><b>AO27</b></div>';
-  h+='<h2 class="abq-h" style="margin-bottom:6px">Update an existing plan</h2>';
-  h+='<p class="abq-sub">There are two ways to update your plan. Choose one at a time — editing in the tool and uploading a spreadsheet at the same time can overwrite each other.</p>';
-  h+='<div class="fc-land-grid">';
-  // Option 1: edit in the tool
-  h+='<div class="fc-land-card"><div class="fc-land-hd"><span class="qn">1</span>Edit your plan in the tool</div>';
-  h+='<p>Reload your plan with your Plan ID and make changes directly in the form — add or edit assets and materials, and enter post-event actuals at bump-out.</p>';
-  h+='<div class="retrieve-row"><input type="text" id="retrieve-input" name="ao-plan-id-retrieve" autocomplete="off" autocapitalize="characters" autocorrect="off" spellcheck="false" placeholder="AO27-XXXX-XXXX" maxlength="14" oninput="this.value=this.value.toUpperCase().replace(/[^A-Z0-9-]/g,\'\');" onkeydown="if(event.keyCode===13)retrievePlan()"><button onclick="retrievePlan()">Load plan</button></div>';
-  h+='<div id="retrieve-msg" style="margin-top:.5rem;font-size:11px;color:#5B6B7B"></div>';
-  h+='</div>';
-  // Option 2: update from edited XLS
-  h+='<div class="fc-land-card"><div class="fc-land-hd"><span class="qn" style="background:#1F8A4C">2</span>Materials plan offline updates</div>';
-  h+='<p>If you have made updates to your Materials Management plan offline in xls, provide your plan ID to upload and refresh.</p>';
-  h+='<div class="retrieve-row"><input type="text" id="xls-update-input" name="ao-plan-id-xls" autocomplete="off" autocapitalize="characters" autocorrect="off" spellcheck="false" placeholder="AO27-XXXX-XXXX" maxlength="14" oninput="this.value=this.value.toUpperCase().replace(/[^A-Z0-9-]/g,\'\');" onkeydown="if(event.keyCode===13)prepareXlsUpdate()"><button onclick="prepareXlsUpdate()">Find plan</button></div>';
-  h+='<div id="xls-update-msg" style="margin-top:.5rem;font-size:11px;color:#5B6B7B"></div>';
-  h+='<div id="xls-update-drop" style="display:none;margin-top:12px;padding:14px;border:1.5px dashed #b7e4d0;border-radius:10px;background:#F6FBF8">';
-  h+='<div style="font-size:12.5px;color:#333;margin-bottom:10px">Located <strong id="xls-update-name"></strong>. Upload your <strong>AO Materials Management</strong> spreadsheet (.xlsx) to refresh the data.<br>Note: The Plan ID in the file must match.</div>';
+  h+='<h2 class="abq-h" style="margin-bottom:2px">Working with TA owned assets</h2>';
+  h+='<div class="hub-h2">Use a materials management plan</div>';
+  h+='<p class="abq-sub">Materials management plans capture assets and materials, set circularity and waste reduction targets.</p>';
+  h+='<div class="tile-grid g2t" id="hub-door" style="margin-bottom:0">'+doorTile('TA','TA PM','I work for TA')+doorTile('EXT','Builder','I am an Agency/ Builder')+'</div>';
+  h+='</div></div>';
+  // First action
+  h+='<div class="abq-card abq hub-card" id="hub-actions"'+(door||sel?'':' style="display:none"')+'><div class="abq-body">';
+  h+='<div class="tile-grid g3t" id="hub-tiles">'+tile('create','Create')+tile('update','Update/ maintain')+tile('report','End of event reporting')+'</div>';
+  h+='<div class="hub-panel'+(sel==='update'?' on':'')+'" data-hub="update">';
+  h+='<p class="hub-p">There are two ways to update your plan. Choose one at a time — editing in the tool and uploading a spreadsheet at the same time can overwrite each other.</p>';
+  h+='<div class="hub-sub-grid">';
+  h+='<div class="hub-sub"><div class="hub-sub-hd"><span class="qn">1</span>Edit your plan in the tool</div>';
+  h+='<p class="hub-p">Reload your plan with your Plan ID and make changes directly in the form — add or edit assets and materials, and enter post-event actuals at bump-out.</p>';
+  h+='<div class="retrieve-row"><input type="text" id="retrieve-input" autocomplete="off" autocapitalize="characters" autocorrect="off" spellcheck="false" placeholder="AO27-XXXX-XXXX" maxlength="14" oninput="this.value=this.value.toUpperCase().replace(/[^A-Z0-9-]/g,\'\');" onkeydown="if(event.keyCode===13)retrievePlan()"><button id="retrieve-btn" onclick="retrievePlan()">Load plan</button></div>';
+  h+='<div id="retrieve-msg" class="hub-msg"></div></div>';
+  h+='<div class="hub-sub"><div class="hub-sub-hd"><span class="qn" style="background:#1F8A4C">2</span>Materials plan offline updates</div>';
+  h+='<p class="hub-p">If you have made updates to your Materials Management plan offline in xls, provide your plan ID to upload and refresh.</p>';
+  h+=idRow('xls-update-input','Find plan','prepareXlsUpdate');
+  h+='<div id="xls-update-msg" class="hub-msg"></div>';
+  h+='<div id="xls-update-drop" style="display:none;margin-top:10px;padding:12px;border:1.5px dashed #b7e4d0;border-radius:10px;background:#F6FBF8">';
+  h+='<div style="font-size:12px;color:#333;margin-bottom:8px">Located <strong id="xls-update-name"></strong>. Upload your <strong>AO Materials Management</strong> spreadsheet (.xlsx) to refresh the data.<br>Note: The Plan ID in the file must match.</div>';
   h+='<input type="file" accept=".xlsx" id="xls-update-file" style="display:none" onchange="importPlanXLS(this)">';
-  h+='<button class="abq-next" onclick="document.getElementById(&#39;xls-update-file&#39;).click()">&#8593; Upload edited spreadsheet</button>';
+  h+='<button class="abq-next" onclick="document.getElementById(&#39;xls-update-file&#39;).click()">&#8593; Upload edited spreadsheet</button></div>';
+  h+='</div></div>';
   h+='</div>';
+  h+='<div class="hub-panel'+(sel==='report'?' on':'')+'" data-hub="report">';
+  h+='<p class="hub-p">Return after bump-out to record actual outcomes and complete your circularity report.</p>';
+  h+=idRow('report-input','','startEventReport');
+  h+='<div id="report-msg" class="hub-msg"></div>';
   h+='</div>';
-  h+='</div></div></div>';
+  h+='<div class="abq-nav"><span style="flex:1"></span><button type="button" class="abq-link" onclick="S._hubSel=null;S._hubDoor=null;switchTab(\'plan\')">Cancel</button><button type="button" class="abq-next" id="hub-next"'+(sel==='update'?' style="display:none"':'')+' onclick="hubNext()">'+hubNextLabel(sel)+'</button></div>';
+  h+='</div></div>';
+  // How it works
+  h+='<div class="abq-card"><div class="abq-body">';
+  h+='<h3 class="abq-sec" style="margin-top:0">How it works</h3>';
+  h+='<ol class="how-list">';
+  h+='<li><span class="qn">1</span><div><div class="hl-t">About you</div><div class="hl-s">Business details, your role, and your AO27 waste and reuse targets.</div></div></li>';
+  h+='<li><span class="qn">2</span><div><div class="hl-t">Assets &amp; Materials</div><div class="hl-s">Add each asset in your scope with its materials, volumes and expected end-of-event status.</div></div></li>';
+  h+='<li><span class="qn">3</span><div><div class="hl-t">Review &amp; Save</div><div class="hl-s">See your circularity score, flag any non-recommended materials, and save or print your plan.</div></div></li>';
+  h+='<li><span class="qn" style="background:#1F8A4C">4</span><div><div class="hl-t">Post event manifest</div><div class="hl-s">Return at bump-out to record actual outcomes and complete your circularity report.</div></div></li>';
+  h+='</ol></div></div>';
   const dbStatus=SUPABASE_READY
     ?'<span style="color:#0F6E56;font-weight:700">Cloud storage active.</span> Plans save to Supabase and can be retrieved on any device using your Plan ID.'
     :'<span style="color:#854F0B;font-weight:700">Cloud storage not configured.</span> Plans save to this browser only.';
   h+='<div class="backend-notice" style="margin-top:.25rem"><strong>Plan storage: </strong>'+dbStatus+'</div>';
-  h+='</div>';
   document.getElementById('main').innerHTML=h;
+}
+function hubNextLabel(k){return k==='report'?'Submit an end of event report':'Next';}
+function hubDoor(k){
+  S._hubDoor=k;
+  document.querySelectorAll('#hub-door .tile').forEach(t=>t.classList.toggle('sel',t.dataset.door===k));
+  const act=document.getElementById('hub-actions');
+  if(act&&act.style.display==='none'){act.style.display='';act.scrollIntoView({behavior:'smooth',block:'nearest'});}
+}
+function hubPick(k){
+  S._hubSel=k;
+  const tg=document.getElementById('hub-tiles');if(tg)tg.classList.remove('err');
+  document.querySelectorAll('#hub-tiles .tile').forEach(t=>t.classList.toggle('sel',t.dataset.hub===k));
+  document.querySelectorAll('.hub-panel').forEach(p=>p.classList.toggle('on',p.dataset.hub===k));
+  const n=document.getElementById('hub-next');if(n){n.textContent=hubNextLabel(k);n.style.display=k==='update'?'none':'';}
+  const inp=document.getElementById(k==='update'?'retrieve-input':k==='report'?'report-input':'');
+  if(inp)inp.focus();
+}
+function hubNext(){
+  const k=S._hubSel;
+  if(!k){const t=document.getElementById('hub-tiles');if(t){t.classList.add('err');setTimeout(()=>t.classList.remove('err'),900);}return;}
+  if(k==='create'){
+    const d=S._hubDoor;S._hubSel=null;
+    if(d==='TA')startTA();else startExternal();
+  }
+  else if(k==='update')retrievePlan();
+  else startEventReport();
+}
+function goCreateStart(){S.screen='create-start';render();window.scrollTo({top:0});}
+function renderCreateIntro(){renderPlanHub('create');}
+function renderUpdateTab(){renderPlanHub('update');}
+// Stage 3 entry: load a plan by ID straight into End of event reporting.
+async function startEventReport(){
+  const inp=document.getElementById('report-input');const msg=document.getElementById('report-msg');
+  if(!inp)return;
+  const code=inp.value.trim().toUpperCase();
+  if(code.length<9){if(msg){msg.textContent='Enter a full Plan ID (format: AO27-XXXX-XXXX)';msg.style.color='#A32D2D';}return;}
+  if(msg){msg.textContent=SUPABASE_READY?'Searching cloud...':'Searching local plans...';msg.style.color='#888';}
+  const plan=await planDB.loadById(code);
+  if(!plan){if(msg){msg.textContent=SUPABASE_READY?'Plan not found in cloud or local storage. Check your Plan ID.':'Plan not found on this device.';msg.style.color='#A32D2D';}return;}
+  S.plan=JSON.parse(JSON.stringify(plan));
+  S.formOrigin='update';S.screen='form';
+  beginEventReport();
+  showToast('Plan loaded');
+}
+// Turns on End of event reporting for the plan in hand and opens its assets with field 7.
+function beginEventReport(){
+  if(!S.plan)return;
+  S._reportMode=true;S._reportFor=S.plan.id;S._rmOpen={};
+  S.plan.step=1;S.screen='form';render();window.scrollTo({top:0,behavior:'smooth'});
 }
 
 // Option 2 (Update tab): find the plan by ID first, then reveal the XLS upload to refresh it.
@@ -2035,8 +2171,8 @@ function renderFcForm(){
       const rl=FC_ROLES.slice();if(fc.profile.role&&!rl.includes(fc.profile.role))rl.push(fc.profile.role);
       h+='<div class="abq-card abq abq-compact"><div class="abq-bar"><div class="abq-fill" style="width:100%"></div></div><div class="abq-body">';
       h+='<div class="abq-meta"><b>Your details</b><span>'+fcCode(fc.id)+'</span></div>';
-      h+='<div class="fg"><label>Organisation *</label><input type="text" data-f="org" value="'+esc(fc.profile.org)+'" placeholder="Business name or TA dept." onblur="fcUpProfile(this)"></div>';
-      h+='<div class="fg"><label>Website *</label><input type="url" data-f="website" value="'+esc(fc.profile.website)+'" placeholder="https://www.example.com" onblur="fcUpProfile(this)"></div>';
+      h+='<div class="fg"><label id="fc-org-lbl">'+(fcIsTA(fc.profile)?'Department':'Organisation')+' *</label><input type="text" data-f="org" value="'+esc(fc.profile.org)+'" placeholder="Business name or TA dept." onblur="fcUpProfile(this)"></div>';
+      h+='<div class="fg" id="fc-web-wrap"'+(fcIsTA(fc.profile)?' style="display:none"':'')+'><label>Website *</label><input type="url" data-f="website" value="'+esc(fc.profile.website)+'" placeholder="https://www.example.com" onblur="fcUpProfile(this)"></div>';
       h+='<div class="fg"><label>Project *</label><input type="text" data-f="project" value="'+esc(fc.profile.project)+'" placeholder="Activation name/ precinct/ project" onblur="fcUpProfile(this)"></div>';
       h+='<div style="display:flex;gap:8px"><div class="fg" style="flex:1"><label>Role *</label><select data-f="role" onchange="fcUpProfile(this)"><option value="">Select role...</option>'+mkOpts(rl,fc.profile.role)+'</select></div>';
       h+='<div class="fg" style="width:180px"><label>Event year *</label><select data-f="eventYear" onchange="fcUpProfile(this)">'+yrs2+'</select></div></div>';
@@ -2070,8 +2206,8 @@ function renderFcForm(){
     h+='</div>';}
     if(all||q===1){h+='<div class="abq-panel on">';
       h+='<h2 class="abq-h">Your details</h2>';
-      h+='<div class="fg"><label>Organisation *</label><input type="text" data-f="org" value="'+esc(fc.profile.org)+'" placeholder="Business name or TA dept." onblur="fcUpProfile(this)"></div>';
-      h+='<div class="fg"><label>Website *</label><input type="url" data-f="website" value="'+esc(fc.profile.website)+'" placeholder="https://www.example.com" onblur="fcUpProfile(this)"></div>';
+      h+='<div class="fg"><label id="fc-org-lbl">'+(fcIsTA(fc.profile)?'Department':'Organisation')+' *</label><input type="text" data-f="org" value="'+esc(fc.profile.org)+'" placeholder="Business name or TA dept." onblur="fcUpProfile(this)"></div>';
+      h+='<div class="fg" id="fc-web-wrap"'+(fcIsTA(fc.profile)?' style="display:none"':'')+'><label>Website *</label><input type="url" data-f="website" value="'+esc(fc.profile.website)+'" placeholder="https://www.example.com" onblur="fcUpProfile(this)"></div>';
       h+='<div class="g2"><div class="fg"><label>Project *</label><input type="text" data-f="project" value="'+esc(fc.profile.project)+'" placeholder="Activation name/ precinct/ project" onblur="fcUpProfile(this)"></div>';
       h+='<div class="fg"><label>Event year *</label><select data-f="eventYear" onchange="fcUpProfile(this)">'+yrs+'</select></div></div>';
       h+='<div class="g2"><div class="fg"><label>Contact name *</label><input type="text" data-f="contactName" value="'+esc(fc.profile.contactName)+'" placeholder="Full name" onblur="fcUpProfile(this)"></div>';
@@ -2117,10 +2253,6 @@ function renderFcForm(){
   h+='</div>';
   document.getElementById('main').innerHTML=h;
 }
-function fcRoleIcon(r){
-  const m={'TA PMs':'TA PM','Agency (TA Precinct)':'Agency','Agency (Partner)':'Agency','Builder (TA Precinct)':'Builder','Builder (Partner)':'Builder'};
-  return abqIcon(m[r]||'');
-}
 function fcPickRole(btn){
   fcActive().profile.role=btn.dataset.fcrole;
   document.querySelectorAll('.tile[data-fcrole]').forEach(t=>t.classList.toggle('sel',t===btn));
@@ -2131,11 +2263,11 @@ function fcPickRole(btn){
 // runs in full on Save.
 function fcQCheck(q){
   const fc=fcActive(),p=fc.profile,t=fc.targets;let msg='';
-  if(q===0&&!p.role){msg='Please complete organisation, website, project, role, contact name and email.';const g=document.getElementById('fc-roles');if(g)g.classList.add('err');}
+  if(q===0&&!p.role){msg=(fcIsTA(p)?'Please complete department, project, role, contact name and email.':'Please complete organisation, website, project, role, contact name and email.');const g=document.getElementById('fc-roles');if(g)g.classList.add('err');}
   if(q===1){
-    if(!p.org||!p.website||!p.project||!p.contactName||!p.contactEmail)msg='Please complete organisation, website, project, role, contact name and email.';
+    if(!p.org||(!p.website&&!fcIsTA(p))||!p.project||!p.contactName||!p.contactEmail)msg=(fcIsTA(p)?'Please complete department, project, role, contact name and email.':'Please complete organisation, website, project, role, contact name and email.');
     else if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(p.contactEmail))msg='Please enter a valid contact email.';
-    const map={org:p.org,website:p.website,project:p.project,contactName:p.contactName,contactEmail:p.contactEmail&&/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(p.contactEmail)};
+    const map={org:p.org,website:p.website||fcIsTA(p),project:p.project,contactName:p.contactName,contactEmail:p.contactEmail&&/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(p.contactEmail)};
     Object.keys(map).forEach(k=>{const el=document.querySelector('.ux-fc [data-f="'+k+'"]');if(el)el.style.borderColor=map[k]?'':'#dc2626';});
   }
   if(q===2){
@@ -2221,7 +2353,14 @@ function fcMatRowHtml(m,idx){
 }
 
 function fcActive(){return S.fc.draft;}
-function fcUpProfile(el){fcActive().profile[el.dataset.f]=el.value;}
+function fcUpProfile(el){fcActive().profile[el.dataset.f]=el.value;if(el.dataset.f==='role')fcTAFields();}
+// TA roles report by department and have no website.
+function fcIsTA(p){return !!(p&&p.role&&/^TA\b/.test(p.role));}
+function fcTAFields(){
+  const ta=fcIsTA(fcActive().profile);
+  const w=document.getElementById('fc-web-wrap');if(w)w.style.display=ta?'none':'';
+  const l=document.getElementById('fc-org-lbl');if(l)l.textContent=(ta?'Department':'Organisation')+' *';
+}
 function fcUpTargets(el){fcActive().targets[el.dataset.f]=el.value;}
 function fcUpNotes(el){fcActive().notes[el.dataset.f]=el.value;}
 // Hazard question re-renders its own block on change so the conditional
@@ -2288,7 +2427,7 @@ function fcDelMaterial(mid){
 async function fcSaveForecast(){
   const fc=S.fc.draft;
   const p=fc.profile;
-  if(!p.org||!p.website||!p.project||!p.role||!p.contactName||!p.contactEmail){showToast('Please complete organisation, website, project, role, contact name and email.');return;}
+  if(!p.org||(!p.website&&!fcIsTA(p))||!p.project||!p.role||!p.contactName||!p.contactEmail){showToast((fcIsTA(p)?'Please complete department, project, role, contact name and email.':'Please complete organisation, website, project, role, contact name and email.'));return;}
   if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(p.contactEmail)){showToast('Please enter a valid contact email.');return;}
   const t=fc.targets;
   if(!t.reuseTarget||!t.wasteTarget||!t.disposedPct||!t.circPractices){showToast('Please complete all 4 questions in Targets & practices.');return;}
@@ -2357,7 +2496,7 @@ function renderFcSummary(){
 
   h+='<div class="card">';
   h+='<div class="sechd sechd-first">TA-ID</div>';
-  h+='<div style="display:flex;gap:16px"><div style="flex:1"><div style="font-size:12px;color:#888">Organisation</div><div style="font-size:14px;font-weight:600;margin-top:2px">'+esc(fc.profile.org)+'</div></div><div style="flex:1"><div style="font-size:12px;color:#888">Contact</div><div style="font-size:14px;margin-top:2px">'+esc(fc.profile.contactEmail)+'</div></div></div>';
+  h+='<div style="display:flex;gap:16px"><div style="flex:1"><div style="font-size:12px;color:#888">'+(fcIsTA(fc.profile)?'Department':'Organisation')+'</div><div style="font-size:14px;font-weight:600;margin-top:2px">'+esc(fc.profile.org)+'</div></div><div style="flex:1"><div style="font-size:12px;color:#888">Contact</div><div style="font-size:14px;margin-top:2px">'+esc(fc.profile.contactEmail)+'</div></div></div>';
   h+='<div class="plan-id-badge"><div><div class="plan-id-lbl">TA-ID</div><div class="plan-id-code">'+code+'</div></div><button class="plan-id-copy-btn" data-code="'+code+'" onclick="copyCode(this)">Copy</button></div>';
   h+='</div>';
 
@@ -3705,21 +3844,35 @@ function abqCompactHtml(plan){
 // harvestAboutFields(), saveAboutProgress() and goNext() work exactly as before.
 const ABQ_PCTS=['10%'];
 const ABQ_LAST=2;
-function abqIcon(r){
-  const P={
-    bulb:'<path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5"/><path d="M9 18h6"/><path d="M10 22h4"/>',
-    hammer:'<path d="m15 12-8.373 8.373a1 1 0 1 1-3-3L12 9"/><path d="m18 15 4-4"/><path d="m21.5 11.5-1.914-1.914A2 2 0 0 1 19 8.172V7l-2.26-2.26a6 6 0 0 0-4.202-1.756L9 2.96l.92.82A6.18 6.18 0 0 1 12 8.4V10l2 2h1.172a2 2 0 0 1 1.414.586L18.5 14.5"/>',
-    pen:'<path d="M15.707 21.293a1 1 0 0 1-1.414 0l-1.586-1.586a1 1 0 0 1 0-1.414l5.586-5.586a1 1 0 0 1 1.414 0l1.586 1.586a1 1 0 0 1 0 1.414z"/><path d="m18 13-1.375-6.874a1 1 0 0 0-.746-.776L3.235 2.028a1 1 0 0 0-1.207 1.207L5.35 15.879a1 1 0 0 0 .776.746L13 18"/><path d="m2.3 2.3 7.286 7.286"/><circle cx="11" cy="11" r="2"/>',
-    wrench:'<path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/>',
-    clip:'<rect width="8" height="4" x="8" y="2" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="M12 11h4"/><path d="M12 16h4"/><path d="M8 11h.01"/><path d="M8 16h.01"/>',
-    layout:'<rect width="18" height="7" x="3" y="3" rx="1"/><rect width="9" height="7" x="3" y="14" rx="1"/><rect width="5" height="7" x="16" y="14" rx="1"/>',
-    hat:'<path d="M10 10V5a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v5"/><path d="M14 6a6 6 0 0 1 6 6v3"/><path d="M4 15v-3a6 6 0 0 1 6-6"/><rect x="2" y="15" width="20" height="4" rx="1"/>',
-    truck:'<path d="M14 18V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v11a1 1 0 0 0 1 1h2"/><path d="M15 18H9"/><path d="M19 18h2a1 1 0 0 0 1-1v-3.65a1 1 0 0 0-.22-.624l-3.48-4.35A1 1 0 0 0 17.52 8H14"/><circle cx="17" cy="18" r="2"/><circle cx="7" cy="18" r="2"/>',
-    user:'<circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/>'
-  };
-  const m={'Agency':'bulb','Builder':'hammer','Designer':'pen','Sub-contractor':'wrench','TA PM':'clip','TA Design':'layout','TA Build':'hat','TA delivery team':'truck'};
-  return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'+P[m[r]||'user']+'</svg>';
+// Richer duotone icons: outline in the tile colour, soft sky fill on the main shapes.
+const ICON_T='var(--ux-icofill,#D6EEF9)';
+const ICON_P={
+  clip:'<rect x="4" y="4" width="16" height="18" rx="2.2" fill="T"/><rect x="8.5" y="2" width="7" height="4" rx="1.2" fill="#fff"/><rect x="7" y="8.3" width="2.8" height="2.8" rx=".5" fill="#fff"/><path d="m7.8 9.7.6.6 1.1-1.3" stroke-width="1.2"/><rect x="7" y="12.6" width="2.8" height="2.8" rx=".5" fill="#fff"/><path d="m7.8 14 .6.6 1.1-1.3" stroke-width="1.2"/><rect x="7" y="16.9" width="2.8" height="2.8" rx=".5" fill="#fff"/><path d="m7.8 18.3.6.6 1.1-1.3" stroke-width="1.2"/><path d="M12 9.7h5M12 14h5M12 18.3h3.5"/>',
+  drill:'<path d="M3.5 6.2A2.2 2.2 0 0 1 5.7 4h8.6A2.2 2.2 0 0 1 16.5 6.2v3.6a2.2 2.2 0 0 1-2.2 2.2H5.7a2.2 2.2 0 0 1-2.2-2.2z" fill="T"/><path d="M6.5 7h6"/><path d="M16.5 6h2l1 1v2l-1 1h-2"/><path d="M19.5 8h3"/><path d="M7 12l-.9 6.5h4.8l.5-3.2h1.2l.6-3.3"/><rect x="5" y="18.5" width="7" height="3.5" rx="1" fill="T"/><path d="M7.3 20.2h2.4"/>',
+  hammer:'<path d="m15 12-8.373 8.373a1 1 0 1 1-3-3L12 9z" fill="T"/><path d="m21.5 11.5-1.914-1.914A2 2 0 0 1 19 8.172V7l-2.26-2.26a6 6 0 0 0-4.202-1.756L9 2.96l.92.82A6.18 6.18 0 0 1 12 8.4V10l2 2h1.172a2 2 0 0 1 1.414.586L18.5 14.5z" fill="T"/>',
+  bulbprint:'<path d="M2.5 9.5H5v11a1.5 1.5 0 0 0 1.5 1.5H21a.5.5 0 0 0 .5-.5v-11h-2.5"/><path d="M2.5 9.5v10.2A2.3 2.3 0 0 0 4.8 22"/><rect x="7" y="2" width="12" height="12.5" rx="1.6" fill="T"/><path d="M11.2 11.2v-.6a3.4 3.4 0 1 1 3.6 0v.6z" fill="#fff"/><path d="M11.6 13h2.8"/><path d="m11.8 7.4 1 1 1.7-1.9"/><path d="M8 17.5h10M8 19.5h6"/>',
+  bulb:'<path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5z" fill="T"/><path d="M9 18h6"/><path d="M10 22h4"/><path d="M10 10.5l2 2 2-2"/><path d="M12 12.5V14"/><path d="M2.5 3.5 4 5M21.5 3.5 20 5M1.5 9H3M21 9h1.5"/>',
+  pen:'<path d="M15.7 21.3a1 1 0 0 1-1.4 0l-1.6-1.6a1 1 0 0 1 0-1.4l5.6-5.6a1 1 0 0 1 1.4 0l1.6 1.6a1 1 0 0 1 0 1.4z" fill="T"/><path d="m18 13-1.4-6.9a1 1 0 0 0-.7-.8L3.2 2a1 1 0 0 0-1.2 1.2l3.3 12.7a1 1 0 0 0 .8.7L13 18z" fill="T"/><path d="m2.3 2.3 7.3 7.3"/><circle cx="11" cy="11" r="2" fill="#fff"/>',
+  wrench:'<path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.8-3.8a6 6 0 0 1-7.9 7.9l-6.9 6.9a2.1 2.1 0 0 1-3-3l6.9-6.9a6 6 0 0 1 7.9-7.9z" fill="T"/><circle cx="5" cy="19" r=".6" fill="currentColor"/>',
+  layout:'<rect width="18" height="7" x="3" y="3" rx="1.2" fill="T"/><rect width="9" height="7" x="3" y="14" rx="1.2" fill="#fff"/><rect width="5" height="7" x="16" y="14" rx="1.2" fill="T"/><path d="M6 6.5h6"/>',
+  hat:'<path d="M4 15v-3a8 8 0 0 1 16 0v3z" fill="T"/><path d="M10 10V5a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v5"/><rect x="2" y="15" width="20" height="4" rx="1.2" fill="#fff"/>',
+  truck:'<path d="M14 18V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v11a1 1 0 0 0 1 1h2" fill="T"/><path d="M15 18H9"/><path d="M19 18h2a1 1 0 0 0 1-1v-3.65a1 1 0 0 0-.22-.62l-3.48-4.35A1 1 0 0 0 17.52 8H14v10" fill="T"/><path d="M16.5 10h1.8l2 2.5h-3.8z" fill="#fff"/><circle cx="17" cy="18" r="2" fill="#fff"/><circle cx="7" cy="18" r="2" fill="#fff"/>',
+  user:'<circle cx="12" cy="8" r="4" fill="T"/><path d="M4 21a8 8 0 0 1 16 0z" fill="T"/>',
+  create:'<path d="M21 7v12a2 2 0 0 1-2 2H7"/><rect x="3" y="3" width="15" height="15" rx="2.5" fill="T"/><path d="M10.5 7v7"/><path d="M7 10.5h7"/>',
+  update:'<path d="M12 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" fill="T"/><path d="M18.4 2.6a1 1 0 0 1 3 3l-9 9a2 2 0 0 1-.85.5l-2.9.84a.5.5 0 0 1-.62-.62l.84-2.87a2 2 0 0 1 .5-.85z" fill="#fff"/><path d="m16.5 4.5 3 3"/>',
+  report:'<path d="M16 4h2a2 2 0 0 1 2 2v13a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2" fill="T"/><path d="M7 7v11.5a.5.5 0 0 0 .5.5h9a.5.5 0 0 0 .5-.5V7" fill="#fff"/><rect width="8" height="4" x="8" y="2" rx="1" fill="#fff"/><path d="m9.5 13 2 2 3.5-3.5"/>'
+};
+function richIcon(k){
+  return '<svg class="ico-rich" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'+(ICON_P[k]||ICON_P.user).replace(/fill="T"/g,'fill="'+ICON_T+'"')+'</svg>';
 }
+function abqIcon(r){
+  const m={'Agency':'bulb','Builder':'hammer','Designer':'pen','Sub-contractor':'wrench','TA PM':'clip','TA Design':'layout','TA Build':'hat','TA delivery team':'truck',
+    'TA PMs':'clip','Agency (TA Precinct)':'bulbprint','Agency (Partner)':'bulb','Builder (TA Precinct)':'drill','Builder (Partner)':'hammer'};
+  return richIcon(m[r]||'user');
+}
+function fcRoleIcon(r){return abqIcon(r);}
+function hubIcon(k){return richIcon(k);}
+function taLogoImg(){return '<img class="ta-logo" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAHgAAAA4CAYAAAA2PDy+AAAL8klEQVR42u2deZBcVRXGf2/pZEgkgZCwCQGFhCUQCCZAaSWAigpRoUQRSsWlIAJqKRRaIhRigSAglCkFpdQggguKhVCCQAkouLGJYgiBqCgiiixlAlmY9HvPP+53mTM37/Uy6Z7pSeZWverpTvdb7nfPOd/57rk3EYsfZjNtiV4z89kcYDfgncCWwM7ADsBfgKeB3+m4X9+PdOS9+pDpZghsDBQG2NcAxwHvAvYDaiW/2VGvx+l3vwUuAm7WuZJgoIwBPELARgaIw4BTgKOAceZ7uUCzFlroiATmfB23AycDT/QqyPFmAm4q4DLg9cAdwJ3AewRu3QAbC6zEDIrYvMec6y3A74GFel8bA3hknq8OzAC+D/waeKMBqdAA8GC2et5E590WuAl4N7C+17xivBlYbQKcAdwHHG+IlQcp6sA1AH4IHC3QkzGAu9e8S60DewJ3AZcAW+mzqMMAxOb1WmB3M4DGAO5C6lPIqj4OPCAyVDeuuKx5Vl03R2bIViv9mAMTgR90wDOMAVzhLjNgGvAj4Kvq8Ez/FlWAmhmrTs2RGNadtzi46sBc4Cz9bsRddbQJCB3eJWfAIcBVym3rFZZUGNB9+x/wR2C5SYt2BA4FJpm43Qwwn06tVU79t5EWQkZ7HhwbNnwacJkBI20AbAq8ANwC3ADcDTxXIXAcAZwO7K1rRQ3cb2Rc9SUST6IxCx56vM2APuBy4CPGUsLQY63vabnv7+pvC04SCB7+fOOBTwPntQByYWL3XHmGeKREkHiUgzsFuFXg1o27Dq02AVYBXwD2B74kcBMTn4uAZHkgU6AfOB84gQGps2hixbEsv+iYMVYfm5SLrklQeJ0Y6wwBklZYbaL05QLg0YCQNbOqwgycGnCNPr/anD9qwOaPxk1YPGU+a+Tey66PyQwa4ei/U4xmC04F7psVN8vAtVb7FPBe4AMC11trvU3LKnRdD/IZgchRBlYGvApYZO4pNwMrPOolR2Z+l+h8U6We+YMgrUtGawz2bvlYxc/xJczWvv+xXORTQX7czA3awR8FluQH2cvAzxjQoMvYtXfTS4F5wBa4qcdtGZjcSEXIJkkg2dVcMzbp2gT9bmtgMgOadwE8AjyOk0tvBlYb8jkqALZp0MeArwUdiBnFKfCSLOxK04n1ilhmQc3bSGemAQcA16vzm8XCf+o+tmHwzFWn2wrgHJxsGgFFOorAvQA408iAFlzvPh/Hzdk+FJCn1MSnRgSpzxCvucB2Ou9MYLassA/YAyd9xi2EuUJx2Fp20SDeNiJYVOT1fmDOEC85TMbQ0wBHRh36Om7etUq8qAE3Ah8FnjEWXQXiXvrNNhJHJgPTBWKfQJvSwefIA9fbDSOwXmiRvMb5aY9bbh34hoBbz4bzrV41ugQ417jkafq32QJzCnCQ4tgkXFlOK8QqayE+91I6GhsS+XngzrTHQLWdkSmOLqoA18fgm3CT91/EzR5NB/Y1AkUzMSJvEJtHYxoZGe935kiSrDjozNClfhM4sQLcdtKbrCSObQ6VLAVQT4dxRNkKxLKUJcZVMu6jePt+gd4KuHZqL94ErLBT/V5Lu3BSgrywSlTYQyRnJvAGsdbphtxkbYCTMNYqlaFOWGdYimrd7USlFLNwU2hzZKUzxFirLHIMtA646XSIYFpKbt1tDGyP04l3VT62H7BTRYJvc9O4wgOMtY0wwLTF/MrqtzZ27iCXukCWeahSlK0aEJ6oZLCMtc4TLIBn0woL9daZBQLBVFnl7nqdVSEIZOZCsTl3OowP1yk+MRqbJ6dXpgyWA62FjpernQ4cKSK0PU57DTs0D8BMugRcM6047iAwrVyvbEClQxyAnbpvn1Y+AFyYGtc5SYz2TQJzFvDaitFhXXi3AC3rgFav06+jMOGl34QIAg+TqlNqukati88VNcnZ/T2Hc8dxk0FTmHtfhisXWpvK9Z6GW6ezcwskaLjzynW4yYNluCUnLwMrgTV6GF9jNQ43VbZGr6vNvffr83oJwIm8VZ9ex5n3k1vIw8cp3dtC4ep03Lxt1eT+SnO/dr1T3IG+7QeWAGcDzwNxxOKHLxPAr6gfQdzslVi0Gieg13GrFJ6QG1qmTlvZI/f5V3m+cDrTp343yJjGmRAwAaeP7xakjqk8q89MPB4T9b06bnr0X8BtwM/VH97i81Q/9K43oX1ZsCix9qhBejXUNhGnNaM82ra1uIn1R4B7ceWvS3HlsPUKNx/G2KjClbazXikH/iCAi4rzzQGeLYnvK9roiz4dGfBiiejzytx2xOKH5+GqEueNIKUP06dmFYtFCUMP2yrcwu37NbKflKsvE3tK65nabL5W7Gxc9WWoofuBv0oawUoTa2nhufMGRC0Osh8zqtxkQyJlyc7BtqqETVDM2V7nGBeMtBm4abqDKm48akD1aQP4PIirZd9djlu8fRduleHfS0Y/QwTblxQdgysXKtiwwjMSp9hbISZmaEXxUatpYWpSpOVdtNKLBHAWdGKsEX27Ys0s5drjKwhHGAasBScV1p6bf99Thy+zfUDWfR/wK7n6oYLtv7O0YjD6iZY+3HTmExvBb1oefCnNC7nbGVF2RXxNHfZB4DMB6fDXfBF4G27fCwTyBGAX4EB18gKRj5mUa9dZCeBVsT9ncL3zwTrAFefdAfxEbv0/Jf2Ut9Dpq/RcW5Z4KN8HU4dLTOnWfLB3VwtknXaBdWE660jgFwxeZV/VZkoCnS1iOEtka+sK9x41ET5CgcYOhGd13zfKwl8KSFrVykP/fHfjVjWGkya+MPBE4NtsWBDY8daNnNa7/J1kDeMZXJPkpwFPFbg15W+hJ4gDF/m43t8HfEt/T8HVVG0HvEMMdYfgubIKQha6dU/2Ypye/j4dT+J2BrgeeNAAUlaK6599bZM+2r/DsuqwWbDvwC1wZTQHBqPYj+DzcOWdnnm2OnAaVYB4wHcB3o6bxZrPQHG4taJm1ZAWODsI7sbVZP9UQkIItLfuW4G3Ul23fY+8W9c3bkk7DK4fwdcJXLvqwP/9ZYHbrnvKm8iXBW7F4AsmHZoqd344bjXEbHM/1mLjJufNDR9YgFuntAT4jslfEwPYLwVwsbEkqRPutNNx9yxcxb8F129Och1ulV5KeyvoG1maXeYRGckvxi0JvQ1XCD9Xuf7ncCv+IvO9oklctYw6U0roz3OF+ECmUJOIIXeEBfcKwN4aj9HothuR+O2FHsJVSMYdEBWaudZ6kB75+3sQuFCx+gDcasM/m+81W9EfG5dcF+M/RUAv0Tkz6eWteM5iNADshZG9cJWQOYM3HUtwC78OVwoBw7fi3e69Ya0bDbhzBfYhssTnGBD+8wbxMTIKmCeNH5ZMerE4SH9Jbh6ZdDAOyGdPkixPqmrKHfc1oHqgV0rkeIze2g3Ox17LA7bF7Xf1oUC6rdN8YxVLqNYxMMtFSR68QnxgXSBX9pwFeyCvFbj1gFWux5W/Pmbibq+0nMHbKiXAf2XJB0uAucW41KgJb0iMRfdVEFg/QHYBXj0cYsfGAOzj2ic16m2Zq//7JNwyy64n9B1w45lxvbnI2UKBfQVuPtnGaRoQskZVG4WEnb5eJlk+7s7HbXxSZ/C2gSmwGLcSvtbD4Faxckwsvhe3Um8ObhFcf2CtjaTbEWfS8RB/U0hUuMrEssiA+z3gUz1uuc1aZmJmIiXtVAF9dSBb5sNoXF2/iI+7l+MmAepG4EhxMzQnMbiQbzS3nMF7Wy4TCVsgxSopIWuttPG9CHAi4nQybqF13cSsGFdScywDWuxoB7cR0Pfg9tA6ATev3MqMk22Te41keYvcB7jUpAW2ZOcoBjbHztk0W26ePcZtyjIPt7VE3II1e5FnZq8B7G/kHCk4hYlVsaz6oR5Mh7odo1MJJJ9QavUozaXYCLfNYde9XNwGuBlOvF9oUgr/gGfgpvBGM6kaarO59G24HeWvYUPp02/FlOCmIH/DMOxj2a4FrwH+bYSBBLey/tLNFNwwl05wlZwniIv8g8H/NUANN814PK4MOOq2BScccUo7g6Ef+BNOd34G+CzwlU085rYLtLfmpbhtjdeKMT+Pq4k+UX0YD0ef/R9yvXz1kCDSNAAAAABJRU5ErkJggg==" alt="Tennis Australia">';}
 function abqEl(id){return document.getElementById(id);}
 function abqVal(id){const e=abqEl(id);return e?e.value.trim():'';}
 function abqInit(){
@@ -3919,7 +4072,7 @@ function stepAssets(plan){
   const _pp=plan.profile.precincts;const _mine=(Array.isArray(_pp)?_pp:String(_pp||'').split(',')).map(x=>String(x).trim()).filter(Boolean);
   const _isUpd=(S.formOrigin==='update'||!!plan.imported)&&!plan._example;
   const _precOpts=[...new Set([..._mine,...PRECS])];
-  return`<div class="ux-assets"><datalist id="prec-list">${_precOpts.map(v=>`<option value="${esc(v)}"></option>`).join('')}</datalist>${_isUpd?'<h2 class="ux-page-h">Update assets and materials</h2>':'<div class="sechd" style="margin-top:0">Instructions</div>'}
+  return`<div class="ux-assets${S._reportMode?' report-mode':''}"><datalist id="prec-list">${_precOpts.map(v=>`<option value="${esc(v)}"></option>`).join('')}</datalist>${S._reportMode?'<h2 class="ux-page-h" style="margin-bottom:4px">End of event reporting</h2><p class="ux-page-sub">Return after bump-out to record actual outcomes and complete your circularity report.</p>':_isUpd?'<h2 class="ux-page-h">Update assets and materials</h2>':'<div class="sechd" style="margin-top:0">Instructions</div>'}
   ${_isUpd?'':`<div class="hbox">Add each <strong>asset or material</strong> in your scope.<br>Each asset may contain multiple materials — for example, a facade panel may use ACM and structural ply.<br><br>We are focused on the high impact&lt;&gt;high volume materials — those that are majority of your procurement.  Complete fields 1–6 now; field 7 (Actual Outcome) is completed post-event.</div>`}
   <datalist id="vol-units">${VOLS.map(v=>`<option value="${esc(v)}"></option>`).join('')}</datalist>
   <div id="asset-search-wrap" style="display:${assetSearchVisible()?'':'none'}"><div class="sechd">Search</div>
@@ -4816,12 +4969,13 @@ function matRowHtml(aid,m,idx){
   const appVal=m.app||'';
   const appCustom=appVal&&!appList.some(o=>o.toLowerCase()===appVal.toLowerCase());
   const appOpts=`<option value="">Select application...</option>`+(appCustom?`<option value="${esc(appVal)}" selected>${esc(appVal)}</option>`:'')+mkOpts(appList,m.app);
-  return`<div class="mat-row" id="mr-${m.id}">
+  return`<div class="mat-row${S._reportMode&&S._rmOpen&&S._rmOpen[m.id]?' rm-open':''}" id="mr-${m.id}">
     <div class="mat-row-hd">
       <span class="mat-row-num">Material ${idx+1}</span>
       <span class="mat-row-name">${esc(matLabel)}</span>
       <button onclick="delAssetMat('${aid}','${m.id}')" style="background:none;border:none;cursor:pointer;color:#ccc;padding:8px 10px;font-size:14px;border-radius:6px;flex-shrink:0" title="Remove material">&times;</button>
     </div>
+    ${S._reportMode?rmSumHtml(m):''}
     ${idx===0?`<div class="fg">
       <label><span class="qn">4</span>Precinct application <span class="req">*</span></label>
       <select data-aid="${aid}" data-mid="${m.id}" data-f="app" onchange="upAssetMat(this)">
@@ -4911,7 +5065,7 @@ function stepSummary(plan){
   let h='<div class="ux-summary">';
   h+='<div class="abq-card"><div class="abq-bar"><div class="abq-fill" style="width:100%"></div></div><div class="abq-body" style="padding-bottom:22px">';
   h+='<div class="abq-meta"><b>'+esc(p.aoYear||'AO27')+'</b></div>';
-  h+='<h2 class="abq-h" style="margin-bottom:6px">Review &amp; Save</h2>';
+  h+='<h2 class="abq-h" style="margin-bottom:6px">'+(S._reportMode?'End of event reporting':'Review &amp; Save')+'</h2>';
   h+='<p class="abq-sub" style="margin-bottom:0">See your circularity score, flag any non-recommended materials, and save or print your plan.</p>';
   h+='</div></div>';
   h+='<div class="card">';
@@ -4948,6 +5102,9 @@ function stepSummary(plan){
     +'<a onclick="switchTab(\'faq\');setTimeout(()=>{const el=document.getElementById(\'faq-privacy\');if(el){el.classList.add(\'open\');const ic=document.getElementById(\'icon-faq-privacy\');if(ic)ic.classList.add(\'open\');}},100);return false;" href="#" style="color:#0091D2;font-weight:600;text-decoration:underline">View our full Privacy Policy</a> to learn more.'
     +'</div>';
   h+=consentHtml;
+  if(!S._reportMode&&!S.plan._example&&(S.formOrigin==='update'||S.plan.imported)){
+    h+='<div class="card report-cta"><div><div class="sechd" style="margin:0 0 4px">End of event reporting</div><div style="font-size:12.5px;color:var(--ux-body)">Return after bump-out to record actual outcomes and complete your circularity report.</div></div><button type="button" class="abq-next" onclick="beginEventReport()">Submit an end of event report</button></div>';
+  }
   h+='<div class="acts" style="margin-top:.75rem"><button type="button" class="abq-link" onclick="goPrev()">&larr; Back</button>'+(S.plan._example?'<button onclick="goHome()" style="background:#0091D2;color:#fff;border-color:#0091D2;font-weight:700">&#8962; Home</button>':'<button type="button" class="sum-sec" onclick="window.print()"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9V2h12v7"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>Print / PDF</button><button type="button" class="sum-sec" onclick="exportPlanXLS()"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m7 10 5 5 5-5"/><path d="M12 15V3"/></svg>Export XLS</button>'+unsavedBadge+saveBtnHtml)+'</div>';
   h+='</div>';
   return h;
@@ -6196,6 +6353,18 @@ function confirmDelAsset(aid){
   const a=(S.plan.assets||[]).find(x=>x.id===aid);if(!a)return;
   if(!confirm('Delete "'+(a.assetName||'this asset')+'" and all its materials?'))return;
   delAsset(aid);S._unsaved=true;
+}
+// End of event reporting: one-line summary of fields 4–6 with Edit, like a saved forecast.
+function rmSumHtml(m){
+  const t=m.tmlRef&&m.tmlRef!=='OTHER'?TML.find(x=>x.ref===m.tmlRef):null;
+  const parts=[m.app,t?t.name:m.name,m.vol?(m.vol+(m.vunit?' '+m.vunit:'')):''].filter(Boolean).map(esc).join(' &middot; ')||'No details yet';
+  const open=S._rmOpen&&S._rmOpen[m.id];
+  return '<div class="rm-sum"><span class="rm-txt">4&ndash;6. '+parts+'</span>'+(m.stat?fcStatTag(m.stat):'')+'<button type="button" class="rm-edit" onclick="rmToggle(this,&#39;'+m.id+'&#39;)">'+(open?'Collapse':'Edit')+'</button></div>';
+}
+function rmToggle(btn,mid){
+  if(!S._rmOpen)S._rmOpen={};S._rmOpen[mid]=!S._rmOpen[mid];
+  const row=document.getElementById('mr-'+mid);if(row)row.classList.toggle('rm-open',!!S._rmOpen[mid]);
+  btn.textContent=S._rmOpen[mid]?'Collapse':'Edit';
 }
 function delAsset(aid){
   S.plan.assets=S.plan.assets.filter(a=>a.id!==aid);
