@@ -844,6 +844,23 @@ select.stat-sel[data-tone=""]{padding-left:10px!important}
 #main .tile.big svg.ico-rich{width:34px;height:34px}
 #main .tile.sel{--ux-icofill:#BFE6F7}
 #main .tile .ta-logo{width:52px;height:auto;flex-shrink:0}
+#main .fc-hero{background:linear-gradient(135deg,#0080BD 0%,#0091D2 45%,#2DB3E6 100%)}
+#main .fc-hero .abq-sub{color:#fff}
+#main .fc-hero-copy{color:#fff;font-size:13.5px;line-height:1.55;margin:0 0 18px}
+#main .fc-hero-copy p{margin:0 0 8px}
+#main .fc-hero-copy ul{margin:0 0 8px;padding-left:20px}
+#main .fc-hero-copy li{margin:0 0 3px}
+#main .fc-hero .tile{border-color:rgba(255,255,255,.7)}
+#main .fc-hero .tile.sel,#main .fc-hero .tile.big.sel{border-color:#003A5D;background:#fff;box-shadow:0 0 0 3px rgba(0,58,93,.35);color:#003A5D}
+#main .fc-hub-card .hub-panel{background:#E8F6FC}
+#main .ux-fc:not(.fc-report) .fc-bumpout{display:none}
+#main .fc-report .btn-add-mat,#main .fc-report .fc-del-row .asset-del,#main .fc-report .mat-row-hd button[title="Remove material"]{display:none!important}
+#main .sum-exit{background:#fff;border:1.5px solid var(--ux-line);color:var(--ux-ink);font-weight:700;padding:9px 18px;border-radius:8px}
+#main .sum-exit:hover{border-color:var(--ux-sky);color:var(--ux-sky)}
+#main .rpt-link{text-align:right;margin:10px 2px 0;font-size:13px}
+#main .card .rpt-link{text-align:left;margin:12px 0 0}
+#main .rpt-link a{color:#1F8A4C;font-weight:700;text-decoration:underline;text-underline-offset:3px}
+#main .rpt-link a:hover{color:#16693A}
 </style>
 </head>
 <body>
@@ -913,7 +930,7 @@ const STCOL_ADMIN={'Reuse - next AO (stored by AO)':'#20A85A','Reuse - next AO (
 const ROLES=['Agency','Builder','Designer','Sub-contractor','TA PM','TA Design','TA Build','TA delivery team','Other'];
 const TA_ROLES=['TA PM','TA Design','TA Build','TA delivery team','TA Other'];
 const ROLES_EXTERNAL=['Agency','Builder','Designer','Sub-contractor'];
-const FC_ROLES=['TA PMs','Agency (TA Precinct)','Agency (Partner)','Builder (TA Precinct)','Builder (Partner)','Other'];
+const FC_ROLES=['TA PMs','Agency (TA Precinct)','Agency (Activations)','Builder (TA Precinct)','Builder (Activations)','Other'];
 const ROLES_TA=['TA PM','TA Design','TA Build','TA delivery team','TA Other'];
 const TA_DEPARTMENTS=['Accommodation','Accreditation','Activations','Archives','Ballkids','Beauty Bar','Business Ops','Childcare','Client & Product Delivery','Communication and Content','Community Relations','Court Services','Customer Experience (CX)','Food & Revenue','Functions','Government Relations','Hot Shots','Infrastructure','IT','Live Events','Logistics','Major Events','Marketing','Media Ops','Media Services','Merchandise','Miscellaneous','National Tennis Centre','Officials','Participation','Partnerships','Player Medical','Player Services','Precinct Ops','Premium Experience (PX)','Safety','Staff and Communications','Statisticians','Tournament Operations','Tournament Spaces','Transport','VIP Stakeholder Relations','Workforce'];
 const VOLS=['sqm','lm','kg','units','sheets','m\u00b3','L'];
@@ -2054,6 +2071,18 @@ async function startEventReport(){
   showToast('Plan loaded');
 }
 // Turns on End of event reporting for the plan in hand and opens its assets with field 7.
+// Summary link: back to the Materials plan landing page with End of event reporting open and the Plan ID filled in.
+function goEventReportHub(){
+  const go=()=>{
+    const code=S.plan&&!S.plan._example?planCode(S.plan.id):'';
+    S._hubDoor=S.plan&&S.plan.roleType==='TA'?'TA':'EXT';S._hubSel='report';
+    S.screen='create-intro';render();
+    const i=document.getElementById('report-input');if(i&&code)i.value=code;
+    window.scrollTo({top:0,behavior:'smooth'});
+  };
+  if(S._unsaved&&S.plan&&!S.plan._example){confirmLeaveIfUnsaved(()=>{S._unsaved=false;go();});return;}
+  go();
+}
 function beginEventReport(){
   if(!S.plan)return;
   S._reportMode=true;S._reportFor=S.plan.id;S._rmOpen={};
@@ -2112,20 +2141,35 @@ function renderForecastTab(){
 }
 
 function renderFcLanding(){
+  const door=S._fcHubDoor||'', sel=S._fcHubSel||null;
+  S._fcReportFor=null;
+  const idRow=(id,btnLabel,fn)=>'<div class="retrieve-row"><input type="text" id="'+id+'" autocomplete="off" autocapitalize="characters" autocorrect="off" spellcheck="false" placeholder="AO27-FC-XXXX" maxlength="12" oninput="this.value=this.value.toUpperCase().replace(/[^A-Z0-9-]/g,\'\');" onkeydown="if(event.keyCode===13)'+fn+'()">'+(btnLabel?'<button onclick="'+fn+'()">'+btnLabel+'</button>':'')+'</div>';
+  const doorTile=(k,icon,t)=>'<button type="button" class="tile big'+(door===k?' sel':'')+'" data-fcdoor="'+k+'" onclick="fcHubDoor(\''+k+'\')">'+(k==='TA'?taLogoImg():abqIcon(icon))+'<span class="tb-t">'+t+'</span></button>';
+  const tile=(k,t)=>'<button type="button" class="tile'+(sel===k?' sel':'')+'" data-fchub="'+k+'" onclick="fcHubPick(\''+k+'\')">'+hubIcon(k)+t+'</button>';
   let h='<div style="padding:1.25rem 1rem 2rem">';
-  h+='<div class="abq-card abq intro-hero"><div class="abq-bar"><div class="abq-fill" style="width:6%"></div></div><div class="abq-body">';
+  // Front door: intro + role
+  h+='<div class="abq-card abq intro-hero fc-hero"><div class="abq-body">';
   h+='<div class="abq-meta"><b>AO27</b></div>';
-  h+='<h2 class="abq-h" style="margin-bottom:6px">Provide a waste &amp; reuse forecast</h2>';
-  h+='<p class="abq-sub">Not doing a full materials management plan? Give TA a quick waste forecast now, then come back after the event to log what actually happened. This counts towards AO27&rsquo;s whole-of-event materials report.</p>';
-  h+='<div class="fc-land-grid">';
-  h+='<div class="fc-land-card"><div class="fc-land-hd"><span class="qn">1</span>Create a forecast</div>';
-  h+='<p>TA PMs, Agencies and Builders complete this 10 min materials reuse and waste forecast before Dec 31.</p>';
-  h+='<button type="button" class="abq-next" onclick="fcStartNew()">Start a forecast &rarr;</button></div>';
-  h+='<div class="fc-land-card"><div class="fc-land-hd"><span class="qn" style="background:#1F8A4C">2</span>Updates &amp; post event</div>';
-  h+='<p>Updates to your forecast can be made easily here. Use your TA-ID to make changes that TA bump-out ops need for bin management, and following bump-out, log what actually happened to materials and download your event report.</p>';
-  h+='<div class="retrieve-row"><input type="text" id="fc-retrieve-input" name="fc-code-retrieve" autocomplete="off" autocapitalize="characters" autocorrect="off" spellcheck="false" placeholder="AO27-FC-XXXX" maxlength="12" oninput="this.value=this.value.toUpperCase().replace(/[^A-Z0-9-]/g,&#39;&#39;);" onkeydown="if(event.keyCode===13)fcRetrieve()"><button onclick="fcRetrieve()">Load</button></div>';
-  h+='<div id="fc-retrieve-msg" style="margin-top:.5rem;font-size:11px;color:#5B6B7B"></div></div>';
-  h+='</div></div></div>';
+  h+='<h2 class="abq-h" style="margin-bottom:10px">Waste &amp; reuse forecast</h2>';
+  h+='<div class="fc-hero-copy"><p>Project Leads (TA PMs, Agencies, Builders or other Contractors) delivering temporary infrastructure for the AO must provide waste and reuse forecasts for key materials.</p>';
+  h+='<ul><li>Create one forecast per precinct or activation if you work on more than one.</li><li>This will enable TA to track circularity and plan waste services for Bump Out.</li><li>Return here post Bump Out to report actual outcomes.</li></ul>';
+  h+='<p>The waste &amp; reuse forecast tracks the adoption of circular practices and produces reporting for Partners and stakeholders.</p></div>';
+  h+='<div class="tile-grid g2t" id="fc-hub-door" style="margin-bottom:0">'+doorTile('TA','TA PM','I work for TA')+doorTile('EXT','Builder','I am an Agency/ Builder')+'</div>';
+  h+='</div></div>';
+  // First action
+  h+='<div class="abq-card abq hub-card fc-hub-card" id="fc-hub-actions"'+(door||sel?'':' style="display:none"')+'><div class="abq-body">';
+  h+='<div class="tile-grid g3t" id="fc-hub-tiles">'+tile('create','Create')+tile('update','Update/ maintain')+tile('report','End of event reporting')+'</div>';
+  h+='<div class="hub-panel'+(sel==='create'?' on':'')+'" data-fchub="create"><p class="hub-p" style="margin:0">TA PMs, Agencies and Builders complete this 10 min materials reuse and waste forecast before Dec 31.</p></div>';
+  h+='<div class="hub-panel'+(sel==='update'?' on':'')+'" data-fchub="update">';
+  h+='<p class="hub-p">Updates to your forecast can be made easily here. Use your TA-ID to make changes that TA bump-out ops need for bin management.</p>';
+  h+=idRow('fc-retrieve-input','Load','fcRetrieve');
+  h+='<div id="fc-retrieve-msg" class="hub-msg"></div></div>';
+  h+='<div class="hub-panel'+(sel==='report'?' on':'')+'" data-fchub="report">';
+  h+='<p class="hub-p">Following bump-out, log what actually happened to materials and download your event report.</p>';
+  h+=idRow('fc-report-input','','fcStartReport');
+  h+='<div id="fc-report-msg" class="hub-msg"></div></div>';
+  h+='<div class="abq-nav"><span style="flex:1"></span><button type="button" class="abq-link" onclick="S._fcHubSel=null;S._fcHubDoor=null;switchTab(\'plan\')">Cancel</button><button type="button" class="abq-next" id="fc-hub-next"'+(sel==='update'?' style="display:none"':'')+' onclick="fcHubNext()">'+fcHubNextLabel(sel)+'</button></div>';
+  h+='</div></div>';
   const dbStatus=SUPABASE_READY
     ?'<span style="color:#0F6E56;font-weight:700">Cloud storage active.</span> Forecasts save to Supabase and can be retrieved on any device using your TA-ID.'
     :'<span style="color:#854F0B;font-weight:700">Cloud storage not configured.</span> Forecasts save to this browser only.';
@@ -2133,9 +2177,67 @@ function renderFcLanding(){
   h+='</div>';
   document.getElementById('main').innerHTML=h;
 }
+function fcHubNextLabel(k){return k==='report'?'Submit an end of event report':'Next';}
+function fcHubDoor(k){
+  S._fcHubDoor=k;
+  document.querySelectorAll('#fc-hub-door .tile').forEach(t=>t.classList.toggle('sel',t.dataset.fcdoor===k));
+  const act=document.getElementById('fc-hub-actions');
+  if(act&&act.style.display==='none'){act.style.display='';act.scrollIntoView({behavior:'smooth',block:'nearest'});}
+}
+function fcHubPick(k){
+  S._fcHubSel=k;
+  const tg=document.getElementById('fc-hub-tiles');if(tg)tg.classList.remove('err');
+  document.querySelectorAll('#fc-hub-tiles .tile').forEach(t=>t.classList.toggle('sel',t.dataset.fchub===k));
+  document.querySelectorAll('.hub-panel[data-fchub]').forEach(p=>p.classList.toggle('on',p.dataset.fchub===k));
+  const n=document.getElementById('fc-hub-next');if(n){n.textContent=fcHubNextLabel(k);n.style.display=k==='update'?'none':'';}
+  const inp=document.getElementById(k==='update'?'fc-retrieve-input':k==='report'?'fc-report-input':'');
+  if(inp)inp.focus();
+}
+function fcHubNext(){
+  const k=S._fcHubSel;
+  if(!k){const t=document.getElementById('fc-hub-tiles');if(t){t.classList.add('err');setTimeout(()=>t.classList.remove('err'),900);}return;}
+  if(k==='create'){
+    const door=S._fcHubDoor||'EXT';
+    fcStartNew();
+    // TA has one forecast role, so it goes straight to Your details; Agency/ Builder picks a role first.
+    S._fcFromHub=true;S._fcDoor=door;
+    if(door==='TA'){S.fc.draft.profile.role='TA PMs';S._fcQ=1;}
+    renderFcForm();
+    window.scrollTo({top:0});
+  }
+  else if(k==='update')fcRetrieve();
+  else fcStartReport();
+}
+// End of event reporting: load a forecast by TA-ID straight into field 6.
+async function fcStartReport(){
+  const inp=document.getElementById('fc-report-input');const msg=document.getElementById('fc-report-msg');
+  if(!inp)return;
+  const code=inp.value.trim().toUpperCase();
+  if(code.length<12){if(msg){msg.textContent='Enter a full TA-ID (format: AO27-FC-XXXX)';msg.style.color='#A32D2D';}return;}
+  if(msg){msg.textContent=SUPABASE_READY?'Searching cloud...':'Searching local forecasts...';msg.style.color='#888';}
+  const fc=await forecastDB.loadById(code);
+  if(!fc){if(msg){msg.textContent='TA-ID not found. Check the ID and try again.';msg.style.color='#A32D2D';}return;}
+  fcBeginReport(fc);
+  showToast('Forecast loaded');
+}
+function fcBeginReport(fc){
+  fc=fc||(S.fc&&(S.fc.saved||S.fc.draft));if(!fc)return;
+  S._fcExpanded={};S._fcReportFor=fc.id;
+  S.fc={mode:'new',draft:fc,isUpdate:true,stage:'forecast'};
+  S.screen='home';render();window.scrollTo({top:0,behavior:'smooth'});
+}
+// Summary link: back to the Forecast landing page with End of event reporting open and the TA-ID filled in.
+function fcGoReportHub(){
+  const fc=S.fc&&(S.fc.saved||S.fc.draft);if(!fc)return;
+  S._fcHubDoor=fcIsTA(fc.profile)?'TA':'EXT';S._fcHubSel='report';
+  fcBackToLanding();
+  const i=document.getElementById('fc-report-input');if(i)i.value=fcCode(fc.id);
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+function fcIsReport(){return !!(S.fc&&S.fc.draft&&S._fcReportFor&&S._fcReportFor===S.fc.draft.id);}
 
-function fcStartNew(){S._fcExpanded={};S._fcQ=0;S.fc={mode:'new',draft:newForecast(),stage:'details'};S.screen='home';render();}
-function fcBackToLanding(){S.fc={mode:'landing'};S.screen='home';render();}
+function fcStartNew(){S._fcReportFor=null;S._fcFromHub=false;S._fcDoor=null;S._fcExpanded={};S._fcQ=0;S.fc={mode:'new',draft:newForecast(),stage:'details'};S.screen='home';render();}
+function fcBackToLanding(){S._fcReportFor=null;S.fc={mode:'landing'};S.screen='home';render();}
 // The Summary page's "Save & exit" — the data itself was already persisted by the
 // Details page's plain Save (fcSaveForecast); this is the point the user is actually
 // done, so it's where the confirmation email belongs, then exits to the landing view.
@@ -2162,7 +2264,8 @@ function renderFcForm(){
   if(!S.fc.stage)S.fc.stage='details';
   if(S._fcQ==null||S._fcQFor!==fc.id){S._fcQ=0;S._fcQFor=fc.id;}
   const pb=document.getElementById('page-body-wrap');if(pb)pb.style.padding='0';
-  let h='<div class="fc-page ux-assets ux-fc" style="padding:1.25rem 1rem 2rem">';
+  const rpt=fcIsReport();
+  let h='<div class="fc-page ux-assets ux-fc'+(rpt?' fc-report':'')+'" style="padding:1.25rem 1rem 2rem">';
   if(S.fc.stage==='details'){
     const q=S._fcQ;
     const all=isUpdate; // existing forecast: every detail on one page, captured but editable
@@ -2191,14 +2294,14 @@ function renderFcForm(){
       document.getElementById('main').innerHTML=h;
       return;
     }
-    const roles=FC_ROLES.slice();if(fc.profile.role&&!roles.includes(fc.profile.role))roles.push(fc.profile.role);
+    const roles=FC_ROLES.filter(r=>!(S._fcFromHub&&S._fcDoor==='EXT'&&r==='TA PMs'));if(fc.profile.role&&!roles.includes(fc.profile.role))roles.push(fc.profile.role);
     const tile=r=>'<button type="button" class="tile'+(fc.profile.role===r?' sel':'')+'" data-fcrole="'+esc(r)+'" onclick="fcPickRole(this)">'+fcRoleIcon(r)+esc(r)+'</button>';
     const yrs=['AO27','AO28','AO29','AO30'].map(y=>'<option value="'+y+'"'+(fc.profile.eventYear===y?' selected':'')+'>'+y+'</option>').join('');
-    if(q===0&&!all)h+='<div class="abq-card abq intro-hero"><div class="abq-body"><div class="abq-meta"><b>'+(isUpdate?fcCode(fc.id):'AO27')+'</b></div><h2 class="abq-h" style="margin-bottom:10px">'+(isUpdate?'Update your forecast':'Provide a waste &amp; reuse forecast')+'</h2><p class="abq-sub" style="margin-bottom:0">'+(isUpdate
+    if(q===0&&!all&&!S._fcFromHub)h+='<div class="abq-card abq intro-hero"><div class="abq-body"><div class="abq-meta"><b>'+(isUpdate?fcCode(fc.id):'AO27')+'</b></div><h2 class="abq-h" style="margin-bottom:10px">'+(isUpdate?'Update your forecast':'Provide a waste &amp; reuse forecast')+'</h2><p class="abq-sub" style="margin-bottom:0">'+(isUpdate
       ?'Make changes to your forecast if needed prior to bump-out. Post-event, complete field 6 for each material to log what actually happened and unlock the verify photo upload &#8212; this becomes your event report.'
       :'Project Leads (TA PMs, Agencies, Builders or other Contractors) delivering temporary infrastructure for the AO must provide waste and reuse forecasts for key materials. Create one forecast per precinct or activation if you work on more than one.<br><br>This will enable TA to track circularity and plan waste services for Bump Out.<br><br>Return here post Bump Out to report actual outcomes.<br><br>The waste &amp; reuse forecast tracks the adoption of circular practices and produces reporting for Partners and stakeholders.')+'</p></div></div>';
     h+='<div class="abq-card abq'+(all?' abq-allmode':'')+'"><div class="abq-bar"><div class="abq-fill" style="width:'+(all?100:Math.round((q+1)/4*100))+'%"></div></div><div class="abq-body">';
-    h+='<div class="abq-meta"><b>'+((q===0&&!all)?'':(isUpdate?fcCode(fc.id):'AO27'))+'</b><span>'+(all?'':(q+1)+' / 3')+'</span></div>';
+    h+='<div class="abq-meta"><b>'+((q===0&&!all)?'':(isUpdate?fcCode(fc.id):'AO27'))+'</b><span>'+(all?'':(S._fcFromHub&&S._fcDoor==='TA'?q+' / 2':(q+1)+' / 3'))+'</span></div>';
     if(all)h+='<h2 class="abq-h">Update your forecast</h2>';
     if(all||q===0){h+='<div class="abq-panel on">';
       h+='<h2 class="abq-h">What is your role at the AO?</h2>';
@@ -2222,7 +2325,7 @@ function renderFcForm(){
     h+='</div>';}
     h+='<div id="fc-q-err" style="display:none;background:#FCEBEB;border:1px solid #f5c6c6;border-radius:8px;padding:10px 14px;font-size:13px;color:#A32D2D;margin-top:12px"></div>';
     h+='<div class="abq-nav">';
-    h+='<button type="button" class="abq-link" onclick="fcQPrev()" style="visibility:'+(q>0&&!all?'visible':'hidden')+'">&larr; Back</button><span style="flex:1"></span>';
+    h+='<button type="button" class="abq-link" onclick="fcQPrev()" style="visibility:'+((q>0||S._fcFromHub)&&!all?'visible':'hidden')+'">&larr; Back</button><span style="flex:1"></span>';
     h+='<button type="button" class="abq-link" onclick="fcBackToLanding()">Cancel</button>';
     h+='<button type="button" class="abq-next" onclick="fcQNext()">'+(q<2&&!all?'Next':'Next: Waste &amp; reuse forecast &rarr;')+'</button>';
     h+='</div></div></div>';
@@ -2233,9 +2336,11 @@ function renderFcForm(){
   // ── Stage 2: forecast (materials, anything else, Save) ──
   h+='<div class="abq-card"><div class="abq-bar"><div class="abq-fill" style="width:90%"></div></div><div class="abq-body" style="padding-bottom:22px">';
   h+='<div class="abq-meta"><b>'+(isUpdate?fcCode(fc.id):'AO27')+'</b></div>';
-  h+='<h2 class="abq-h" style="margin-bottom:6px">'+(isUpdate?'Update your forecast':'Provide a waste &amp; reuse forecast')+'</h2>';
-  h+='<p class="abq-sub" style="margin-bottom:0">'+(isUpdate
-    ?'Make changes to your forecast if needed prior to bump-out. Post-event, complete field 6 for each material to log what actually happened and unlock the verify photo upload &#8212; this becomes your event report.'
+  h+='<h2 class="abq-h" style="margin-bottom:6px">'+(rpt?'End of event reporting':isUpdate?'Update your forecast':'Provide a waste &amp; reuse forecast')+'</h2>';
+  h+='<p class="abq-sub" style="margin-bottom:0">'+(rpt
+    ?'Return after bump-out to record actual outcomes and complete your circularity report.'
+    :isUpdate
+    ?'Make changes to your forecast if needed prior to bump-out.'
     :'Use the 80/20 rule for your materials &#8212; typically a small number of key materials make up the majority of build and waste volumes.<br>Focus on what is <a href="https://megtei.github.io/Materials_Methods_Plan/" target="_blank" rel="noopener">High Volume and High Impact.</a>')+'</p>';
   h+='</div></div>';
   h+='<div class="sechd">Waste &amp; reuse forecast</div>';
@@ -2249,7 +2354,7 @@ function renderFcForm(){
   h+='<div class="fg"><label>Are you a circular hero and want to profile your story? *</label><select data-f="circularHero" onchange="fcUpNotes(this)"><option value="">Select...</option>'+mkOpts(['Yes','No'],fc.notes.circularHero)+'</select></div>';
   h+='<div class="fg"><label>We value feedback and continuously seek to improve &ndash; any thoughts, feelings, ideas &ndash; let us know</label><textarea rows="2" data-f="feedback" onblur="fcUpNotes(this)">'+esc(fc.notes.feedback)+'</textarea></div>';
   h+='</div>';
-  h+='<div class="acts"><button type="button" class="abq-link" style="margin-right:auto" onclick="fcToDetails()">&larr; Back</button><button type="button" class="abq-link" onclick="fcBackToLanding()">Cancel</button><button id="fc-save-forecast-btn" onclick="fcSaveForecast()" style="background:linear-gradient(135deg,#0091D2,#0072A8);color:#fff;border-color:#0072A8;font-weight:700;padding:9px 20px;box-shadow:0 2px 8px rgba(0,145,210,.3)">Save &#10003;</button></div>';
+  h+='<div class="acts"><button type="button" class="abq-link" style="margin-right:auto'+(rpt?';visibility:hidden':'')+'" onclick="fcToDetails()">&larr; Back</button><button type="button" class="abq-link" onclick="fcBackToLanding()">Cancel</button><button id="fc-save-forecast-btn" onclick="fcSaveForecast()" style="background:linear-gradient(135deg,#0091D2,#0072A8);color:#fff;border-color:#0072A8;font-weight:700;padding:9px 20px;box-shadow:0 2px 8px rgba(0,145,210,.3)">Save &#10003;</button></div>';
   h+='</div>';
   document.getElementById('main').innerHTML=h;
 }
@@ -2289,7 +2394,7 @@ function fcQNext(){
 }
 // Clear a field's red "missing" border as soon as it's filled in (About you + Forecast details).
 if(!window._abqClearBound){window._abqClearBound=true;['input','change'].forEach(t=>document.addEventListener(t,e=>{const el=e.target;if(el&&el.closest&&el.closest('.abq')&&el.style&&el.style.borderColor&&String(el.value||'').trim())el.style.borderColor='';}));}
-function fcQPrev(){S._fcQ=Math.max(0,(S._fcQ||0)-1);renderFcForm();window.scrollTo({top:0,behavior:'smooth'});}
+function fcQPrev(){if(S._fcFromHub&&(S._fcQ||0)<=(S._fcDoor==='TA'?1:0)){fcBackToLanding();return;}S._fcQ=Math.max(0,(S._fcQ||0)-1);renderFcForm();window.scrollTo({top:0,behavior:'smooth'});}
 function fcToDetails(){S.fc.stage='details';S._fcQ=2;renderFcForm();window.scrollTo({top:0,behavior:'smooth'});}
 
 // Fields 1-5 (forecast details) collapse to a one-line summary on a loaded/
@@ -2510,9 +2615,10 @@ function renderFcSummary(){
   const stRows=Object.entries(stCts).sort((a,b)=>b[1]-a[1]).map(([s,n])=>'<div class="srow"><div class="sdot" style="background:'+(STCOL[s]||'#9ca3af')+'"></div><div style="flex:1;color:#1a1a1a">'+esc(s)+'</div><div style="font-weight:600;min-width:20px;text-align:right">'+n+'</div></div>').join('');
   const actualCts={};for(const m of fc.materials)if(m.outcome)actualCts[m.outcome]=(actualCts[m.outcome]||0)+1;
   const actualRows=Object.entries(actualCts).sort((a,b)=>b[1]-a[1]).map(([s,n])=>'<div class="srow"><div class="sdot" style="background:'+(STCOL[s]||'#9ca3af')+'"></div><div style="flex:1;color:#1a1a1a">'+esc(s)+'</div><div style="font-weight:600;min-width:20px;text-align:right">'+n+'</div></div>').join('');
-  if(stRows)h+='<div class="card"><div style="display:grid;grid-template-columns:1fr 1fr;gap:16px"><div><div class="sechd" style="margin-top:0">Materials by expected status</div>'+stRows+'</div><div><div class="sechd" style="margin-top:0;color:#0091D2">Materials ACTUALS POST EVENT</div>'+(actualRows||'<div style="font-size:13px;color:#aaa;margin-top:6px">Return with your TA-ID after the event to log actuals.</div>')+'</div></div></div>';
+  const fcRptLink=(S.fc.isUpdate&&S._fcReportFor!==fc.id)?'<div class="rpt-link"><a href="#" onclick="fcGoReportHub();return false">Ready to submit an end of event report?</a></div>':'';
+  if(stRows)h+='<div class="card"><div style="display:grid;grid-template-columns:1fr 1fr;gap:16px"><div><div class="sechd" style="margin-top:0">Materials by expected status</div>'+stRows+'</div><div><div class="sechd" style="margin-top:0;color:#0091D2">Materials ACTUALS POST EVENT</div>'+(actualRows||'<div style="font-size:13px;color:#aaa;margin-top:6px">Return with your TA-ID after the event to log actuals.</div>')+fcRptLink+'</div></div></div>';
 
-  h+='<div class="acts"><button type="button" class="abq-link" onclick="fcBackFromSummary()">&larr; Back</button><button type="button" class="sum-sec" onclick="window.print()"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9V2h12v7"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>Print / PDF</button><button type="button" class="sum-sec" onclick="fcExportXLS()"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m7 10 5 5 5-5"/><path d="M12 15V3"/></svg>Export XLS</button><button onclick="fcSaveAndExit()" style="background:#0091D2;color:#fff;border-color:#0091D2;font-weight:700">Save &amp; exit</button></div>';
+  h+='<div class="acts"><button type="button" class="abq-link" onclick="fcBackFromSummary()">&larr; Back</button><button type="button" class="sum-sec" onclick="window.print()"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9V2h12v7"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>Print / PDF</button><button type="button" class="sum-sec" onclick="fcExportXLS()"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m7 10 5 5 5-5"/><path d="M12 15V3"/></svg>Export XLS</button><button onclick="fcSaveAndExit()" style="background:#0091D2;color:#fff;border-color:#0091D2;font-weight:700">Save &amp; exit</button></div>'+(stRows?'':fcRptLink);
   h+='</div>';
   document.getElementById('main').innerHTML=h;
 }
@@ -2529,7 +2635,7 @@ async function fcRetrieve(){
   try{
     const fc=await forecastDB.loadById(code);
     if(fc){
-      S._fcExpanded={};
+      S._fcExpanded={};S._fcReportFor=null;
       S.fc={mode:'new',draft:fc,isUpdate:true};
       S.screen='home';
       showToast('Forecast loaded');render();
@@ -3759,7 +3865,7 @@ function stepAbout(plan){
           <div class="fg"><label>Date *</label><input type="date" id="p-date" value="${esc(p.date)}"></div>
           <div class="fg"><label>Plan owner / Contact *</label><input type="text" id="p-own" value="${esc(p.ownerName)}" placeholder="Full name"><div class="fhint">Responsible &amp; accountable for post-event reporting</div></div>
         </div>
-        <div class="fg"><label>Contact email *</label><input type="email" id="p-email" value="${esc(p.email)}" placeholder="email@company.com"><div class="fhint">A confirmation is emailed here when you Save &amp; exit on the Summary step</div></div>
+        <div class="fg"><label>Contact email *</label><input type="email" id="p-email" value="${esc(p.email)}" placeholder="email@company.com"><div class="fhint">A confirmation is emailed here when you Save on the Summary step</div></div>
         <input type="hidden" id="p-editor" value="${esc(p.editorName)}">
       </div>
 
@@ -3815,7 +3921,7 @@ function abqCompactHtml(plan){
     </div>
     <div class="fg" id="p-dept-wrap" style="display:${TA_ROLES.includes(p.role)?'':'none'}"><label>Department *</label><select id="p-dept"><option value="">Select department...</option>${mkOpts(TA_DEPARTMENTS,p.department||'')}</select></div>
     <div class="g2">
-      <div class="fg"><label>Contact email *</label><input type="email" id="p-email" value="${esc(p.email)}" placeholder="email@company.com"><div class="fhint">A confirmation is emailed here when you Save &amp; exit on the Summary step</div></div>
+      <div class="fg"><label>Contact email *</label><input type="email" id="p-email" value="${esc(p.email)}" placeholder="email@company.com"><div class="fhint">A confirmation is emailed here when you Save on the Summary step</div></div>
       <div></div>
     </div>
     <input type="hidden" id="p-editor" value="${esc(p.editorName)}">
@@ -3867,7 +3973,7 @@ function richIcon(k){
 }
 function abqIcon(r){
   const m={'Agency':'bulb','Builder':'hammer','Designer':'pen','Sub-contractor':'wrench','TA PM':'clip','TA Design':'layout','TA Build':'hat','TA delivery team':'truck',
-    'TA PMs':'clip','Agency (TA Precinct)':'bulbprint','Agency (Partner)':'bulb','Builder (TA Precinct)':'drill','Builder (Partner)':'hammer'};
+    'TA PMs':'clip','Agency (TA Precinct)':'bulbprint','Agency (Partner)':'bulb','Builder (TA Precinct)':'drill','Builder (Partner)':'hammer','Agency (Activations)':'bulb','Builder (Activations)':'hammer'};
   return richIcon(m[r]||'user');
 }
 function fcRoleIcon(r){return abqIcon(r);}
@@ -5059,7 +5165,8 @@ function stepSummary(plan){
   const storageHtml=p.storageDetails?'<div style="margin-top:10px"><div style="font-size:12px;color:#888">Storage</div><div style="font-size:13px;margin-top:2px;color:#1a1a1a">'+esc(p.storageDetails)+'</div></div>':'';
   const circBody=sc.total>0?'<div style="display:flex;justify-content:space-between;font-size:12px;color:#888;margin-bottom:4px"><span>Circularity rate</span><span style="font-weight:600;color:'+cl+'">'+pctText(sc.pctExact)+'</span></div><div class="strack"><div class="sfill" style="width:'+sc.pct+'%;background:'+cl+'"></div></div><div style="font-size:11px;color:#aaa;margin-top:3px">AO target: 10% improvement per year</div>':'<div style="font-size:13px;color:#888;margin-top:4px">Add materials with an expected status to see your score.</div>';
   const customHtml=customMats.length?'<div style="font-size:12px;color:#888">Custom: '+customMats.map(m=>'<strong>'+esc(m.name||'Unnamed')+'</strong>').join(', ')+'</div>':'';
-  const saveBtnHtml=S.plan._example?'':'<button onclick="savePlan()" style="background:linear-gradient(135deg,#0091D2,#0072A8);color:#fff;border-color:#0072A8;font-weight:700;padding:9px 20px;box-shadow:0 2px 8px rgba(0,145,210,.3)">Save &amp; exit &#10003;</button>';
+  const saveBtnHtml=S.plan._example?'':'<button onclick="savePlan()" style="background:linear-gradient(135deg,#0091D2,#0072A8);color:#fff;border-color:#0072A8;font-weight:700;padding:9px 20px;box-shadow:0 2px 8px rgba(0,145,210,.3)">Save &#10003;</button>';
+  const exitBtnHtml=S.plan._example?'':'<button type="button" class="sum-exit" onclick="goHome()">Exit</button>';
   const unsavedBadge=S._unsaved&&!S.plan._example?'<span id="unsaved-badge" style="font-size:11px;font-weight:700;color:#854F0B;background:#FAEEDA;border:1px solid #f5ddb7;border-radius:6px;padding:3px 9px;white-space:nowrap">&#9679; Unsaved changes</span>':'';
 
   let h='<div class="ux-summary">';
@@ -5086,7 +5193,8 @@ function stepSummary(plan){
   h+='</div>';
   const actualCts={};for(const m of allMats)if(m.outcome&&m.outcome!=='')actualCts[m.outcome]=(actualCts[m.outcome]||0)+1;
   const actualRows=Object.entries(actualCts).sort((a,b)=>b[1]-a[1]).map(([s,n])=>'<div class="srow"><div class="sdot" style="background:'+(STCOL[s]||'#9ca3af')+'"></div><div style="flex:1;color:#1a1a1a">'+esc(s)+'</div><div style="font-weight:600;min-width:20px;text-align:right">'+n+'</div></div>').join('');
-  if(allMats.length&&stRows)h+='<div class="card"><div style="display:grid;grid-template-columns:1fr 1fr;gap:16px"><div><div class="sechd" style="margin-top:0">Materials by expected status</div>'+stRows+'</div><div><div class="sechd" style="margin-top:0;color:#0091D2">Materials ACTUALS POST EVENT</div>'+(actualRows||'<div style="font-size:13px;color:#aaa;margin-top:6px">Complete field 7 at bump-out to track actuals.</div>')+'</div></div></div>';
+  const rptLinkHtml=(!S._reportMode&&!S.plan._example&&(S.formOrigin==='update'||S.plan.imported))?'<div class="rpt-link"><a href="#" onclick="goEventReportHub();return false">Ready to submit an end of event report?</a></div>':'';
+  if(allMats.length&&stRows)h+='<div class="card"><div style="display:grid;grid-template-columns:1fr 1fr;gap:16px"><div><div class="sechd" style="margin-top:0">Materials by expected status</div>'+stRows+'</div><div><div class="sechd" style="margin-top:0;color:#0091D2">Materials ACTUALS POST EVENT</div>'+(actualRows||'<div style="font-size:13px;color:#aaa;margin-top:6px">Complete field 7 at bump-out to track actuals.</div>')+rptLinkHtml+'</div></div></div>';
   h+='<div class="card"><div class="sechd" style="margin-top:0">AO Target Materials coverage</div><div class="g2"><div class="met"><div class="mval" style="color:#0091D2">'+tmlMats.length+'</div><div class="mlbl">From AO Target List</div></div><div class="met"><div class="mval" style="color:#888">'+customMats.length+'</div><div class="mlbl">Custom / unlisted</div></div></div></div>';
   h+=flaggedBlock;
   if(assets.length)h+='<div class="card"><div class="sechd" style="margin-top:0">Asset &amp; material detail</div>'+assetRows+'</div>';
@@ -5096,16 +5204,13 @@ function stepSummary(plan){
   // Consent notice — shown only for real plans (not example), only when a save button is present
   const consentHtml = S.plan._example ? '' :
     '<div style="margin-top:1rem;padding:10px 14px;background:#CFE7E9;border:1px solid #e0ddd6;border-radius:8px;font-size:11.5px;color:#777;line-height:1.65">'
-    +'By clicking <strong style="color:#1a1a1a">Save &amp; exit</strong>, you consent to Tennis Australia collecting your name and email to save your materials plan. '
+    +'By clicking <strong style="color:#1a1a1a">Save</strong>, you consent to Tennis Australia collecting your name and email to save your materials plan. '
     +'Your data is securely routed to and stored on Australian servers and infrastructure. '
     +'We never sell your data or use it for secondary purposes without consent. '
     +'<a onclick="switchTab(\'faq\');setTimeout(()=>{const el=document.getElementById(\'faq-privacy\');if(el){el.classList.add(\'open\');const ic=document.getElementById(\'icon-faq-privacy\');if(ic)ic.classList.add(\'open\');}},100);return false;" href="#" style="color:#0091D2;font-weight:600;text-decoration:underline">View our full Privacy Policy</a> to learn more.'
     +'</div>';
   h+=consentHtml;
-  if(!S._reportMode&&!S.plan._example&&(S.formOrigin==='update'||S.plan.imported)){
-    h+='<div class="card report-cta"><div><div class="sechd" style="margin:0 0 4px">End of event reporting</div><div style="font-size:12.5px;color:var(--ux-body)">Return after bump-out to record actual outcomes and complete your circularity report.</div></div><button type="button" class="abq-next" onclick="beginEventReport()">Submit an end of event report</button></div>';
-  }
-  h+='<div class="acts" style="margin-top:.75rem"><button type="button" class="abq-link" onclick="goPrev()">&larr; Back</button>'+(S.plan._example?'<button onclick="goHome()" style="background:#0091D2;color:#fff;border-color:#0091D2;font-weight:700">&#8962; Home</button>':'<button type="button" class="sum-sec" onclick="window.print()"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9V2h12v7"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>Print / PDF</button><button type="button" class="sum-sec" onclick="exportPlanXLS()"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m7 10 5 5 5-5"/><path d="M12 15V3"/></svg>Export XLS</button>'+unsavedBadge+saveBtnHtml)+'</div>';
+  h+='<div class="acts" style="margin-top:.75rem"><button type="button" class="abq-link" onclick="goPrev()">&larr; Back</button>'+(S.plan._example?'<button onclick="goHome()" style="background:#0091D2;color:#fff;border-color:#0091D2;font-weight:700">&#8962; Home</button>':'<button type="button" class="sum-sec" onclick="window.print()"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9V2h12v7"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>Print / PDF</button><button type="button" class="sum-sec" onclick="exportPlanXLS()"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m7 10 5 5 5-5"/><path d="M12 15V3"/></svg>Export XLS</button>'+unsavedBadge+exitBtnHtml+saveBtnHtml)+'</div>'+(allMats.length&&stRows?'':rptLinkHtml);
   h+='</div>';
   return h;
 }
@@ -6228,7 +6333,7 @@ function savePlan(){
       // Land on the home screen underneath the confirmation modal, so closing the
       // modal (or clicking outside it) already shows Home — the button is "Save &
       // exit", so exiting shouldn't need a second, separate step.
-      S.screen='home';render();
+      render();
       showSavedModal(code, res.source);
     } else {
       showToast('Save failed - please try again');
