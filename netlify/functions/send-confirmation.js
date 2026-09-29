@@ -14,6 +14,21 @@ const DOC_TYPE_LABELS = {
 };
 
 const FROM_ADDRESS = 'no-reply@tennis.com.au';
+const TOOL_URL = 'https://ta-materials-plan.netlify.app/';
+
+// Email copy per record type. The template (emails/confirmation/index.html)
+// prints these as-is, so the wording lives here in one place.
+// Same message for both types; only the name and the code label differ.
+function emailCopy(type, docType) {
+  return {
+    heading: docType,
+    intro: `The AO27 ${docType} has been created/ updated. Keep this reference code - treat it like a password, anyone with the code can load and update this record.`,
+    codeLabel: type === 'plan' ? 'Plan ID' : 'Reference code',
+    linkLead: 'View or update via',
+    linkText: 'TA Materials Plan',
+    linkEnd: ''
+  };
+}
 
 exports.handler = async function (event) {
   if (event.httpMethod !== 'POST') {
@@ -36,6 +51,8 @@ exports.handler = async function (event) {
   }
 
   const docType = DOC_TYPE_LABELS[type] || 'record';
+  const act = action || 'saved';
+  const copy = emailCopy(type, docType);
 
   try {
     const res = await fetch(`${process.env.URL}/.netlify/functions/emails/confirmation`, {
@@ -47,12 +64,19 @@ exports.handler = async function (event) {
       body: JSON.stringify({
         from: FROM_ADDRESS,
         to: to_email,
-        subject: `Your AO27 ${docType} \u2014 ${code}`,
+        subject: `AO27 ${docType} has been ${act}`,
         parameters: {
           name: to_name || 'there',
           docType: docType,
-          action: action || 'saved',
-          code: code
+          action: act,
+          code: code,
+          heading: copy.heading,
+          intro: copy.intro,
+          codeLabel: copy.codeLabel,
+          linkLead: copy.linkLead,
+          linkText: copy.linkText,
+          linkEnd: copy.linkEnd,
+          link: TOOL_URL
         }
       })
     });
