@@ -940,18 +940,32 @@ function precAppRename(v){
   return hit||v;
 }
 const PRECS=['Garden Square','Rod Laver Arena','Margaret Court Arena','John Cain Arena','Show Courts','Player Services','Media Centre','Corporate','Public Areas','Multiple Precincts','Other'];
-const STATS=['Reuse - next AO (stored at TA warehouse)','Reuse - next AO (stored by Agency/Builder)','Reuse - other event/ client (Agency/Builder)','Recycle - we will take off site (Agency/Builder)','Recycle on site with AO Take-back program','Repurpose - keep for another use','Donate','Mixed construction waste - AO onsite bins','Unsure yet'];
-// Field 7 (Actual outcome) is completed post-event, so "Unsure yet" is not a valid answer there.
-// Field 6 (Expected status) keeps it.
-const OUTCOMES=STATS.filter(s=>s!=='Unsure yet');
+const STATS=['Reuse - next AO (stored at TA warehouse)','Reuse - next AO (stored by Agency/Builder)','Reuse - other event/ client (Agency/Builder)','Recycle - we will take off site (Agency/Builder)','Recycle on site with AO Take-back program','Repurpose - keep for another use','Donate','Mixed construction waste - AO onsite bins','Refurb & Replacement','Dormant asset - not used >1 year','Unsure yet'];
+// Field 7 (Actual outcome) is completed post-event, so the unsure-type statuses ("Unsure yet",
+// "Dormant asset") are not valid answers there. Field 6 (Expected status) keeps them.
+const OUTCOMES=STATS.filter(s=>!isUnsureStat(s));
+// Spelling variants seen in uploaded sheets → current status. Keys: lower case, single spaces.
+const STAT_ALIASES={
+  'referb & replacement':'Refurb & Replacement',
+  'refurb & replace':'Refurb & Replacement',
+  'dormant asset - not used greater than 1 year':'Dormant asset - not used >1 year',
+  'dormant asset - not used > 1 year':'Dormant asset - not used >1 year',
+  'dormant asset':'Dormant asset - not used >1 year'
+};
+function statNorm(v){
+  const t=String(v||'').trim();if(!t)return'';
+  const k=t.toLowerCase().replace(/\s+/g,' ');
+  if(STAT_ALIASES[k])return STAT_ALIASES[k];
+  return STATS.find(x=>x.toLowerCase()===k)||t;
+}
 // A forecast material's post-event status now lives on m.outcome directly.
 // Older saved forecasts (pre-flatten) still carry it under a nested
 // m.actual.stat — read through this helper wherever admin views pull straight
 // from raw stored data without going through migrateForecast() first, so both
 // shapes report correctly instead of legacy records silently showing "no data".
 function fcMatOutcome(m){return(m&&(m.outcome||(m.actual&&m.actual.stat)))||'';}
-const STCOL={'Reuse - next AO (stored at TA warehouse)':'#20A85A','Reuse - next AO (stored by Agency/Builder)':'#20A85A','Reuse - other event/ client (Agency/Builder)':'#20A85A','Recycle - we will take off site (Agency/Builder)':'#20A85A','Recycle on site with AO Take-back program':'#20A85A','Repurpose - keep for another use':'#7FB53A','Reuse - next AO (stored by AO)':'#20A85A','Reuse - next AO (stored by us)':'#20A85A','Reuse - other event/ client':'#20A85A','Recycle on site with AO take-back program':'#20A85A','Recycle - we will take offsite':'#20A85A','Repurpose - we will take offsite for another use':'#7FB53A','Donate':'#7FB53A','Mixed construction waste - AO onsite bins':'#A32E2E','Unsure yet':'#8A97A2','Reuse \u2013 Next AO (stored at AO)':'#20A85A','Reuse \u2013 Next AO (stored by us)':'#20A85A','Reuse \u2013 Other Event / Client':'#20A85A','Recycle':'#20A85A','Repurpose – use material in another way':'#7FB53A','Mixed construction waste \u2013 AO onsite bin':'#A32E2E','Not sure yet':'#8A97A2','Other':'#8A97A2'};
-const STCOL_ADMIN={'Reuse - next AO (stored by AO)':'#20A85A','Reuse - next AO (stored by us)':'#20A85A','Reuse - other event/ client':'#20A85A','Recycle on site with AO take-back program':'#20A85A','Recycle - we will take offsite':'#20A85A','Repurpose - we will take offsite for another use':'#7FB53A','Mixed construction waste - AO onsite bins':'#A32E2E','Unsure yet':'#8A97A2','Reuse \u2013 Next AO (stored at AO)':'#20A85A','Reuse \u2013 Next AO (stored by us)':'#20A85A','Reuse \u2013 Other Event / Client':'#20A85A','Recycle':'#20A85A','Repurpose – use material in another way':'#7FB53A','Donate':'#7FB53A','Mixed construction waste \u2013 AO onsite bin':'#A32E2E','Not sure yet':'#8A97A2','Other':'#8A97A2','Reuse - Next AO':'#20A85A','Reuse - Other Event / Client':'#20A85A','Landfill':'#A32E2E','TBC - decide later':'#8A97A2'};
+const STCOL={'Reuse - next AO (stored at TA warehouse)':'#20A85A','Reuse - next AO (stored by Agency/Builder)':'#20A85A','Reuse - other event/ client (Agency/Builder)':'#20A85A','Recycle - we will take off site (Agency/Builder)':'#20A85A','Recycle on site with AO Take-back program':'#20A85A','Repurpose - keep for another use':'#7FB53A','Reuse - next AO (stored by AO)':'#20A85A','Reuse - next AO (stored by us)':'#20A85A','Reuse - other event/ client':'#20A85A','Recycle on site with AO take-back program':'#20A85A','Recycle - we will take offsite':'#20A85A','Repurpose - we will take offsite for another use':'#7FB53A','Donate':'#7FB53A','Mixed construction waste - AO onsite bins':'#A32E2E','Refurb & Replacement':'#20A85A','Dormant asset - not used >1 year':'#8A97A2','Unsure yet':'#8A97A2','Reuse \u2013 Next AO (stored at AO)':'#20A85A','Reuse \u2013 Next AO (stored by us)':'#20A85A','Reuse \u2013 Other Event / Client':'#20A85A','Recycle':'#20A85A','Repurpose – use material in another way':'#7FB53A','Mixed construction waste \u2013 AO onsite bin':'#A32E2E','Not sure yet':'#8A97A2','Other':'#8A97A2'};
+const STCOL_ADMIN={'Reuse - next AO (stored by AO)':'#20A85A','Reuse - next AO (stored by us)':'#20A85A','Reuse - other event/ client':'#20A85A','Recycle on site with AO take-back program':'#20A85A','Recycle - we will take offsite':'#20A85A','Repurpose - we will take offsite for another use':'#7FB53A','Mixed construction waste - AO onsite bins':'#A32E2E','Refurb & Replacement':'#20A85A','Dormant asset - not used >1 year':'#8A97A2','Unsure yet':'#8A97A2','Reuse \u2013 Next AO (stored at AO)':'#20A85A','Reuse \u2013 Next AO (stored by us)':'#20A85A','Reuse \u2013 Other Event / Client':'#20A85A','Recycle':'#20A85A','Repurpose – use material in another way':'#7FB53A','Donate':'#7FB53A','Mixed construction waste \u2013 AO onsite bin':'#A32E2E','Not sure yet':'#8A97A2','Other':'#8A97A2','Reuse - Next AO':'#20A85A','Reuse - Other Event / Client':'#20A85A','Landfill':'#A32E2E','TBC - decide later':'#8A97A2'};
 const ROLES=['Agency','Builder','Designer','Sub-contractor','TA PM','TA Design','TA Build','TA delivery team','Other'];
 const TA_ROLES=['TA PM','TA Design','TA Build','TA delivery team','TA Other'];
 const ROLES_EXTERNAL=['Agency','Builder','Designer','Sub-contractor'];
@@ -1252,7 +1266,9 @@ function mkOpts(arr,val,ph){return(ph?`<option value="">${esc(ph)}</option>`:'')
 // Circularity rating per AO mapping.
 // Circular  = reuse / recycle / repurpose / donate
 // Otherwise (mixed construction waste / landfill / unsure / blank-with-status) = NOT circular.
-function statRating(v){if(!v)return null;const s=String(v).toLowerCase();if(/reuse|recycle|repurpose|donate/.test(s))return'circular';return'not';}
+function statRating(v){if(!v)return null;const s=String(v).toLowerCase();if(/reuse|recycle|repurpose|donate|refurb/.test(s))return'circular';return'not';}
+// Unsure-type statuses: no decision yet. "Dormant asset" is treated exactly like "Unsure yet".
+function isUnsureStat(v){const s=String(v||'').toLowerCase().trim();return s==='unsure yet'||s==='not sure yet'||s.indexOf('dormant')===0;}
 // Score a material list for a field ('stat' or 'outcome').
 // Denominator = every material that HAS a value for that field (unsure included → counts against the score).
 // pct is null only when there is NO data at all for that field (so the UI can show a dash).
@@ -1274,13 +1290,13 @@ function assetCirc(a){
   return`<span style="font-size:10px;font-weight:700;color:${cl};flex-shrink:0">${s.circular}/${s.total}&nbsp;♻</span>`;
 }
 // UX v2: colour tone for the field-6 select (dot + border). Same rule as the score.
-function statTone(s){if(!s)return'';if(s==='Unsure yet'||s==='Not sure yet')return'unsure';return statRating(s)==='circular'?'good':'waste';}
+function statTone(s){if(!s)return'';if(isUnsureStat(s))return'unsure';return statRating(s)==='circular'?'good':'waste';}
 function fillClr(pct){return pct>=80?'#33D900':pct>=50?'#EF9F27':'#E24B4A'}
 // Forecast expected/actual status tag — reuses the materials plan's green/amber/red
 // circularity colour scale (fillClr) instead of the multi-colour statBdg() palette.
-function fcStatColor(s){if(!s)return'#8A97A2';if(s==='Unsure yet'||s==='Not sure yet')return'#EF9F27';return statRating(s)==='circular'?'#33D900':'#E24B4A';}
+function fcStatColor(s){if(!s)return'#8A97A2';if(isUnsureStat(s))return'#EF9F27';return statRating(s)==='circular'?'#33D900':'#E24B4A';}
 function fcStatTag(s){if(!s)return'';const c=fcStatColor(s);return'<span class="bdg" style="background:'+c+'22;color:'+c+';border:1px solid '+c+'66">'+esc(s)+'</span>';}
-function statBdg(s){if(!s)return'';const m={'Reuse - next AO (stored at TA warehouse)':'gr','Reuse - next AO (stored by Agency/Builder)':'gr','Reuse - other event/ client (Agency/Builder)':'tl','Recycle - we will take off site (Agency/Builder)':'bl','Recycle on site with AO Take-back program':'bl','Repurpose - keep for another use':'pu','Reuse - next AO (stored by AO)':'gr','Reuse - next AO (stored by us)':'gr','Reuse - other event/ client':'tl','Recycle on site with AO take-back program':'bl','Recycle - we will take offsite':'bl','Repurpose - we will take offsite for another use':'pu','Donate':'pu','Mixed construction waste - AO onsite bins':'re','Unsure yet':'gy','Reuse \u2013 Next AO (stored at AO)':'gr','Reuse \u2013 Next AO (stored by us)':'gr','Reuse \u2013 Other Event / Client':'tl','Recycle':'bl','Repurpose – use material in another way':'pu','Mixed construction waste \u2013 AO onsite bin':'re','Not sure yet':'gy','Other':'gy'};return`<span class="bdg ${m[s]||'gy'}">${esc(s)}</span>`}
+function statBdg(s){if(!s)return'';const m={'Reuse - next AO (stored at TA warehouse)':'gr','Reuse - next AO (stored by Agency/Builder)':'gr','Reuse - other event/ client (Agency/Builder)':'tl','Recycle - we will take off site (Agency/Builder)':'bl','Recycle on site with AO Take-back program':'bl','Repurpose - keep for another use':'pu','Reuse - next AO (stored by AO)':'gr','Reuse - next AO (stored by us)':'gr','Reuse - other event/ client':'tl','Recycle on site with AO take-back program':'bl','Recycle - we will take offsite':'bl','Repurpose - we will take offsite for another use':'pu','Donate':'pu','Mixed construction waste - AO onsite bins':'re','Refurb & Replacement':'gr','Dormant asset - not used >1 year':'gy','Unsure yet':'gy','Reuse \u2013 Next AO (stored at AO)':'gr','Reuse \u2013 Next AO (stored by us)':'gr','Reuse \u2013 Other Event / Client':'tl','Recycle':'bl','Repurpose – use material in another way':'pu','Mixed construction waste \u2013 AO onsite bin':'re','Not sure yet':'gy','Other':'gy'};return`<span class="bdg ${m[s]||'gy'}">${esc(s)}</span>`}
 
 
 // ── Feedback panel (UX v2) ─────────────────────────────────────────────────────
@@ -1454,56 +1470,68 @@ function matchTMLRef(text){
 }
 
 // ── Material name normalisation (XLS upload, field 5a) ─────────────────────────
-// Uploaded sheets mix sizes, grades and product words into Material Name, e.g.
-// "2400x1200x17mm structural ply evo". Reports group by material, so reduce the text
-// to the material itself and return the size separately. Order matters: the most
-// specific rule wins (non-structural ply before structural ply before plywood; a
-// named metal before a generic "checker plate"). Unrecognised text falls back to the
-// original with dimensions and stray numbers stripped — never to blank.
-const MAT_NAME_RULES=[
-  [/\bevo(lution)?\b/,'Evolution structural ply',/\bply/],
-  [/\bnon[\s-]*structural\s*ply/,'Non-structural ply'],
-  [/\bform\s*-?\s*ply|\bformply/,'Formply'],
-  [/\bmarine\s*ply/,'Marine ply'],
-  [/\bstructural\s*ply/,'Structural ply'],
-  [/\bply(wood)?\b/,'Plywood'],
-  [/\bmdf\b/,'MDF'],
-  [/\bmgp\s*\d*\b/,'MGP'],
-  [/\blvl\b/,'LVL'],
-  [/\bosb\b/,'OSB'],
-  [/\bparticle\s*board/,'Particleboard'],
-  [/\bdurr?a\s*panel/,'Durrapanel'],
-  [/\bacp\b|\bacm\b|aluminium composite/,'ACP'],
-  [/\bdar\b/,'DAR timber'],
-  [/\bcontainers?\b/,'Shipping container'],
-  [/\bsteel\b/,'Steel'],
-  [/\balumin(i)?um\b|\balloy\b/,'Aluminium'],
-  [/\bchecker\s*plate/,'Checker plate'],
-  [/\bpolycarbonate\b/,'Polycarbonate'],
-  [/\bacrylic\b|\bperspex\b/,'Acrylic'],
-  [/\bcorflute\b/,'Corflute'],
-  [/\bfoam\s*board\b|\bfoamcore\b/,'Foam board'],
-  [/\bpvc\b/,'PVC'],
-  [/\bcarpet/,'Carpet'],
-  [/\bvinyl\b/,'Vinyl'],
-  [/\bplasterboard\b|\bgyprock\b/,'Plasterboard']
-];
+// Uploaded sheets mix sizes into Material Name, e.g. "90x45 MGP 10" or
+// "2400x1200x17mm structural ply evo". Measurements (numbers with mm/cm/m/ft, or
+// number x number) move to Unit / size; everything else the user wrote — grade,
+// type, product — stays in the name. A few shorthand forms are expanded so the
+// same material reads the same way across uploads.
 const MAT_DIM_RE=/\d+(?:\.\d+)?(?:\s*(?:mm|cm|m|ft)\b)?(?:\s*[x×*]\s*\d+(?:\.\d+)?(?:\s*(?:mm|cm|m|ft)\b)?)+|\d+(?:\.\d+)?\s*(?:mm|cm|m|ft)\b/gi;
+const MAT_NAME_REWRITES=[
+  [/\bstructural\s*ply(?:wood)?\s*evo(?:lution)?\b|\bevo(?:lution)?\s*structural\s*ply(?:wood)?\b/i,'Evolution structural ply'],
+  [/\bform\s*-?\s*ply\b/i,'Formply'],
+  [/\bmgp\s*(\d+)\b/i,'MGP $1']
+];
 function normaliseMaterialName(raw){
   const orig=String(raw||'').replace(/\s+/g,' ').trim();
   if(!orig)return{name:'',size:''};
-  const lo=orig.toLowerCase();
   const dims=orig.match(MAT_DIM_RE)||[];
-  const grade=/\bmgp\s*(\d+)\b/i.exec(orig);
-  const size=dims.map(d=>d.replace(/\s+/g,'')).concat(grade?['MGP'+grade[1]]:[]).join(' ');
-  for(const r of MAT_NAME_RULES){
-    if(r[0].test(lo)&&(!r[2]||r[2].test(lo)))return{name:r[1],size:size};
+  const size=dims.map(d=>d.replace(/\s+/g,'')).join(' ');
+  let name=orig.replace(MAT_DIM_RE,' ').replace(/(^|\s)[x×*](?=\s|$)/gi,' ');
+  for(const rw of MAT_NAME_REWRITES)name=name.replace(rw[0],rw[1]);
+  name=name.replace(/\s+/g,' ').replace(/^[\s,;:\-\/]+|[\s,;:\-\/]+$/g,'').trim();
+  if(!name)return{name:orig,size:''};
+  if(/^[a-z]/.test(name))name=name.charAt(0).toUpperCase()+name.slice(1);
+  return{name:name,size:size};
+}
+// ── Target Materials List classification (XLS upload) ─────────────────────────
+// exact   = the name covers one TML entry completely (core name AND its bracketed
+//           qualifier, e.g. "Type A-Bond") and no other entry → that TML item.
+// partial = the name points at one or more TML entries but is missing detail
+//           ("MGP 10" fits three MGP10 pine entries; "MDF" fits MR/décor and raw).
+//           Stored as field 5 = "Matched material (needs more details)": the material
+//           stays on the 5a path (tmlRef 'OTHER', so no report counts it as a TML item
+//           until the user confirms one) and m.tmlPartial lists the candidates.
+function tmlClassTokens(s){
+  let t=tmlSplitCompound(s).toLowerCase();
+  t=t.replace(/non[\s-]+structural/g,'nonstructural').replace(/\bformply\b/g,'form ply').replace(MAT_DIM_RE,' ');
+  t=t.replace(/([a-z])(\d)/g,'$1 $2').replace(/(\d)([a-z])/g,'$1 $2');
+  t=t.replace(/[^a-z0-9]+/g,' ').replace(/\s+/g,' ').trim();
+  if(!t)return[];
+  return t.split(' ').filter(w=>w&&!TML_STOP.has(w)).map(w=>TML_SYN[w]||w);
+}
+function classifyTML(text){
+  const none={exact:null,partial:[]};
+  const I=Array.from(new Set(tmlClassTokens(text)));
+  const isNum=w=>/^\d+$/.test(w);
+  if(!I.some(w=>!isNum(w)))return none;
+  const has=(arr,w)=>arr.some(e=>tmlTokEq(e,w));
+  const cands=[];
+  for(const t of TML){
+    const pm=/\(([^)]*)\)/.exec(t.name);
+    const Em=tmlClassTokens(t.name.replace(/\([^)]*\)/g,' '));
+    const Eq=pm?tmlClassTokens(pm[1]):[];
+    if(!Em.length)continue;
+    const E=Em.concat(Eq);
+    if(!I.some(w=>!isNum(w)&&has(E,w)))continue;          // needs a real material word in common
+    const cov=I.filter(w=>has(E,w)).length/I.length;       // how much of the input the entry explains
+    const recM=Em.filter(e=>has(I,e)).length/Em.length;     // how much of the entry's core name is present
+    if(cov>=0.66||recM===1)cands.push({ref:t.ref,cov:cov,recM:recM,full:cov===1&&E.every(e=>has(I,e))});
   }
-  let rest=orig.replace(MAT_DIM_RE,' ').replace(/\b\d+(?:\.\d+)?\b/g,' ')
-    .replace(/(^|\s)[x×*](?=\s|$)/gi,' ').replace(/\s+/g,' ').replace(/^[\s,;:\-\/]+|[\s,;:\-\/]+$/g,'');
-  if(!rest)return{name:orig,size:''};
-  if(rest===orig)return{name:orig,size:''};
-  return{name:rest.charAt(0).toUpperCase()+rest.slice(1),size:size};
+  if(!cands.length)return none;
+  const fulls=cands.filter(c=>c.full);
+  if(fulls.length===1)return{exact:fulls[0].ref,partial:[]};
+  cands.sort((x,y)=>(y.cov-x.cov)||(y.recM-x.recM));
+  return{exact:null,partial:cands.slice(0,5).map(c=>c.ref)};
 }
 
 // ── Data constructors ─────────────────────────────────────────────────────────
@@ -5092,7 +5120,7 @@ function assetCard(a,i){
       <span class="aname">${esc(displayName)}</span>${serialBdg}
       <span style="flex:1;min-width:0"></span>
       ${assetCirc(a)}
-      ${assetIsSaved(a)?'':`<button class="del-btn" onclick="event.stopPropagation();delAsset('${a.id}')" style="background:none;border:none;cursor:pointer;color:#ccc;padding:10px 12px;font-size:16px;border-radius:6px;flex-shrink:0" title="Delete asset">&times;</button>`}
+      ${assetIsSaved(a)?'':`<button class="del-btn" onclick="event.stopPropagation();confirmDelAsset('${a.id}')" style="background:none;border:none;cursor:pointer;color:#ccc;padding:10px 12px;font-size:16px;border-radius:6px;flex-shrink:0" title="Delete asset">&times;</button>`}
       <span id="arr-${a.id}" style="font-size:10px;color:#aaa;flex-shrink:0">${a.expanded?'&#9650;':'&#9660;'}</span>
     </div>
     <div class="acard-bd" id="abd-${a.id}" ${a.expanded?'':'style="display:none"'}>
@@ -5144,10 +5172,14 @@ function matRowHtml(aid,m,idx){
     +OUTCOMES.map(v=>`<option${v===outVal?' selected':''}>${esc(v)}</option>`).join('');
   // Field 7 "Other material" shown when no TML selected or OTHER selected
   const showF7=(m.tmlRef==='OTHER'||(!m.tmlRef&&!!m.name));
+  // Partial TML match from an upload: field 5 shows "Matched material (needs more details)"
+  const tmlPart=(m.tmlRef==='OTHER'&&Array.isArray(m.tmlPartial)&&m.tmlPartial.length)?m.tmlPartial:null;
   const matLabel=m.name||(m.cat?m.cat.split('(')[0].trim():'')||'Material '+(idx+1);
   // Precinct application: preserve an imported value that isn't in the option list
   const appList=(S.plan.roleType==='TA'?PREC_APPS_TA:PREC_APPS);
   if(m.app){const ren=precAppRename(m.app);if(ren!==m.app)m.app=ren;}  // carry retired names forward
+  if(m.stat){const sn=statNorm(m.stat);if(sn!==m.stat)m.stat=sn;}
+  if(m.outcome){const on=statNorm(m.outcome);if(on!==m.outcome)m.outcome=on;}
   const appVal=m.app||'';
   const appCustom=appVal&&!appList.some(o=>o.toLowerCase()===appVal.toLowerCase());
   const appOpts=`<option value="">Select application...</option>`+(appCustom?`<option value="${esc(appVal)}" selected>${esc(appVal)}</option>`:'')+mkOpts(appList,m.app);
@@ -5169,11 +5201,14 @@ function matRowHtml(aid,m,idx){
       <label><span class="qn">5</span>Material details <span class="req">*</span><span class="name-sub-label">Select from AO Target Materials List (<a href="https://megtei.github.io/Materials_Methods_Plan/" target="_blank" style="color:#0091D2;font-weight:700">view full list &#8599;</a>) or tell us at 5a</span></label>
       <select data-aid="${aid}" data-mid="${m.id}" data-f="tmlRef" onchange="pickAssetMatTML(this)">
         <option value="">- Select material -</option>
-        <option value="OTHER"${m.tmlRef==='OTHER'?' selected':''}>Not AO target material \u2013 go to 5a</option>
+        <option value="OTHER"${m.tmlRef==='OTHER'&&!tmlPart?' selected':''}>Not AO target material \u2013 go to 5a</option>
+        ${tmlPart?`<option value="PARTIAL" selected>Matched material (needs more details)</option>
+        <optgroup label="Possible matches \u2013 pick one if it applies">${tmlPart.map(r=>{const t=TML.find(x=>x.ref===r);return t?`<option value="${esc(t.ref)}">${esc(t.name)}</option>`:'';}).join('')}</optgroup>`:''}
         <option value="" disabled style="color:#ccc">\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500</option>
         ${renderTMLOptions(m.tmlRef)}
       </select>
       ${tmlInfo}
+      ${tmlPart?`<div style="margin-top:8px;padding:10px 12px;border-radius:8px;background:#FFF6E5;border:1px solid #F2D49B;font-size:13px;line-height:1.5;color:#6B4A00"><strong>Needs more details.</strong> This looks like an AO target material, but the name doesn\u2019t say which one. Possible matches: ${tmlPart.map(r=>{const t=TML.find(x=>x.ref===r);return t?'<strong>'+esc(t.name)+'</strong>':'';}).filter(Boolean).join(' \u00b7 ')}. Pick the exact one above if it applies, or add the missing detail at 5a.</div>`:''}
     </div>
     <div class="fg" id="f7-${m.id}"${showF7?'':' style="display:none"'}>
       <label><span class="qn sm">5a</span>If not on the AO target materials list, provide material name here <span class="req">*</span></label>
@@ -5203,7 +5238,7 @@ function stepSummary(plan){
   // "Unsure yet"/no status is no-data, NOT waste, so it is excluded from this count.
   const wasteCount=allMats.filter(m=>m.stat&&String(m.stat).toLowerCase().includes('mixed construction waste')).length;
   // Diverted from landfill = every material with a status EXCEPT waste and "unsure yet".
-  const divertedCount=allMats.filter(m=>{const s=String(m.stat||'').toLowerCase();if(!s)return false;if(s.includes('mixed construction waste'))return false;if(s.includes('unsure'))return false;return true;}).length;
+  const divertedCount=allMats.filter(m=>{const s=String(m.stat||'').toLowerCase();if(!s)return false;if(s.includes('mixed construction waste'))return false;if(s.includes('unsure')||s.includes('dormant'))return false;return true;}).length;
   const stCts={};for(const m of allMats)if(m.stat)stCts[m.stat]=(stCts[m.stat]||0)+1;
   const stRows=Object.entries(stCts).sort((a,b)=>b[1]-a[1]).map(([s,n])=>'<div class="srow"><div class="sdot" style="background:'+(STCOL[s]||'#9ca3af')+'"></div><div style="flex:1;color:#1a1a1a">'+esc(s)+'</div><div style="font-weight:600;min-width:20px;text-align:right">'+n+'</div></div>').join('');
   const tmlMats=allMats.filter(m=>m.tmlRef&&m.tmlRef!=='OTHER');
@@ -5214,7 +5249,7 @@ function stepSummary(plan){
     const precLabel=a.prec||'';
     const matList=a.materials.map(m=>{
       const statClr=STCOL[m.stat]||'#94a3b8';
-      const statBdgMap={'Reuse - next AO (stored at TA warehouse)':'gr','Reuse - next AO (stored by Agency/Builder)':'gr','Reuse - other event/ client (Agency/Builder)':'tl','Recycle - we will take off site (Agency/Builder)':'bl','Recycle on site with AO Take-back program':'bl','Repurpose - keep for another use':'pu','Reuse - next AO (stored by AO)':'gr','Reuse - next AO (stored by us)':'gr','Reuse - other event/ client':'tl','Recycle on site with AO take-back program':'bl','Recycle - we will take offsite':'bl','Repurpose - we will take offsite for another use':'pu','Donate':'pu','Mixed construction waste - AO onsite bins':'re','Unsure yet':'gy','Reuse \u2013 Next AO (stored at AO)':'gr','Reuse \u2013 Next AO (stored by us)':'gr','Reuse \u2013 Other Event / Client':'tl','Recycle':'bl','Repurpose – use material in another way':'pu','Mixed construction waste \u2013 AO onsite bin':'re','Not sure yet':'gy','Other':'gy'};
+      const statBdgMap={'Reuse - next AO (stored at TA warehouse)':'gr','Reuse - next AO (stored by Agency/Builder)':'gr','Reuse - other event/ client (Agency/Builder)':'tl','Recycle - we will take off site (Agency/Builder)':'bl','Recycle on site with AO Take-back program':'bl','Repurpose - keep for another use':'pu','Reuse - next AO (stored by AO)':'gr','Reuse - next AO (stored by us)':'gr','Reuse - other event/ client':'tl','Recycle on site with AO take-back program':'bl','Recycle - we will take offsite':'bl','Repurpose - we will take offsite for another use':'pu','Donate':'pu','Mixed construction waste - AO onsite bins':'re','Refurb & Replacement':'gr','Dormant asset - not used >1 year':'gy','Unsure yet':'gy','Reuse \u2013 Next AO (stored at AO)':'gr','Reuse \u2013 Next AO (stored by us)':'gr','Reuse \u2013 Other Event / Client':'tl','Recycle':'bl','Repurpose – use material in another way':'pu','Mixed construction waste \u2013 AO onsite bin':'re','Not sure yet':'gy','Other':'gy'};
       const volHtml=m.vol?'<span style="color:#aaa;font-size:11px">'+esc(m.vol)+' '+esc(m.vunit)+'</span>':'';
       const statHtml=m.stat?'<span class="bdg '+(statBdgMap[m.stat]||'gy')+'">'+esc(m.stat)+'</span>':'';
       return '<div class="smat-item"><span class="smat-dot" style="background:'+statClr+'"></span><span style="flex:1">'+esc(m.name||m.cat||'Unnamed')+'</span>'+volHtml+statHtml+'</div>';
@@ -5636,18 +5671,25 @@ function importPlanXLS(input){
         // TA migration default: route every material to 5a (custom name) unless a real TML ref
         // exists — or a confident match can be made from the free-text Material Name (col J)
         // against the Target Materials List. See matchTMLRef() above.
-        const tmlRefGuess=tmlRefRaw?'':matchTMLRef(matName);
-        // Any upload with no TML ref and no confident match defaults to field 5 =
-        // "Not AO target material – go to 5a". (Create-from-scratch has no default.)
-        const tmlRef=tmlRefRaw?clamp(tmlRefRaw,10):(tmlRefGuess||((matName||taUpload)?'OTHER':''));
-        // Field 5a (material name) maps to Material Name (col H). Builders type sizes
-        // and grades into it ("2700x1200x9mm MDF", "90x45 MGP 10"), so reduce it to the
-        // material itself and carry the size across to Unit/size rather than lose it.
+        // Field 5a (material name) maps to Material Name (col H). Measurements move to
+        // Unit / size; grade, type and other detail stay in the name ("MGP 10").
         const nm=normaliseMaterialName(matName);
         const unitOut=nm.size?(vunit?vunit+' ('+nm.size+')':nm.size):vunit;
+        // Field 5: a real TML ref in the file wins. Otherwise classify the name against
+        // the Target Materials List — exact → that item; partial → "Matched material
+        // (needs more details)"; nothing → "Not AO target material – go to 5a".
+        // (Create-from-scratch has no default.)
+        const rawRef=String(tmlRefRaw||'').trim();
+        let tmlRef,tmlPartial=[];
+        if(rawRef&&rawRef.toUpperCase()!=='OTHER'){tmlRef=clamp(rawRef,10);}
+        else{
+          const cls=nm.name?classifyTML(nm.name):{exact:null,partial:[]};
+          if(cls.exact&&!rawRef){tmlRef=cls.exact;}
+          else{tmlRef=(matName||taUpload||rawRef)?'OTHER':'';tmlPartial=cls.partial;}
+        }
         assetMap[key].materials.push(
-          {id:uid(),cat:'',app:clamp(appNorm(app),150),tmlRef:tmlRef,name:clamp(nm.name,200),
-           vol:volSafe,vunit:clamp(unitOut,60),stat:clamp(stat,100),outcome:clamp(outcome,100)}
+          {id:uid(),cat:'',app:clamp(appNorm(app),150),tmlRef:tmlRef,tmlPartial:tmlPartial,name:clamp(nm.name,200),
+           vol:volSafe,vunit:clamp(unitOut,60),stat:clamp(statNorm(stat),100),outcome:clamp(statNorm(outcome),100)}
         );
         r++;
       }
@@ -6568,7 +6610,8 @@ function assetIsSaved(a){
 }
 function confirmDelAsset(aid){
   const a=(S.plan.assets||[]).find(x=>x.id===aid);if(!a)return;
-  if(!confirm('Delete "'+(a.assetName||'this asset')+'" and all its materials?'))return;
+  const n=(a.materials||[]).length;
+  if(!confirm('This will delete "'+(a.assetName||'this asset')+'" and its '+n+' material'+(n===1?'':'s')+'.\n\nConfirm delete?'))return;
   delAsset(aid);S._unsaved=true;
 }
 // End of event reporting: one-line summary of fields 4–6 with Edit, like a saved forecast.
@@ -6648,11 +6691,16 @@ function pickAssetMatTML(el){
   const a=S.plan.assets.find(x=>x.id===aid);if(!a)return;
   const m=a.materials.find(x=>x.id===mid);if(!m)return;
 
+  if(val==='PARTIAL'){m.tmlRef='OTHER';return;}  // re-selecting the partial match: nothing to change
+  const hadPartial=Array.isArray(m.tmlPartial)&&m.tmlPartial.length>0;
+  m.tmlPartial=[];
   if(val===''){
     m.tmlRef='';m.name='';
     refreshAssets();return;
   }
   if(val==='OTHER'){
+    // Moving off a partial match keeps the uploaded name ("MGP 10") rather than wiping it.
+    if(hadPartial){m.tmlRef='OTHER';refreshAssets();return;}
     m.tmlRef='OTHER';m.name='';
     // Show field 7, hide TML info
     const f7=document.getElementById('f7-'+mid);if(f7)f7.style.display='';
@@ -6686,7 +6734,12 @@ function addAssetMat(aid){
 function delAssetMat(aid,mid){
   const a=S.plan.assets.find(x=>x.id===aid);if(!a)return;
   if(a.materials.length<=1){showToast('An asset needs at least one material. Delete the asset to remove it entirely.');return;}
+  const mi=a.materials.findIndex(m=>m.id===mid);if(mi<0)return;
+  const mm=a.materials[mi];
+  const mName=mm.name||((mm.tmlRef&&mm.tmlRef!=='OTHER')?((TML.find(x=>x.ref===mm.tmlRef)||{}).name||''):'');
+  if(!confirm('This will delete Material '+(mi+1)+(mName?' ("'+mName+'")':'')+' from "'+(a.assetName||'this asset')+'".\n\nConfirm delete?'))return;
   a.materials=a.materials.filter(m=>m.id!==mid);
+  S._unsaved=true;
   const mats=document.getElementById('mats-'+aid);
   if(mats){let h='';for(let j=0;j<a.materials.length;j++)h+=matRowHtml(aid,a.materials[j],j);mats.innerHTML=h;}
   const lbl=document.querySelector('#ac-'+aid+' .mats-divider-lbl');
