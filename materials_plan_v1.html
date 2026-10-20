@@ -1265,7 +1265,7 @@ async function retrievePlan(){
     const plan=await planDB.loadById(code);
     if(plan){
       S.plan=JSON.parse(JSON.stringify(plan));
-      S.formOrigin='update';S.screen='form';S.plan.step=0;
+      S.formOrigin='update';S.screen='form';S.plan.step=0;S._unsaved=false;
       showToast('Plan loaded');render();
     } else {
       if(msg){
@@ -1817,10 +1817,11 @@ function showToast(msg){const t=document.getElementById('toast');t.textContent=m
 // ── Render routing ────────────────────────────────────────────────────────────
 function switchTab(tab){
   // Guard: if the user is on the summary step with unsaved changes, warn before switching away
-  if(S.screen==='form'&&S.plan&&S.plan.step===2&&S._unsaved&&!S.plan._example){
-    confirmLeaveIfUnsaved(()=>{S._unsaved=false;S.screen='home';switchTab(tab);});
-    return;
-  }
+  if(navGuard(()=>{S.screen='home';switchTab(tab);}))return;
+  if(S.screen==='form'||fcFormOpen()||(S.fc&&S.fc.mode==='summary'))navReset();
+  S._hubDoor=null;S._hubSel=null;
+  if(S.fc&&S.fc.mode!=='landing'){S.fc={mode:'landing'};S._fcReportFor=null;}
+  S._fcHubDoor=null;S._fcHubSel=null;
   S.tab=tab;
   // Leaving any modal-like screen (the "New materials plan" intro, the plan
   // form, …) behind on every explicit tab switch. Without this, S.screen was
@@ -1925,7 +1926,7 @@ function renderPlanTab(){
   h+='<div class="gs-card"><div class="gs-num">02</div><span class="bdg" style="background:#B9E9FF;color:#0091D2">Existing plan</span><h4>Update an existing plan</h4><p>Use Plan ID to edit assets and materials and log actuals at bump-out.</p><button class="mreq-btn" onclick="switchTab(&#39;update&#39;)">Update a plan &rarr;</button></div>';
   h+='</div></div>';
   h+='<div class="gs-group gs-group-forecast"><div class="gs-group-label teal">Waste &amp; Reuse forecast</div>';
-  h+='<div class="gs-card"><div class="gs-num" style="color:#009999">03</div><span class="bdg" style="background:#D9F2F2;color:#009999">Light-touch</span><h4>Bump out: Provide a waste forecast</h4><p>Activations not providing a full plan use the survey for event waste planning. Return post event to report what actually happened to your materials.</p><button class="mreq-btn teal" onclick="switchTab(&#39;forecast&#39;)">Start a forecast &rarr;</button></div>';
+  h+='<div class="gs-card"><div class="gs-num" style="color:#009999">03</div><span class="bdg" style="background:#D9F2F2;color:#009999">Light-touch</span><h4>Bump out: Provide a waste forecast</h4><p>Activations not providing a full plan use the survey for event waste planning. Return post event to report what actually happened to your materials.</p><button class="mreq-btn teal" onclick="switchTab(&#39;forecast&#39;)">Go to forecast &rarr;</button></div>';
   h+='</div>';
   h+='</div>';
   h+='</div>';
@@ -2036,7 +2037,7 @@ function renderPlanHub(active){
   const pb=document.getElementById('page-body-wrap');
   if(pb){pb.style.padding='1.25rem 1rem 2rem';}
   S._reportMode=false;
-  if(active==='update')S._hubSel='update';
+  if(active==='update'){S._hubSel='update';S._hubNoDoor=true;}
   else if(S._hubSel!=='update'&&S._hubSel!=='report'&&S._hubSel!=='create')S._hubSel=null;
   const sel=S._hubSel, door=S._hubDoor||'';
   const idRow=(id,btnLabel,fn)=>'<div class="retrieve-row"><input type="text" id="'+id+'" autocomplete="off" autocapitalize="characters" autocorrect="off" spellcheck="false" placeholder="AO27-XXXX-XXXX" maxlength="14" oninput="this.value=this.value.toUpperCase().replace(/[^A-Z0-9-]/g,\'\');" onkeydown="if(event.keyCode===13)'+fn+'()">'+(btnLabel?'<button onclick="'+fn+'()">'+btnLabel+'</button>':'')+'</div>';
@@ -2049,7 +2050,7 @@ function renderPlanHub(active){
   h+='<h2 class="abq-h" style="margin-bottom:2px">Working with TA owned assets</h2>';
   h+='<div class="hub-h2">Use a materials management plan</div>';
   h+='<p class="abq-sub">Materials management plans capture assets and materials, set circularity and waste reduction targets.</p>';
-  h+='<div class="tile-grid g2t" id="hub-door" style="margin-bottom:0">'+doorTile('TA','TA PM','I work for TA')+doorTile('EXT','Builder','I am an Agency/ Builder')+'</div>';
+  h+='<div class="tile-grid g2t" id="hub-door" style="margin-bottom:0'+(S._hubNoDoor?';display:none':'')+'">'+doorTile('TA','TA PM','I work for TA')+doorTile('EXT','Builder','I am an Agency/ Builder')+'</div>';
   h+='</div></div>';
   // First action
   h+='<div class="abq-card abq hub-card" id="hub-actions"'+(door||sel?'':' style="display:none"')+'><div class="abq-body">';
@@ -2106,6 +2107,7 @@ function hubDoor(k){
 }
 function hubPick(k){
   S._hubSel=k;
+  if(k==='create'&&S._hubNoDoor){S._hubNoDoor=false;const dd=document.getElementById('hub-door');if(dd)dd.style.display='';}
   const tg=document.getElementById('hub-tiles');if(tg)tg.classList.remove('err');
   document.querySelectorAll('#hub-tiles .tile').forEach(t=>t.classList.toggle('sel',t.dataset.hub===k));
   document.querySelectorAll('.hub-panel').forEach(p=>p.classList.toggle('on',p.dataset.hub===k));
@@ -2145,7 +2147,7 @@ async function startEventReport(){
 function goEventReportHub(){
   const go=()=>{
     const code=S.plan&&!S.plan._example?planCode(S.plan.id):'';
-    S._hubDoor=S.plan&&S.plan.roleType==='TA'?'TA':'EXT';S._hubSel='report';
+    S._hubDoor=S.plan&&S.plan.roleType==='TA'?'TA':'EXT';S._hubSel='report';S._hubNoDoor=true;
     S.screen='create-intro';render();
     const i=document.getElementById('report-input');if(i&&code)i.value=code;
     window.scrollTo({top:0,behavior:'smooth'});
@@ -2291,6 +2293,7 @@ async function fcStartReport(){
   showToast('Forecast loaded');
 }
 function fcBeginReport(fc){
+  S._fcDirty=false;
   fc=fc||(S.fc&&(S.fc.saved||S.fc.draft));if(!fc)return;
   S._fcExpanded={};S._fcReportFor=fc.id;
   S.fc={mode:'new',draft:fc,isUpdate:true,stage:'forecast'};
@@ -2304,10 +2307,70 @@ function fcGoReportHub(){
   const i=document.getElementById('fc-report-input');if(i)i.value=fcCode(fc.id);
   window.scrollTo({top:0,behavior:'smooth'});
 }
+// ── End of event reporting (forecast): checklist grouped by precinct location ──
+// "✓ As planned" copies the expected status (field 5) into the actual status (field 6);
+// "Changed" opens the outcome options. Same m.outcome field as before.
+function fcRpName(m,i){return (m.detail==='Other'?m.detailOther:m.detail)||('Material '+(i+1));}
+function fcRpRender(){S._fcDirty=true;const el=document.getElementById('frp-view');if(el&&S.fc&&S.fc.draft)el.innerHTML=fcRpInner(S.fc.draft);}
+function fcRpM(mid){return S.fc&&S.fc.draft?S.fc.draft.materials.find(x=>x.id===mid):null;}
+function fcRpSame(mid){const m=fcRpM(mid);if(!m||!OUTCOMES.includes(m.stat))return;m.outcome=m.stat;if(S._fcRpOpen)S._fcRpOpen[mid]=false;fcRpRender();}
+function fcRpChanged(mid){const m=fcRpM(mid);if(!m)return;if(!S._fcRpOpen)S._fcRpOpen={};S._fcRpOpen[mid]=true;if(m.outcome&&m.outcome===m.stat)m.outcome='';fcRpRender();}
+function fcRpSet(mid,i){const m=fcRpM(mid);if(!m)return;m.outcome=OUTCOMES[i];fcRpRender();}
+function fcRpAll(gi){
+  const ids=(S._fcRpGroups||[])[gi]||[];
+  S.fc.draft.materials.forEach(m=>{if(ids.includes(m.id)&&!m.outcome&&OUTCOMES.includes(m.stat))m.outcome=m.stat;});
+  fcRpRender();
+}
+function fcRpRowHtml(m,i){
+  const same=!!m.outcome&&m.outcome===m.stat;
+  const changed=!!m.outcome&&!same;
+  const open=changed||!!(S._fcRpOpen&&S._fcRpOpen[m.id]);
+  const canSame=OUTCOMES.includes(m.stat);
+  const sub=[m.assetName,m.vol?(m.vol+(m.vunit?' '+m.vunit:'')):''].filter(Boolean).map(esc).join(' &middot; ');
+  const M=m.id;
+  let h='<div class="rp-li'+(m.outcome?' done':'')+'" id="fcmr-'+M+'"><div class="rp-row">';
+  h+='<div class="rp-nm"><div class="nm">'+esc(fcRpName(m,i))+'</div>'+(sub?'<div class="ds">'+sub+'</div>':'')+'</div>';
+  h+='<div class="rp-right">'+(m.stat?fcStatTag(m.stat):'');
+  h+='<div class="rp-seg"><button type="button" class="y'+(same?' on':'')+'"'+(canSame?'':' disabled')+' onclick="fcRpSame(\''+M+'\')">&#10003; As planned</button><button type="button" class="n'+(open?' on':'')+'" onclick="fcRpChanged(\''+M+'\')">Changed</button></div></div></div>';
+  if(open)h+='<div class="rp-pills">'+OUTCOMES.map((o,k)=>o===m.stat?'':'<button type="button" class="rp-pill'+(m.outcome===o?' sel':'')+'" onclick="fcRpSet(\''+M+'\','+k+')">'+esc(o)+'</button>').join('')+'</div>';
+  if(m.outcome==='Donate')h+='<div class="fg" style="margin:10px 0 0"><label>Receiving organisation</label><input type="text" data-mid="'+M+'" data-f="receivingOrg" value="'+esc(m.receivingOrg)+'" placeholder="Who received this?" onblur="fcUpMat(this)"></div>';
+  if(m.outcome==='Recycle on site with AO Take-back program')h+='<div class="fg" style="margin:10px 0 0"><label>Take-back program name</label><input type="text" data-mid="'+M+'" data-f="takeBackProgram" value="'+esc(m.takeBackProgram)+'" placeholder="Name of the take-back program" onblur="fcUpMat(this)"></div>';
+  if(m.outcome&&!/mixed construction waste/i.test(m.outcome)){
+    h+='<div class="rp-verify"><input type="file" accept="image/*" id="fc-ev-'+M+'" style="display:none" onchange="fcUploadEvidence(this,\''+M+'\')">';
+    if(m.evidence)h+='<img src="'+m.evidence+'" alt="">';
+    h+='<button type="button" class="rp-link sky" onclick="document.getElementById(\'fc-ev-'+M+'\').click()"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3z"/><circle cx="12" cy="13" r="3"/></svg>Verify &ndash; add a photo (optional)</button>';
+    if(m.evidence)h+='<button type="button" class="rp-link" style="color:#A32D2D" onclick="fcRemoveEvidence(\''+M+'\')">Remove</button>';
+    h+='</div>';
+  }
+  return h+'</div>';
+}
+function fcRpInner(fc){
+  const mats=fc.materials||[];const n=mats.length;const d=mats.filter(m=>m.outcome).length;
+  let h='<div class="abq-card"><div class="abq-body">';
+  h+='<div class="abq-meta"><b>'+fcCode(fc.id)+'</b><span>'+d+' / '+n+' reported</span></div>';
+  h+='<h2 class="abq-h" style="margin-bottom:4px">End of event reporting</h2>';
+  h+='<p class="abq-sub" style="margin:0">Return after bump-out to record actual outcomes and complete your circularity report.</p>';
+  h+='<div class="rp-bar"><i style="width:'+(n?Math.round(d/n*100):0)+'%"></i></div>';
+  h+='</div></div>';
+  const groups=new Map();
+  mats.forEach((m,i)=>{const k=String(m.precinctLocation||'').trim()||'Uncategorised';if(!groups.has(k))groups.set(k,[]);groups.get(k).push([m,i]);});
+  S._fcRpGroups=[];let gi=0;
+  groups.forEach((list,g)=>{
+    S._fcRpGroups.push(list.map(x=>x[0].id));
+    const gd=list.filter(x=>x[0].outcome).length;
+    const canAll=list.some(x=>!x[0].outcome&&OUTCOMES.includes(x[0].stat));
+    h+='<div class="rp-grp"><div class="rp-grp-h"><b>'+esc(g)+'</b><span class="rp-cnt">'+gd+' / '+list.length+'</span><span style="flex:1"></span>'+(canAll?'<button type="button" class="rp-link" onclick="fcRpAll('+gi+')">Mark all as planned</button>':'')+'</div>';
+    list.forEach(([m,i])=>{h+=fcRpRowHtml(m,i);});
+    h+='</div>';gi++;
+  });
+  h+='<div class="acts" style="margin-top:.75rem"><span style="flex:1"></span><button type="button" class="abq-link" onclick="fcBackToLanding()">Cancel</button>';
+  h+='<button type="button" class="abq-next" id="fc-save-forecast-btn" onclick="fcSaveForecast()">Next: Review &rarr;</button></div>';
+  return h;
+}
 function fcIsReport(){return !!(S.fc&&S.fc.draft&&S._fcReportFor&&S._fcReportFor===S.fc.draft.id);}
 
-function fcStartNew(){S._fcReportFor=null;S._fcFromHub=false;S._fcDoor=null;S._fcExpanded={};S._fcQ=0;S.fc={mode:'new',draft:newForecast(),stage:'details'};S.screen='home';render();}
-function fcBackToLanding(){S._fcReportFor=null;S.fc={mode:'landing'};S.screen='home';render();}
+function fcStartNew(){S._fcDirty=false;S._fcReportFor=null;S._fcFromHub=false;S._fcDoor=null;S._fcExpanded={};S._fcQ=0;S.fc={mode:'new',draft:newForecast(),stage:'details'};S.screen='home';render();}
+function fcBackToLanding(){S._fcDirty=false;S._fcReportFor=null;S.fc={mode:'landing'};S.screen='home';render();}
 // The Summary page's "Save & exit" — the data itself was already persisted by the
 // Details page's plain Save (fcSaveForecast); this is the point the user is actually
 // done, so it's where the confirmation email belongs, then exits to the landing view.
@@ -2404,6 +2467,7 @@ function renderFcForm(){
     return;
   }
   // ── Stage 2: forecast (materials, anything else, Save) ──
+  if(rpt){h+='<div class="rp" id="frp-view">'+fcRpInner(fc)+'</div></div>';document.getElementById('main').innerHTML=h;return;}
   h+='<div class="abq-card"><div class="abq-bar"><div class="abq-fill" style="width:90%"></div></div><div class="abq-body" style="padding-bottom:22px">';
   h+='<div class="abq-meta"><b>'+(isUpdate?fcCode(fc.id):'AO27')+'</b></div>';
   h+='<h2 class="abq-h" style="margin-bottom:6px">'+(rpt?'End of event reporting':isUpdate?'Update your forecast':'Provide a waste &amp; reuse forecast')+'</h2>';
@@ -2482,6 +2546,7 @@ function fcToggleMatCollapse(mid){
   if(row)row.outerHTML=fcMatRowHtml(m,idx);
 }
 function fcMatRowHtml(m,idx){
+  if(document.getElementById('frp-view'))return fcRpRowHtml(m,idx);
   const showOther=m.detail==='Other';
   // Receiving organisation / take-back program name are about what actually
   // happened at bump-out, so they're tied to field 6 (Actual material status)
@@ -2627,6 +2692,7 @@ async function fcSaveForecast(){
   // Summary page to review) but does NOT send the confirmation email. Only the
   // Summary page's own "Save & exit" button (fcSaveAndExit) sends that, since that's
   // the point the user is actually done, not just checkpointing progress.
+  S._fcDirty=false;
   S.fc={mode:'summary',saved:fc,saveSource:res.source,isUpdate};
   S.screen='home';
   const savedMsg=allOutcomesFilled&&!wasAlreadyLogged?'Actuals saved':isUpdate?'Progress saved':'Forecast saved';
@@ -2650,12 +2716,14 @@ function renderFcSummary(){
   const fc=S.fc.saved;
   const code=fcCode(fc.id);
   const total=fc.materials.length;
-  const wasteCount=fc.materials.filter(m=>m.stat==='Mixed construction waste - AO onsite bins').length;
-  const divertedCount=fc.materials.filter(m=>m.stat&&statRating(m.stat)==='circular').length;
+  const useAct=!!fc.actualsLoggedAt||S._fcReportFor===fc.id;
+  const _f=useAct?'outcome':'stat';
+  const wasteCount=fc.materials.filter(m=>m[_f]==='Mixed construction waste - AO onsite bins').length;
+  const divertedCount=fc.materials.filter(m=>m[_f]&&statRating(m[_f])==='circular').length;
   // Circularity rate — same calc/scale/copy as the materials plan's own
   // "Circularity score" card (circStats + fillClr + pctText), computed off
   // the forecast's expected status per material.
-  const sc=circStats(fc.materials,'stat');
+  const sc=circStats(fc.materials,_f);
   const cl=fillClr(sc.pct);
   const circBody=sc.total>0?'<div style="display:flex;justify-content:space-between;font-size:12px;color:#888;margin-bottom:4px;margin-top:10px"><span>Circularity rate</span><span style="font-weight:600;color:'+cl+'">'+pctText(sc.pctExact)+'</span></div><div class="strack"><div class="sfill" style="width:'+sc.pct+'%;background:'+cl+'"></div></div><div style="font-size:11px;color:#aaa;margin-top:3px">AO target: 10% improvement per year</div>':'';
   const loggedActuals=!!fc.actualsLoggedAt;
@@ -2667,7 +2735,7 @@ function renderFcSummary(){
   h+='<p class="abq-sub" style="margin-bottom:0">'+(loggedActuals?'Your actuals are logged &#8212; print or export a copy of your event report below.':'Save your TA-ID below &#8212; you&rsquo;ll need it to log what actually happened after the event.')+'</p>';
   h+='</div></div>';
 
-  if(!loggedActuals)h+='<div class="hbox"><strong>What happens following submission of your forecast?</strong><br><br>&bull; Simple post-event reporting &#8212; return here with your TA-ID to report your actuals using Q7</div>';
+  if(!loggedActuals)h+='<div class="hbox"><strong>What happens following submission of your forecast?</strong><br><br>&bull; Simple post-event reporting &#8212; return here with your TA-ID to report your actuals using Q6</div>';
 
   h+='<div class="card">';
   h+='<div class="sechd sechd-first">TA-ID</div>';
@@ -2676,8 +2744,8 @@ function renderFcSummary(){
   h+='</div>';
 
   h+='<div class="card">';
-  h+='<div class="sechd sechd-first">Forecast summary</div>';
-  h+='<div class="metg"><div class="met"><div class="mval">'+total+'</div><div class="mlbl">Total materials</div></div><div class="met"><div class="mval" style="color:#0F6E56">'+divertedCount+'</div><div class="mlbl">Expected to divert</div></div><div class="met"><div class="mval" style="color:#A32D2D">'+wasteCount+'</div><div class="mlbl">Waste</div></div></div>';
+  h+='<div class="sechd sechd-first">'+(useAct?'Actual summary':'Forecast summary')+'</div>';
+  h+='<div class="metg"><div class="met"><div class="mval">'+total+'</div><div class="mlbl">Total materials</div></div><div class="met"><div class="mval" style="color:#0F6E56">'+divertedCount+'</div><div class="mlbl">'+(useAct?'Diverted from landfill':'Expected to divert')+'</div></div><div class="met"><div class="mval" style="color:#A32D2D">'+wasteCount+'</div><div class="mlbl">Waste</div></div></div>';
   h+=circBody;
   h+='</div>';
 
@@ -2688,7 +2756,7 @@ function renderFcSummary(){
   const fcRptLink=(S.fc.isUpdate&&S._fcReportFor!==fc.id)?'<div class="rpt-link"><a href="#" onclick="fcGoReportHub();return false">Ready to submit an end of event report?</a></div>':'';
   if(stRows)h+='<div class="card"><div style="display:grid;grid-template-columns:1fr 1fr;gap:16px"><div><div class="sechd" style="margin-top:0">Materials by expected status</div>'+stRows+'</div><div><div class="sechd" style="margin-top:0;color:#0091D2">Materials ACTUALS POST EVENT</div>'+(actualRows||'<div style="font-size:13px;color:#aaa;margin-top:6px">Return with your TA-ID after the event to log actuals.</div>')+fcRptLink+'</div></div></div>';
 
-  h+='<div class="acts"><button type="button" class="abq-link" onclick="fcBackFromSummary()">&larr; Back</button><button type="button" class="sum-sec" onclick="window.print()"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9V2h12v7"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>Print / PDF</button><button type="button" class="sum-sec" onclick="fcExportXLS()"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m7 10 5 5 5-5"/><path d="M12 15V3"/></svg>Export XLS</button><button onclick="fcSaveAndExit()" style="background:#0091D2;color:#fff;border-color:#0091D2;font-weight:700">Save &amp; exit</button></div>'+(stRows?'':fcRptLink);
+  h+='<div class="acts"><button type="button" class="abq-link" onclick="fcBackFromSummary()">&larr; Back</button><button type="button" class="sum-sec" onclick="window.print()"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9V2h12v7"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>Print / PDF</button><button type="button" class="sum-sec" onclick="fcExportXLS()"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m7 10 5 5 5-5"/><path d="M12 15V3"/></svg>Export XLS</button><button onclick="fcSaveAndExit()" style="background:#0091D2;color:#fff;border-color:#0091D2;font-weight:700">'+(S._fcReportFor===fc.id?'Submit end of event report':'Save &amp; exit')+'</button></div>'+(stRows?'':fcRptLink);
   h+='</div>';
   document.getElementById('main').innerHTML=h;
 }
@@ -2705,7 +2773,7 @@ async function fcRetrieve(){
   try{
     const fc=await forecastDB.loadById(code);
     if(fc){
-      S._fcExpanded={};S._fcReportFor=null;
+      S._fcExpanded={};S._fcReportFor=null;S._fcDirty=false;
       S.fc={mode:'new',draft:fc,isUpdate:true};
       S.screen='home';
       showToast('Forecast loaded');render();
@@ -4907,7 +4975,7 @@ function cancelBulkImageUpload(){
 // Warn before an accidental close/refresh while a batch is running. Progress
 // itself is safe (checkpointed), this just avoids unnecessary re-work.
 window.addEventListener('beforeunload',function(e){
-  if(document.getElementById('bulk-img-banner')){
+  if(document.getElementById('bulk-img-banner')||(typeof navDirty==='function'&&navDirty())){
     e.preventDefault();e.returnValue='';
   }
 });
@@ -5189,13 +5257,15 @@ function matRowHtml(aid,m,idx){
 }
 
 function stepSummary(plan){
-  const p=plan.profile;const assets=plan.assets||[];const sc=calcScore(assets);const cl=fillClr(sc.pct);
-  const allMats=assets.flatMap(a=>a.materials||[]);
+  const p=plan.profile;const assets=plan.assets||[];const allMats=assets.flatMap(a=>a.materials||[]);
+  const useAct=!!S._reportMode||(allMats.length>0&&allMats.every(m=>m.outcome));
+  const _f=useAct?'outcome':'stat';
+  const sc=useAct?(function(){const c=circStats(allMats,'outcome');return{total:c.total,pct:c.pct==null?0:c.pct,pctExact:c.pctExact};})():calcScore(assets);const cl=fillClr(sc.pct);
   // Waste = ONLY materials whose expected status is "Mixed construction waste".
   // "Unsure yet"/no status is no-data, NOT waste, so it is excluded from this count.
-  const wasteCount=allMats.filter(m=>m.stat&&String(m.stat).toLowerCase().includes('mixed construction waste')).length;
+  const wasteCount=allMats.filter(m=>m[_f]&&String(m[_f]).toLowerCase().includes('mixed construction waste')).length;
   // Diverted from landfill = every material with a status EXCEPT waste and "unsure yet".
-  const divertedCount=allMats.filter(m=>{const s=String(m.stat||'').toLowerCase();if(!s)return false;if(s.includes('mixed construction waste'))return false;if(s.includes('unsure'))return false;return true;}).length;
+  const divertedCount=allMats.filter(m=>{const s=String(m[_f]||'').toLowerCase();if(!s)return false;if(s.includes('mixed construction waste'))return false;if(s.includes('unsure'))return false;return true;}).length;
   const stCts={};for(const m of allMats)if(m.stat)stCts[m.stat]=(stCts[m.stat]||0)+1;
   const stRows=Object.entries(stCts).sort((a,b)=>b[1]-a[1]).map(([s,n])=>'<div class="srow"><div class="sdot" style="background:'+(STCOL[s]||'#9ca3af')+'"></div><div style="flex:1;color:#1a1a1a">'+esc(s)+'</div><div style="font-weight:600;min-width:20px;text-align:right">'+n+'</div></div>').join('');
   const tmlMats=allMats.filter(m=>m.tmlRef&&m.tmlRef!=='OTHER');
@@ -5256,7 +5326,7 @@ function stepSummary(plan){
   h+=lastEditedHtml+storageHtml;
   h+='</div>';
   h+='<div class="card">';
-  h+='<div class="sechd" style="margin-top:0">Circularity score</div>';
+  h+='<div class="sechd" style="margin-top:0">'+(useAct?'Actual summary':'Circularity score')+'</div>';
   h+='<div class="metg"><div class="met"><div class="mval">'+allMats.length+'</div><div class="mlbl">Total materials</div></div><div class="met"><div class="mval" style="color:'+cl+'">'+divertedCount+'</div><div class="mlbl">Diverted from landfill</div></div><div class="met"><div class="mval" style="color:#A32D2D">'+wasteCount+'</div><div class="mlbl">Waste</div></div></div>';
   h+=circBody;
   h+='</div>';
@@ -6200,6 +6270,42 @@ async function _doExportXLS(){
 }
 
 // ── Unsaved-changes guard ─────────────────────────────────────────────────────
+// ── Leaving without saving ──
+// A plan form (any step) or a forecast form with changes since the last save counts as
+// unsaved. Leaving asks first (Save now / Leave without saving); leaving is an exit, so the
+// tab opens fresh next time — saved work is reopened with its Plan ID or TA-ID.
+function fcFormOpen(){return !!(S.screen==='home'&&S.tab==='forecast'&&S.fc&&S.fc.mode==='new');}
+function navDirty(){
+  const planDirty=S.screen==='form'&&S.plan&&!S.plan._example&&!!S._unsaved;
+  const fcDirty=fcFormOpen()&&!!S._fcDirty;
+  return planDirty||fcDirty;
+}
+function navReset(){
+  S._unsaved=false;S._fcDirty=false;
+  S._hubDoor=null;S._hubSel=null;S._hubNoDoor=false;
+  S._fcHubDoor=null;S._fcHubSel=null;S._fcReportFor=null;S._fcFromHub=false;
+  S.fc={mode:'landing'};
+}
+function navGuard(go){
+  if(navDirty()){confirmLeaveIfUnsaved(()=>{navReset();go();});return true;}
+  return false;
+}
+// Mark the open form as changed when anything in it is edited.
+if(!window._navDirtyBound){
+  window._navDirtyBound=true;
+  const mark=function(e){
+    const el=e.target;if(!el||!el.closest||!el.closest('#main'))return;
+    if(el.closest('.hub-card,.fc-hub-card,.intro-hero,#asset-search-wrap,.retrieve-row'))return;
+    if(S.screen==='form'&&S.plan&&!S.plan._example)S._unsaved=true;
+    else if(fcFormOpen())S._fcDirty=true;
+  };
+  document.addEventListener('input',mark,true);
+  document.addEventListener('change',mark,true);
+  document.addEventListener('click',function(e){
+    const t=e.target&&e.target.closest&&e.target.closest('#main .tile[data-role],#main .tile[data-fcrole],#main .chip');
+    if(t)mark({target:t});
+  },true);
+}
 function confirmLeaveIfUnsaved(proceedFn){
   // Show inline warning banner on summary page instead of browser dialog
   const existing=document.getElementById('unsaved-warn');
@@ -6207,10 +6313,11 @@ function confirmLeaveIfUnsaved(proceedFn){
   const warn=document.createElement('div');
   warn.id='unsaved-warn';
   warn.style.cssText='position:fixed;bottom:0;left:0;right:0;z-index:998;background:#FAEEDA;border-top:2px solid #EF9F27;padding:12px 1rem;display:flex;align-items:center;gap:10px;justify-content:space-between;box-shadow:0 -4px 16px rgba(0,0,0,.1)';
-  warn.innerHTML='<div style="font-size:13px;color:#854F0B;font-weight:600">⚠ You have unsaved changes. Save your plan before leaving so you can return to it.</div>'
+  const _isFc=fcFormOpen();
+  warn.innerHTML='<div style="font-size:13px;color:#854F0B;font-weight:600">⚠ You have unsaved changes. Save your '+(_isFc?'forecast':'plan')+' before leaving so you can return to it.</div>'
     +'<div style="display:flex;gap:8px;flex-shrink:0">'
     +'<button id="unsaved-leave-btn" style="font-size:12px;padding:7px 14px;border:1px solid #c9a87a;background:#fff;color:#854F0B;border-radius:7px;cursor:pointer">Leave without saving</button>'
-    +'<button onclick="savePlan();document.getElementById(\'unsaved-warn\').remove();" style="font-size:12px;padding:7px 14px;background:#0091D2;color:#fff;border:none;border-radius:7px;cursor:pointer;font-weight:700">Save now</button>'
+    +'<button onclick="'+(_isFc?'fcSaveForecast()':(S.plan&&S.plan.step===2?'savePlan()':'saveProgress()'))+';document.getElementById(\'unsaved-warn\').remove();" style="font-size:12px;padding:7px 14px;background:#0091D2;color:#fff;border:none;border-radius:7px;cursor:pointer;font-weight:700">Save now</button>'
     +'</div>';
   document.body.appendChild(warn);
   document.getElementById('unsaved-leave-btn').onclick=function(){
@@ -6220,14 +6327,15 @@ function confirmLeaveIfUnsaved(proceedFn){
 }
 
 function goHome(){
-  if(S.screen==='form'&&S.plan&&S.plan.step===2&&S._unsaved&&!S.plan._example){
-    confirmLeaveIfUnsaved(()=>{S._unsaved=false;S.screen='home';render();});
-    return;
-  }
+  if(navGuard(()=>{S.screen='home';render();}))return;
+  if(S.screen==='form')navReset();
   S.screen='home';render();
 }
 function goPlan(id){const p=S.plans.find(x=>x.id===id);if(p){S.plan=JSON.parse(JSON.stringify(p));S.screen='form';render()}}
-function goCreateIntro(){S.screen='create-intro';render();}
+function goCreateIntro(){
+  if(navGuard(()=>{S.screen='create-intro';render();}))return;
+  navReset();S.screen='create-intro';render();
+}
 function startTA(){
   S.plan=newPlan();S.plan.roleType='TA';S._unsaved=false;
   S.plan.imported=false;S.plan.step=0;
