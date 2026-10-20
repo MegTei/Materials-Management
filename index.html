@@ -5887,16 +5887,26 @@ async function _doExportXLS(){
         :'<c r="'+ref+'" s="'+s+'"/>';
     };
 
-    // Replace one cell in XML, preserving s= style attribute
+    // Replace one cell in XML, writing it with the given style index.
+    // Existence is checked directly (not by comparing before/after text): writing a
+    // blank value over a cell that is already blank leaves the XML unchanged, and the
+    // old before/after check read that as "cell missing" and inserted a DUPLICATE cell
+    // at the start of the row. Excel rejects out-of-order/duplicate cells and repairs
+    // the file ("Removed Records: Cell information from /xl/worksheets/sheet1.xml").
+    // A genuinely missing cell is inserted in column order, never at the row start.
+    const colNum=c=>{let n=0;for(let i=0;i<c.length;i++)n=n*26+c.charCodeAt(i)-64;return n;};
     const replCell=(xml,ref,sIdx,val)=>{
-      const re=new RegExp('<c r="'+ref+'" s="'+sIdx+'"(?:\\s[^>]*)?(?:/>|>[\\s\\S]*?</c>)');
+      const re=new RegExp('<c r="'+ref+'"(?:\\s[^>]*?)?(?:/>|>[\\s\\S]*?</c>)');
       const r=ic(ref,sIdx,val);
-      const out=xml.replace(re,r);
-      if(out===xml){
-        const rowRe=new RegExp('(<row r="'+(ref.replace(/[A-Z]+/,''))+'\"[^>]*>)');
-        return xml.replace(rowRe,'$1'+r);
-      }
-      return out;
+      if(re.test(xml))return xml.replace(re,r);
+      const rowNum=ref.replace(/[A-Z]+/,''),want=colNum(ref.replace(/\d+/,''));
+      const rowRe=new RegExp('(<row r="'+rowNum+'"[^>]*>)([\\s\\S]*?)(</row>)');
+      return xml.replace(rowRe,function(m,open,body,close){
+        const cellRe=/<c r="([A-Z]+)\d+"[^>]*?(?:\/>|>[\s\S]*?<\/c>)/g;
+        let mm,pos=body.length;
+        while((mm=cellRe.exec(body))){if(colNum(mm[1])>want){pos=mm.index;break;}}
+        return open+body.slice(0,pos)+r+body.slice(pos)+close;
+      });
     };
 
     // ── SHEET 1: AO Materials Mgt ────────────────────────────────────────────
@@ -5923,6 +5933,16 @@ async function _doExportXLS(){
     s1=replCell(s1,'B11',42,p.wasteTarget||'');
     s1=replCell(s1,'B12',42,p.reuseTarget||'');
     s1=replCell(s1,'B13',42,p.storageDetails||'');
+
+    // Remove the template's leftover email hyperlink on D6 (a mailto: to a former
+    // contact). It stayed attached to the email cell whatever the plan's own email was,
+    // so clicking the contact email in every export opened the wrong address.
+    s1=s1.replace(/<hyperlink ref="D6"[^>]*\/>/,'').replace(/<hyperlinks>\s*<\/hyperlinks>/,'');
+    {
+      let r1=await zip.file('xl/worksheets/_rels/sheet1.xml.rels').async('string');
+      r1=r1.replace(/<Relationship [^>]*Target="mailto:[^"]*"[^>]*\/>/g,'');
+      zip.file('xl/worksheets/_rels/sheet1.xml.rels',r1);
+    }
 
     // Tidy row 15: clear any leftover instructional text / stray-space placeholders,
     // leaving the row blank above the header (matches the clean header layout).
