@@ -1092,7 +1092,7 @@ const TML=[
 // If the fetch fails (offline / CORS / missing file) the embedded array above
 // is used silently as a fallback.
 const TML_REMOTE_URL  = 'https://megtei.github.io/Materials_Methods_Plan/tml-data.json';
-const TML_CACHE_KEY   = 'ao_tml_remote_cache_v2'; // bumped Oct 2026 list re-sync
+const TML_CACHE_KEY   = 'ao_tml_remote_cache_v3'; // bumped Oct 2026 list re-sync (v2 cached the pre-sync JSON)
 const TML_CACHE_TTL   = 24 * 60 * 60 * 1000; // 24 hours in ms
 
 async function syncRemoteTML(){
