@@ -1229,14 +1229,7 @@ const planDB = {
       return { ok: true, source: 'local' };
     }
     try {
-      const { error } = await sb.from('plans').upsert({
-        id:         plan.id,
-        plan_code:  planCode(plan.id),
-        data:       plan,
-        business:   plan.profile.businessName || '',
-        owner:      plan.profile.ownerName    || '',
-        role:       plan.profile.role         || '',
-      }, { onConflict: 'id' });
+      const { error } = await sb.rpc('save_plan', { p_plan: plan });
       if (error) throw error;
       return { ok: true, source: 'cloud' };
     } catch(err) {
@@ -1249,12 +1242,9 @@ const planDB = {
     const normalised = code.trim().toUpperCase().replace(/\s/g,'');
     if (sb) {
       try {
-        const { data, error } = await sb
-          .from('plans')
-          .select('data')
-          .eq('plan_code', normalised)
-          .single();
-        if (data?.data) return data.data;
+        const { data, error } = await sb.rpc('get_plan_by_code', { p_code: normalised });
+        if (error) throw error;
+        if (data) return data;
       } catch(err) {
         console.warn('Supabase lookup failed, trying local:', err.message);
       }
@@ -1769,15 +1759,7 @@ const forecastDB = {
     fcStorageSave(fc);
     if (!sb) return { ok: true, source: 'local' };
     try {
-      const { error } = await sb.from('forecasts').upsert({
-        id:              fc.id,
-        fc_code:         fcCode(fc.id),
-        data:            fc,
-        business:        fc.profile.org || '',
-        role:            fc.profile.role || '',
-        contact_email:   fc.profile.contactEmail || '',
-        actuals_logged:  !!fc.actualsLoggedAt,
-      }, { onConflict: 'id' });
+      const { error } = await sb.rpc('save_forecast', { p_fc: fc });
       if (error) throw error;
       return { ok: true, source: 'cloud' };
     } catch(err) {
@@ -1790,12 +1772,9 @@ const forecastDB = {
     const normalised = code.trim().toUpperCase().replace(/\s/g,'');
     if (sb) {
       try {
-        const { data, error } = await sb
-          .from('forecasts')
-          .select('data')
-          .eq('fc_code', normalised)
-          .single();
-        if (data?.data) return migrateForecast(data.data);
+        const { data, error } = await sb.rpc('get_forecast_by_code', { p_code: normalised });
+        if (error) throw error;
+        if (data) return migrateForecast(data);
       } catch(err) {
         console.warn('Supabase forecast lookup failed, trying local:', err.message);
       }
