@@ -1088,6 +1088,9 @@ const TML=[
 // array in place — so all renderTMLInfo calls always use the freshest data.
 // If the fetch fails (offline / CORS / missing file) the embedded array above
 // is used silently as a fallback.
+// Materials & Methods reference page linked from the forms and help text. One setting so
+// it can move to a TA-controlled address without touching the links themselves.
+const MATERIALS_METHODS_URL = 'https://megtei.github.io/Materials_Methods_Plan/';
 const TML_REMOTE_URL  = 'tml-data.json'; // served from this site (same origin)
 const TML_CACHE_KEY   = 'ao_tml_remote_cache_v4'; // bumped Oct 2026 list re-sync (v2 cached the pre-sync JSON)
 const TML_CACHE_TTL   = 24 * 60 * 60 * 1000; // 24 hours in ms
@@ -1947,7 +1950,7 @@ function renderPlanTab(){
     <div class="atm-acc open" id="acc-atm">
       <div class="sechd sechd-first" style="cursor:pointer" onclick="toggleAcc('acc-atm')">AO target materials<span class="acc-chevron">&#8964;</span></div>
       <div class="atm-acc-body" id="acc-atm-body">
-        <div class="atm-sub">Many materials currently used in the AO temporary build <span style="font-style:italic;text-decoration:underline">can</span> be reused or recycled. It&rsquo;s how we treat, finish and handle them that turns resources into waste.<br><a href="https://megtei.github.io/Materials_Methods_Plan/" target="_blank" rel="noopener" style="color:#0091D2;font-weight:700;text-decoration:underline">View the AO target materials list to know which materials to use more or less &#8599;</a></div>
+        <div class="atm-sub">Many materials currently used in the AO temporary build <span style="font-style:italic;text-decoration:underline">can</span> be reused or recycled. It&rsquo;s how we treat, finish and handle them that turns resources into waste.<br><a href="${MATERIALS_METHODS_URL}" target="_blank" rel="noopener" style="color:#0091D2;font-weight:700;text-decoration:underline">View the AO target materials list to know which materials to use more or less &#8599;</a></div>
         <div class="atm-grid">
           <div>
             <div class="atm-colhd"><div class="atm-icon">C</div><div><h4>Materials currently in use</h4><span class="atm-colsub">The AO27 target material categories</span></div></div>
@@ -2492,7 +2495,7 @@ function renderFcForm(){
     ?'Return after bump-out to record actual outcomes and complete your circularity report.'
     :isUpdate
     ?'Make changes to your forecast if needed prior to bump-out.'
-    :'Use the 80/20 rule for your materials &#8212; typically a small number of key materials make up the majority of build and waste volumes.<br>Focus on what is <a href="https://megtei.github.io/Materials_Methods_Plan/" target="_blank" rel="noopener">High Volume and High Impact.</a>')+'</p>';
+    :'Use the 80/20 rule for your materials &#8212; typically a small number of key materials make up the majority of build and waste volumes.<br>Focus on what is <a href="'+MATERIALS_METHODS_URL+'" target="_blank" rel="noopener">High Volume and High Impact.</a>')+'</p>';
   h+='</div></div>';
   h+='<div class="sechd">Waste &amp; reuse forecast</div>';
   h+='<div id="fc-mats">';
@@ -3893,7 +3896,7 @@ function renderFAQ(){
     },
     {
       q:'How do I start with Circular Design?',
-      a:'There are two parts to the recommended materials and methods. The first covers recommended materials and suppliers with preferred pricing. The second covers responsible practices that reduce waste and increase reuse - such as modular design and design for disassembly (DfD).\n\nReview the <a href="https://megtei.github.io/Materials_Methods_Plan/" target="_blank" style="color:#0091D2">AO Target Materials &amp; Responsible Methods</a> and start with the top 3 waste categories: Wood/Timber, Cladding &amp; Facades, and Flooring.',
+      a:'There are two parts to the recommended materials and methods. The first covers recommended materials and suppliers with preferred pricing. The second covers responsible practices that reduce waste and increase reuse - such as modular design and design for disassembly (DfD).\n\nReview the <a href="'+MATERIALS_METHODS_URL+'" target="_blank" style="color:#0091D2">AO Target Materials &amp; Responsible Methods</a> and start with the top 3 waste categories: Wood/Timber, Cladding &amp; Facades, and Flooring.',
       tip:null
     },
     {
@@ -3960,7 +3963,7 @@ function renderFAQ(){
   }
   h+='</div>';
   h+='<div style="padding:0 0 1.5rem"><div style="background:#E6F1FB;border-radius:12px;padding:13px 15px;font-size:12.5px;color:#0091D2;line-height:1.7;margin-bottom:1rem">';
-  h+='Have a question not covered here? Contact your TA project lead or visit the <a href="https://megtei.github.io/Materials_Methods_Plan/" target="_blank" style="font-weight:600;color:#0091D2">AO Target Materials &amp; Responsible Methods &#8599;</a>';
+  h+='Have a question not covered here? Contact your TA project lead or visit the <a href="'+MATERIALS_METHODS_URL+'" target="_blank" style="font-weight:600;color:#0091D2">AO Target Materials &amp; Responsible Methods &#8599;</a>';
   h+='</div></div>';
   document.getElementById('main').innerHTML=h;
 }
@@ -5259,7 +5262,7 @@ function matRowHtml(aid,m,idx){
     <div class="mt-ed${_open?' on':''}" id="mte-${m.id}">
 
     <div class="fg">
-      <label><span class="qn">6</span>Material details <span class="req">*</span><span class="name-sub-label">Select from AO Target Materials List (<a href="https://megtei.github.io/Materials_Methods_Plan/" target="_blank" style="color:#0091D2;font-weight:700">view full list &#8599;</a>) or tell us at 6a</span></label>
+      <label><span class="qn">6</span>Material details <span class="req">*</span><span class="name-sub-label">Select from AO Target Materials List (<a href="${MATERIALS_METHODS_URL}" target="_blank" style="color:#0091D2;font-weight:700">view full list &#8599;</a>) or tell us at 6a</span></label>
       <select data-aid="${aid}" data-mid="${m.id}" data-f="tmlRef" onchange="pickAssetMatTML(this)">
         <option value="">- Select material -</option>
         <option value="OTHER"${m.tmlRef==='OTHER'?' selected':''}>Not AO target material \u2013 go to 6a</option>
@@ -5305,7 +5308,7 @@ function stepSummary(plan){
   const tmlMats=allMats.filter(m=>m.tmlRef&&m.tmlRef!=='OTHER');
   const customMats=allMats.filter(m=>!m.tmlRef||m.tmlRef==='OTHER');
   const flaggedAssets=assets.filter(a=>a.materials.some(m=>{if(!m.tmlRef||m.tmlRef==='OTHER')return false;const t=TML.find(x=>x.ref===m.tmlRef);return t&&t.status==='no';}));
-  const flaggedBlock=flaggedAssets.length?'<div class="card"><div class="sechd" style="margin-top:0;color:#854F0B">Limit use if possible or seek alternatives ('+flaggedAssets.length+')</div><div style="background:#FAEEDA;border-radius:8px;padding:10px 12px;font-size:13px;color:#854F0B;margin-bottom:12px">Review these assets. Consider switching to AO recommended alternatives where possible. <a href="https://megtei.github.io/Materials_Methods_Plan/" target="_blank" style="color:#854F0B;font-weight:700;text-decoration:underline">View AO Target Materials List &#8599;</a></div>'+flaggedAssets.map(a=>{const flagMats=a.materials.filter(m=>{if(!m.tmlRef||m.tmlRef==='OTHER')return false;const t=TML.find(x=>x.ref===m.tmlRef);return t&&t.status==='no';});return'<div class="srow"><span class="bdg am">'+esc(a.assetName||'Asset')+'</span><span style="flex:1;margin:0 8px;color:#555;font-size:12px">'+flagMats.map(m=>esc(m.name||m.tmlRef)).join(', ')+'</span></div>';}).join('')+'</div>':'';
+  const flaggedBlock=flaggedAssets.length?'<div class="card"><div class="sechd" style="margin-top:0;color:#854F0B">Limit use if possible or seek alternatives ('+flaggedAssets.length+')</div><div style="background:#FAEEDA;border-radius:8px;padding:10px 12px;font-size:13px;color:#854F0B;margin-bottom:12px">Review these assets. Consider switching to AO recommended alternatives where possible. <a href="'+MATERIALS_METHODS_URL+'" target="_blank" style="color:#854F0B;font-weight:700;text-decoration:underline">View AO Target Materials List &#8599;</a></div>'+flaggedAssets.map(a=>{const flagMats=a.materials.filter(m=>{if(!m.tmlRef||m.tmlRef==='OTHER')return false;const t=TML.find(x=>x.ref===m.tmlRef);return t&&t.status==='no';});return'<div class="srow"><span class="bdg am">'+esc(a.assetName||'Asset')+'</span><span style="flex:1;margin:0 8px;color:#555;font-size:12px">'+flagMats.map(m=>esc(m.name||m.tmlRef)).join(', ')+'</span></div>';}).join('')+'</div>':'';
   const assetRows=groupAssetsByApp(assets,assets.map((a,idx2)=>{
     const precLabel=a.prec||'';
     const matList=a.materials.map(m=>{
