@@ -7,7 +7,7 @@
 <meta http-equiv="Content-Security-Policy"
   content="default-src 'self';
     script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net;
-    connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.emailjs.com https://megtei.github.io;
+    connect-src 'self' https://bksznvzjzirrznfvktuh.supabase.co wss://bksznvzjzirrznfvktuh.supabase.co;
     style-src 'self' 'unsafe-inline';
     img-src 'self' data: blob: https://*.supabase.co;
     font-src 'self' data:;
@@ -716,9 +716,6 @@ select.stat-sel[data-tone=""]{padding-left:10px!important}
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.110.9/dist/umd/supabase.js"
   integrity="sha384-6foGJ1oz/y3anEo0BXRtTgBK1GvpnR0GbJZb0ijG+nBAJ4rYT+VqlD/9e3CSiFIA"
   crossorigin="anonymous"></script>
-<script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4.4.1/dist/email.min.js"
-  integrity="sha384-SALc35EccAf6RzGw4iNsyj7kTPr33K7RoGzYu+7heZhT8s0GZouafRiCg1qy44AS"
-  crossorigin="anonymous"></script>
 <style id="ux-compact">
 /* Headers, intro and step cards */
 #main .abq-body{padding:20px 22px 18px}
@@ -1091,8 +1088,8 @@ const TML=[
 // array in place — so all renderTMLInfo calls always use the freshest data.
 // If the fetch fails (offline / CORS / missing file) the embedded array above
 // is used silently as a fallback.
-const TML_REMOTE_URL  = 'https://megtei.github.io/Materials_Methods_Plan/tml-data.json';
-const TML_CACHE_KEY   = 'ao_tml_remote_cache_v3'; // bumped Oct 2026 list re-sync (v2 cached the pre-sync JSON)
+const TML_REMOTE_URL  = 'tml-data.json'; // served from this site (same origin)
+const TML_CACHE_KEY   = 'ao_tml_remote_cache_v4'; // bumped Oct 2026 list re-sync (v2 cached the pre-sync JSON)
 const TML_CACHE_TTL   = 24 * 60 * 60 * 1000; // 24 hours in ms
 
 async function syncRemoteTML(){
@@ -1187,38 +1184,66 @@ if(SUPABASE_READY){
   }
 }
 
-// ── Admin dashboard auth (Option B: server-side gated read) ────────────────────
-// The dashboard password is NOT stored in this file. The manager types it, and
-// it is sent as an `x-dashboard-key` request header on the admin read query.
-// A Postgres RLS policy (dashboard_authed()) compares it against a hashed value
-// in the database and returns plan rows only on a match — so a wrong password
-// returns zero rows regardless of anything done in the browser.
-// The key is held only in sessionStorage for the life of the tab so the
-// dashboard can re-query without re-prompting; it is cleared on sign-out.
+// ── Admin dashboard auth ─────────────────────────────────────────────────────
+// The dashboard password is NOT stored in this file. The manager types it and it is
+// passed to database functions (admin_check / admin_list_* / admin_get_plan) that check
+// it against a hash, lock out repeated failures and record each access. A wrong
+// password returns no rows regardless of anything done in the browser.
+// The key is held only in sessionStorage for the life of the tab, cleared on sign-out
+// or after 30 minutes without dashboard activity.
 const ADMIN_KEY_SS = 'adminDashKey';
-let sbAdmin = null;
-function buildAdminClient(key){
-  if(typeof supabase === 'undefined' || !SUPABASE_READY) return null;
-  try{
-    return supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
-      global: { headers: { 'x-dashboard-key': key } }
-    });
-  }catch(e){
-    console.warn('Admin client init failed:', e.message);
+const ADMIN_SEEN_SS = 'adminDashSeen';
+const ADMIN_IDLE_MS = 30 * 60 * 1000;   // signed out after 30 minutes without admin activity
+// Current dashboard password for this tab, or null if not signed in / idle too long.
+function adminKey(){
+  const k = sessionStorage.getItem(ADMIN_KEY_SS);
+  if(!k) return null;
+  const seen = +sessionStorage.getItem(ADMIN_SEEN_SS) || 0;
+  if(seen && Date.now() - seen > ADMIN_IDLE_MS){
+    sessionStorage.removeItem(ADMIN_KEY_SS); sessionStorage.removeItem(ADMIN_SEEN_SS);
     return null;
   }
+  sessionStorage.setItem(ADMIN_SEEN_SS, String(Date.now()));
+  return k;
 }
-// Rebuild the admin client from a stored session key (e.g. after a tab reload).
-function ensureAdminClient(){
-  if(sbAdmin) return sbAdmin;
-  const key = sessionStorage.getItem(ADMIN_KEY_SS);
-  if(key) sbAdmin = buildAdminClient(key);
-  return sbAdmin;
+// Admin reads go through database functions that check the password, apply the lockout
+// and record each access. A wrong password returns no rows.
+async function adminRpc(fn, args){
+  const key = adminKey();
+  if(!sb || !key) return { data: null, error: { message: 'Not signed in to the dashboard' } };
+  return sb.rpc(fn, Object.assign({ p_key: key }, args || {}));
 }
 
 // ── Plan storage abstraction ──────────────────────────────────────────────────
 // Swap this object's two methods to change the backend.
 // localStorage is always used as an offline fallback.
+// Message for a save that did not reach the cloud (F13) — never shown as success.
+function cloudSaveNote(res, what){
+  what=what||'plan';
+  if(res&&res.conflict)return 'This '+what+' was changed elsewhere — reload it before saving again';
+  if(res&&res.throttled)return 'Too many saves — please wait a minute and try again';
+  return 'Not saved to the cloud — your changes are only on this device';
+}
+function saveFailure(err){
+  const m=String((err&&err.message)||err||'');
+  return { ok: true, source: 'local', warning: m, conflict: /conflict/i.test(m), throttled: /too many attempts/i.test(m) };
+}
+function lookupThrottled(err){
+  if(/too many attempts/i.test(String((err&&err.message)||''))){showToast('Too many attempts — please wait a few minutes and try again');return true;}
+  return false;
+}
+// After a successful save keep the record's server version (_v) in step, so the next save
+// from this browser isn't mistaken for a stale copy. Records saved before versioning have no
+// _v; fetch it once.
+async function syncVersion(rec, kind, code){
+  try{
+    if(typeof rec._v==='number'){rec._v++;}
+    else{
+      const r=await sb.rpc(kind==='plan'?'get_plan_by_code':'get_forecast_by_code',{p_code:code});
+      if(r&&r.data&&typeof r.data._v==='number')rec._v=r.data._v;
+    }
+  }catch(e){}
+}
 const planDB = {
   async save(plan) {
     // Always save locally first (instant, offline-safe)
@@ -1229,12 +1254,14 @@ const planDB = {
       return { ok: true, source: 'local' };
     }
     try {
-      const { error } = await sb.rpc('save_plan', { p_plan: plan });
+      const { data, error } = await sb.rpc('save_plan', { p_plan: plan });
       if (error) throw error;
+      await syncVersion(plan, 'plan', data);
+      storageSave(plan);
       return { ok: true, source: 'cloud' };
     } catch(err) {
       console.warn('Supabase save failed, plan saved locally:', err.message);
-      return { ok: true, source: 'local', warning: err.message };
+      return saveFailure(err);
     }
   },
 
@@ -1246,6 +1273,7 @@ const planDB = {
         if (error) throw error;
         if (data) return sanitizeIds(data);
       } catch(err) {
+        if (lookupThrottled(err)) return null;
         console.warn('Supabase lookup failed, trying local:', err.message);
       }
     }
@@ -1578,71 +1606,30 @@ function examplePlan(){
   };
 }
 
-// ── EmailJS config ────────────────────────────────────────────────────────────
-// Setup steps:
-// 1. Create a free account at https://www.emailjs.com
-// 2. Connect an email service (e.g. Gmail) → note the Service ID
-// 3. Create a template with these variables:
-//      {{to_name}}   – recipient's name
-//      {{to_email}}  – recipient's email address
-//      {{plan_id}}   – the AO plan reference code
-//      {{action}}    – "created" or "updated"
-//    Subject:  Your AO Materials Management Plan – {{plan_id}}
-//    Body:
-//      Hi {{to_name}},
-//
-//      Your AO Materials Management plan has been {{action}}.
-//      {{plan_id}}
-//
-//      You can return to view and edit here https://megtei.github.io/Materials-Management/
-// 4. Replace the three placeholder values below with your credentials
-//    (found in EmailJS dashboard → Account → API Keys / Email Services / Email Templates)
-const EMAILJS_PUBLIC_KEY  = 'YOUR_EMAILJS_PUBLIC_KEY';   // e.g. 'user_xxxxxxxxxxxx'
-const EMAILJS_SERVICE_ID  = 'YOUR_EMAILJS_SERVICE_ID';   // e.g. 'service_xxxxxxx'
-const EMAILJS_TEMPLATE_ID = 'YOUR_EMAILJS_TEMPLATE_ID';  // e.g. 'template_xxxxxxx'
-
-const EMAILJS_READY = (
-  EMAILJS_PUBLIC_KEY  !== 'YOUR_EMAILJS_PUBLIC_KEY' &&
-  EMAILJS_SERVICE_ID  !== 'YOUR_EMAILJS_SERVICE_ID' &&
-  EMAILJS_TEMPLATE_ID !== 'YOUR_EMAILJS_TEMPLATE_ID'
-);
-
-if(EMAILJS_READY && typeof emailjs !== 'undefined'){
-  emailjs.init({publicKey: EMAILJS_PUBLIC_KEY});
-}
-
 // ── Netlify email endpoint ───────────────────────────────────────────────────
 // Superseded EmailJS above — sends now go through a Netlify Function
 // (config'd on the Netlify side) so the API key never sits in client code.
 // Same-origin call since the app is now deployed on Netlify itself.
 const NETLIFY_EMAIL_URL = '/.netlify/functions/send-confirmation';
 
-async function sendCheckinEmail({toName, toEmail, code, action, type}){
-  if(!toEmail){return;} // no email address on file — skip silently
+// The server looks up the recipient from the stored record and applies the sending
+// limits, so only the record type, code and action are sent from the browser.
+async function sendCheckinEmail({code, action, type}){
   try{
     const res = await fetch(NETLIFY_EMAIL_URL, {
       method: 'POST',
       headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({
-        to_name : toName || 'there',
-        to_email: toEmail,
-        code    : code,
-        action  : action,   // 'created' | 'updated'
-        type    : type      // 'plan' | 'forecast'
-      })
+      body: JSON.stringify({ code: code, action: action, type: type })   // action: 'created' | 'updated'
     });
-    if(!res.ok){console.warn('Netlify email send failed:', res.status, await res.text());return;}
-    console.info('Confirmation email sent to', toEmail);
+    if(!res.ok){console.warn('Confirmation email not sent:', res.status);}
   }catch(err){
-    console.warn('Netlify email send error:', err);
+    console.warn('Confirmation email error:', err && err.message);
   }
 }
 
 async function sendPlanEmail(plan, isNew){
-  const email = (plan.profile.email||'').trim();
+  if(!(plan.profile.email||'').trim())return; // no email address on file
   await sendCheckinEmail({
-    toName : plan.profile.ownerName || plan.profile.editorName,
-    toEmail: email,
     code   : planCode(plan.id),
     action : isNew ? 'created' : 'updated',
     type   : 'plan'
@@ -1679,7 +1666,9 @@ function fcStorageSave(fc){
   try{fc.savedAt=Date.now();localStorage.setItem(FC_STORAGE_PREFIX+fc.id,JSON.stringify(fc));return true}catch(e){return false}
 }
 function fcCode(id){
-  if(/^AO27-FC-[A-Z0-9]{4}$/i.test(id||''))return String(id).toUpperCase();
+  if(/^AO27-FC-[A-Z0-9]{4}(-[A-Z0-9]{4})?$/i.test(id||''))return String(id).toUpperCase();
+  // v2 ids (new forecasts): 8 random characters -> AO27-FC-XXXX-XXXX
+  if(/^v2/.test(id||'')){const c=String(id).slice(2).replace(/[^a-z0-9]/gi,'').toUpperCase().padEnd(8,'0');return 'AO27-FC-'+c.slice(0,4)+'-'+c.slice(4,8);}
   const ch=(id||'').replace(/[^a-z0-9]/gi,'').toUpperCase().padEnd(4,'0');
   return 'AO27-FC-'+ch.slice(0,4);
 }
@@ -1707,7 +1696,7 @@ function fcMatOptsHtml(val){
 
 function newForecast(){
   return{
-    id:uid(),createdAt:Date.now(),actualsLoggedAt:null,
+    id:'v2'+uid().slice(0,14),createdAt:Date.now(),actualsLoggedAt:null,
     profile:{org:'',website:'',role:'',project:'',eventYear:'AO27',contactName:'',contactEmail:''},
     targets:{reuseTarget:'',wasteTarget:'',circPractices:'',reuseStoredPct:'',disposedPct:''},
     materials:[newFcMat()],
@@ -1766,12 +1755,21 @@ const forecastDB = {
     fcStorageSave(fc);
     if (!sb) return { ok: true, source: 'local' };
     try {
-      const { error } = await sb.rpc('save_forecast', { p_fc: fc });
+      let { data, error } = await sb.rpc('save_forecast', { p_fc: fc });
+      // A new forecast whose code is already taken gets a fresh id and one retry.
+      if (error && /forecast code in use/i.test(error.message) && typeof fc._v !== 'number') {
+        try { localStorage.removeItem(FC_STORAGE_PREFIX + fc.id); } catch (e) {}
+        fc.id = 'v2' + uid().slice(0, 14);
+        fcStorageSave(fc);
+        ({ data, error } = await sb.rpc('save_forecast', { p_fc: fc }));
+      }
       if (error) throw error;
+      await syncVersion(fc, 'forecast', data);
+      fcStorageSave(fc);
       return { ok: true, source: 'cloud' };
     } catch(err) {
       console.warn('Supabase forecast save failed, saved locally:', err.message);
-      return { ok: true, source: 'local', warning: err.message };
+      return saveFailure(err);
     }
   },
 
@@ -1783,6 +1781,7 @@ const forecastDB = {
         if (error) throw error;
         if (data) return migrateForecast(data);
       } catch(err) {
+        if (lookupThrottled(err)) return null;
         console.warn('Supabase forecast lookup failed, trying local:', err.message);
       }
     }
@@ -2294,7 +2293,7 @@ async function fcStartReport(){
   const inp=document.getElementById('fc-report-input');const msg=document.getElementById('fc-report-msg');
   if(!inp)return;
   const code=inp.value.trim().toUpperCase();
-  if(code.length<12){if(msg){msg.textContent='Enter a full TA-ID (format: AO27-FC-XXXX)';msg.style.color='#A32D2D';}return;}
+  if(!/^AO27-FC-[A-Z0-9]{4}(-[A-Z0-9]{4})?$/.test(code.replace(/\s/g,''))){if(msg){msg.textContent='Enter a full TA-ID (format: AO27-FC-XXXX-XXXX)';msg.style.color='#A32D2D';}return;}
   if(msg){msg.textContent=SUPABASE_READY?'Searching cloud...':'Searching local forecasts...';msg.style.color='#888';}
   const fc=await forecastDB.loadById(code);
   if(!fc){if(msg){msg.textContent='TA-ID not found. Check the ID and try again.';msg.style.color='#A32D2D';}return;}
@@ -2393,13 +2392,11 @@ async function fcSaveAndExit(){
     const res=await forecastDB.save(fc);
     S._fcSavedFor=fc.id;S._fcSavedIds=new Set(fc.materials.map(x=>x.id));
     S.fc.pending=false;
-    showToast(res.source==='cloud'?'Forecast submitted':'Forecast saved to this device');
+    if(res.source==='cloud')S._fcCloudSaved=fc.id;
+    showToast(res.source==='cloud'?'Forecast submitted':cloudSaveNote(res,'forecast'));
   }
-  if(fc){
-    const p=fc.profile;
+  if(fc&&S._fcCloudSaved===fc.id&&(fc.profile.contactEmail||'').trim()){
     sendCheckinEmail({
-      toName : p.contactName,
-      toEmail: p.contactEmail,
       code   : fcCode(fc.id),
       action : S.fc.isUpdate ? 'updated' : 'created',
       type   : 'forecast'
@@ -2816,7 +2813,7 @@ async function fcRetrieve(){
   const btn=document.querySelector('#fc-retrieve-input').nextElementSibling;
   if(!inp)return;
   const code=inp.value.trim().toUpperCase();
-  if(code.length<12){if(msg){msg.textContent='Enter a full TA-ID (format: AO27-FC-XXXX)';msg.style.color='#A32D2D';}return;}
+  if(!/^AO27-FC-[A-Z0-9]{4}(-[A-Z0-9]{4})?$/.test(code.replace(/\s/g,''))){if(msg){msg.textContent='Enter a full TA-ID (format: AO27-FC-XXXX-XXXX)';msg.style.color='#A32D2D';}return;}
   if(msg){msg.textContent=SUPABASE_READY?'Searching cloud...':'Searching local forecasts...';msg.style.color='#888';}
   if(btn){btn.disabled=true;btn.textContent='Loading...';}
   try{
@@ -3036,9 +3033,9 @@ function renderAdmin(){
   const pb=document.getElementById('page-body-wrap');
   if(pb)pb.style.padding='1.25rem 1rem 2rem';
 
-  // Password gate — the password is validated server-side (see buildAdminClient
-  // / dashboard_authed RLS policy). No password is stored in this file.
-  if(!sessionStorage.getItem(ADMIN_KEY_SS)){
+  // Password gate — the password is checked server-side by admin_check / admin_list_*
+  // (with lockout). No password is stored in this file.
+  if(!adminKey()){
     let h='<div class="admin-login">';
     h+='<h3>Admin Dashboard</h3>';
     h+='<p>Restricted access. Enter the dashboard password to view all submitted plans.</p>';
@@ -3196,17 +3193,13 @@ function renderAdminUpload(){
   refreshRollForward();
 }
 
-// Look up a plan by code using the ADMIN client. The dashboard's RLS policy requires
-// the x-dashboard-key header, so the plain anon client returns nothing here — which
-// made the target lookup silently find no plan.
+// Look up a plan by code for the admin Upload tab (password-checked admin_get_plan).
 async function adminLoadPlanByCode(code){
   const want=String(code||'').trim().toUpperCase();
-  const client=ensureAdminClient();
-  if(client){
-    const{data,error}=await client.from('plans').select('data').eq('plan_code',want).limit(1);
+  if(sb){
+    const{data,error}=await adminRpc('admin_get_plan',{p_code:want});
     if(error)throw new Error(error.message);
-    if(data&&data.length&&data[0].data)return sanitizeIds(data[0].data);
-    return null;
+    return data?sanitizeIds(data):null;
   }
   return storageLoadAll().find(p=>planCode(p.id)===want)||null;
 }
@@ -3280,15 +3273,10 @@ async function loadAdminPlans(){
   // result — and must NOT blend in this browser's localStorage, otherwise
   // stale/deleted plans (and the example plan) reappear and Supabase deletions
   // never show up in the dashboard.
-  // Reads go through the admin client, which carries the x-dashboard-key header
-  // required by the dashboard_authed() RLS policy. Without a valid password the
-  // database returns zero rows, so the gate is enforced server-side.
-  const client = ensureAdminClient();
-  if(client){
-    const{data,error}=await client.from('plans')
-      .select('data,updated_at')
-      .order('updated_at',{ascending:false})
-      .limit(300);
+  // Reads go through admin_list_plans, which checks the dashboard password server-side;
+  // without a valid password it returns zero rows.
+  if(sb){
+    const{data,error}=await adminRpc('admin_list_plans');
     if(error){
       // Surface the failure instead of silently falling back to local data.
       throw new Error('CLOUD_LOAD_FAILED: '+error.message);
@@ -3573,12 +3561,8 @@ function renderAdminDashboard(rawPlans){
 // admin-hero, admin-section, .metg/.met, .insight-card/.insight-row/.insight-bar,
 // .admin-table — so it reads as the same dashboard, just a different dataset) ──
 async function loadAdminForecasts(){
-  const client=ensureAdminClient();
-  if(client){
-    const{data,error}=await client.from('forecasts')
-      .select('data,updated_at')
-      .order('updated_at',{ascending:false})
-      .limit(300);
+  if(sb){
+    const{data,error}=await adminRpc('admin_list_forecasts');
     if(error){
       throw new Error('CLOUD_LOAD_FAILED: '+error.message);
     }
@@ -3823,15 +3807,12 @@ function exportAdminFcCSV(){
 
 function adminSignOut(){
   sessionStorage.removeItem(ADMIN_KEY_SS);
-  sbAdmin=null;
+  sessionStorage.removeItem(ADMIN_SEEN_SS);
   renderAdmin();
 }
 
-// Validate the typed dashboard password by attempting a gated read against
-// Supabase. The dashboard_authed() RLS policy returns rows only when the
-// x-dashboard-key header matches the hashed password stored server-side, so a
-// successful query (no error) proves the password is correct. No password is
-// stored in this file.
+// Validate the typed dashboard password with admin_check (server-side hash check with
+// lockout after repeated failures). No password is stored in this file.
 async function checkAdminPin(){
   const val=document.getElementById('admin-pin');
   const msg=document.getElementById('admin-login-msg');
@@ -3850,19 +3831,16 @@ async function checkAdminPin(){
   if(btn){btn.disabled=true;btn.textContent='Checking...';}
   if(msg){msg.style.color='#888';msg.textContent='Checking password...';}
 
-  const probe=buildAdminClient(key);
   try{
-    // HEAD count request: returns a count when the gate passes, 0 rows / no
-    // error is also a pass (valid empty table). A wrong password trips the RLS
-    // policy and Supabase returns an error, which we treat as "denied".
-    const{error}=await probe.from('plans').select('id',{count:'exact',head:true});
+    const{data,error}=await sb.rpc('admin_check',{p_key:key});
     if(error) throw error;
-    // Password accepted — persist for the session and promote the admin client.
+    if(data!==true) throw new Error('denied');
     sessionStorage.setItem(ADMIN_KEY_SS, key);
-    sbAdmin=probe;
+    sessionStorage.setItem(ADMIN_SEEN_SS, String(Date.now()));
     renderAdmin();
   }catch(err){
-    if(msg){msg.style.color='#A32D2D';msg.textContent='Incorrect password.';}
+    const locked=/locked/i.test(String(err&&err.message));
+    if(msg){msg.style.color='#A32D2D';msg.textContent=locked?'Too many attempts — try again in 15 minutes.':'Incorrect password.';}
     if(val){val.style.borderColor='#dc2626';val.value='';val.focus();}
     if(btn){btn.disabled=false;btn.textContent='Access dashboard';}
   }
@@ -5876,7 +5854,7 @@ function importPlanXLS(input){
                   if(k>=0)S.plans[k]=JSON.parse(JSON.stringify(plan));
                   S._unsaved=!(saveRes&&saveRes.ok&&saveRes.source==='cloud');
                   render();
-                  showToast(summary+((saveRes&&saveRes.source==='cloud')?' \u2014 saved to cloud':' \u2014 saved locally'));
+                  showToast(summary+((saveRes&&saveRes.source==='cloud')?' \u2014 saved to cloud':' \u2014 '+cloudSaveNote(saveRes,'plan')));
                 });
               }else{
                 showToast(summary+' \u2014 see console');
@@ -6592,6 +6570,10 @@ function savePlan(){
     const i=S.plans.findIndex(p=>p.id===S.plan.id);
     if(i>=0)S.plans[i]=JSON.parse(JSON.stringify(S.plan));
     else S.plans.unshift(JSON.parse(JSON.stringify(S.plan)));
+    if(res.ok&&res.source!=='cloud'&&SUPABASE_READY){
+      showToast(cloudSaveNote(res,'plan'));
+      return;
+    }
     if(res.ok){
       S._planDraftFor=null; // submitted — no longer a create-mode draft
       S._unsaved=false; // clear dirty flag
@@ -6602,7 +6584,7 @@ function savePlan(){
       // "Save & exit": send the confirmation right here, at the moment the save
       // actually happens — not deferred to some later "leave" action, since a user
       // who saves and then just leaves the tab open would otherwise never trigger it.
-      sendPlanEmail(S.plan, isNew);
+      if(res.source==='cloud')sendPlanEmail(S.plan, isNew);
       const code=planCode(S.plan.id);
       if(S._reportMode){showReportThanksModal();return;}
       // Land on the home screen underneath the confirmation modal, so closing the
@@ -6638,7 +6620,8 @@ function saveProgress(){
       S._unsaved=false;
       const badge=document.getElementById('unsaved-badge');
       if(badge)badge.remove();
-      showToast(res.source==='cloud'?'Progress saved':'Progress saved locally'+(SUPABASE_READY?'':' (Supabase not configured)'));
+      if(res.source!=='cloud'&&SUPABASE_READY){S._unsaved=true;showToast(cloudSaveNote(res,'plan'));}
+      else showToast(res.source==='cloud'?'Progress saved':'Progress saved on this device (cloud storage not configured)');
     } else {
       showToast('Save failed - please try again');
     }
