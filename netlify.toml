@@ -1,26 +1,5 @@
+# Netlify configuration.
+# The confirmation email is sent by netlify/functions/send-confirmation.js directly through
+# SendGrid; the Netlify Email Integration (emails/ folder and its function config) is no longer used.
 [functions]
-
-  [functions.emails]
-  included_files = [
-    "./emails/**"
-  ]
-
-[context]
-
-  [context.production]
-
-    [context.production.functions]
-
-      [context.production.functions.emails]
-      included_files = [
-        "./emails/**"
-      ]
-
-  [context.main]
-
-    [context.main.functions]
-
-      [context.main.functions.emails]
-      included_files = [
-        "./emails/**"
-      ]
+  directory = "netlify/functions"
