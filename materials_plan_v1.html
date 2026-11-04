@@ -1244,7 +1244,7 @@ const planDB = {
       try {
         const { data, error } = await sb.rpc('get_plan_by_code', { p_code: normalised });
         if (error) throw error;
-        if (data) return data;
+        if (data) return sanitizeIds(data);
       } catch(err) {
         console.warn('Supabase lookup failed, trying local:', err.message);
       }
@@ -1286,7 +1286,14 @@ async function retrievePlan(){
 }
 
 
-function esc(s){return(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
+function esc(s){if(!s)return'';return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;')}
+// Ids are interpolated into inline handlers and id attributes, so only plain id characters are allowed.
+const SAFE_ID_RE=/^[A-Za-z0-9_-]{1,64}$/;
+function safeId(v){v=String(v==null?'':v).trim();return SAFE_ID_RE.test(v)?v:uid();}
+// URLs rendered into src/href: allow https, blob (local preview) and base64 image data URLs only.
+function safeUrl(u){u=String(u||'').trim();if(/^https:\/\//i.test(u)||/^blob:/i.test(u)||/^data:image\/(png|jpe?g|gif|webp);base64,[A-Za-z0-9+\/=]+$/i.test(u))return u;return'';}
+// Normalise asset/material ids on any plan or forecast entering the app (cloud, local, import).
+function sanitizeIds(p){if(!p||typeof p!=='object')return p;(Array.isArray(p.assets)?p.assets:[]).forEach(function(a){if(!a)return;a.id=safeId(a.id);(Array.isArray(a.materials)?a.materials:[]).forEach(function(m){if(m)m.id=safeId(m.id);});});(Array.isArray(p.materials)?p.materials:[]).forEach(function(m){if(m&&typeof m==='object')m.id=safeId(m.id);});return p;}
 function uid(){var CH="0123456789abcdefghijklmnopqrstuvwxyz",out=[],buf=new Uint8Array(24);if(typeof crypto!=="undefined"&&crypto.getRandomValues){crypto.getRandomValues(buf);}else{for(var i=0;i<buf.length;i++)buf[i]=Math.floor(Math.random()*256);}for(var j=0;j<buf.length&&out.length<16;j++){if(buf[j]<252)out.push(CH.charAt(buf[j]%36));}while(out.length<16)out.push(CH.charAt(Math.floor(Math.random()*36)));return out.join("");}
 function fmtDate(ts){if(!ts)return'never';return new Date(ts).toLocaleDateString('en-AU',{day:'numeric',month:'short',year:'numeric'})}
 function fmtAUDate(d){if(!d)return'-';const parts=d.split('-');if(parts.length===3)return parts[2]+'/'+parts[1]+'/'+parts[0];return d;}
@@ -1733,7 +1740,7 @@ function migrateForecast(fc){
   fc.notes=Object.assign({largeStructures:'',hazardousDetail:'',circularHero:'',feedback:''},fc.notes||{});
   if(!Array.isArray(fc.materials)||!fc.materials.length)fc.materials=[newFcMat()];
   fc.materials.forEach(m=>{
-    if(m.id==null)m.id=uid();
+    m.id=safeId(m.id);
     if(m.precinctLocation==null)m.precinctLocation='';
     if(m.yearBuilt==null)m.yearBuilt='';
     if(m.assetName==null)m.assetName='';
@@ -1809,6 +1816,7 @@ function migratePlan(p){
       if(a.image2Path===undefined)a.image2Path='';
     }
   }
+  sanitizeIds(p);
   return p;
 }
 
@@ -2338,7 +2346,7 @@ function fcRpRowHtml(m,i){
   if(m.outcome==='Recycle on site with AO Take-back program')h+='<div class="fg" style="margin:10px 0 0"><label>Take-back program name</label><input type="text" data-mid="'+M+'" data-f="takeBackProgram" value="'+esc(m.takeBackProgram)+'" placeholder="Name of the take-back program" onblur="fcUpMat(this)"></div>';
   if(m.outcome&&!/mixed construction waste/i.test(m.outcome)){
     h+='<div class="rp-verify"><input type="file" accept="image/*" id="fc-ev-'+M+'" style="display:none" onchange="fcUploadEvidence(this,\''+M+'\')">';
-    if(m.evidence)h+='<img src="'+m.evidence+'" alt="">';
+    if(m.evidence&&safeUrl(m.evidence))h+='<img src="'+esc(safeUrl(m.evidence))+'" alt="">';
     h+='<button type="button" class="rp-link sky" onclick="document.getElementById(\'fc-ev-'+M+'\').click()"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3z"/><circle cx="12" cy="13" r="3"/></svg>Verify &ndash; add a photo (optional)</button>';
     if(m.evidence)h+='<button type="button" class="rp-link" style="color:#A32D2D" onclick="fcRemoveEvidence(\''+M+'\')">Remove</button>';
     h+='</div>';
@@ -2876,7 +2884,7 @@ function fcRemoveEvidence(mid){
 function fcEvidenceBlock(m){
   const hasImg=!!m.evidence;
   const thumb=hasImg
-    ? '<img src="'+m.evidence+'" alt="Evidence photo" style="width:74px;height:74px;object-fit:cover;border-radius:8px;border:1px solid #dde2e8;display:block;flex-shrink:0">'
+    ? '<img src="'+esc(safeUrl(m.evidence))+'" alt="Evidence photo" style="width:74px;height:74px;object-fit:cover;border-radius:8px;border:1px solid #dde2e8;display:block;flex-shrink:0">'
     : '<div style="width:74px;height:74px;border-radius:8px;border:1.5px dashed #d0cdc7;background:#faf9f7;display:flex;align-items:center;justify-content:center;color:#c4c0b8;font-size:22px;flex-shrink:0">&#9634;</div>';
   const btnStyle='font-size:11.5px;font-weight:600;padding:6px 12px;border-radius:7px;cursor:pointer;border:1px solid #d0cdc7;background:#fff;color:#555;font-family:inherit;width:auto';
   let btns='<input type="file" accept="image/*" id="fc-ev-'+m.id+'" style="display:none" onchange="fcUploadEvidence(this,&#39;'+m.id+'&#39;)">';
@@ -3197,7 +3205,7 @@ async function adminLoadPlanByCode(code){
   if(client){
     const{data,error}=await client.from('plans').select('data').eq('plan_code',want).limit(1);
     if(error)throw new Error(error.message);
-    if(data&&data.length&&data[0].data)return data[0].data;
+    if(data&&data.length&&data[0].data)return sanitizeIds(data[0].data);
     return null;
   }
   return storageLoadAll().find(p=>planCode(p.id)===want)||null;
@@ -3286,7 +3294,7 @@ async function loadAdminPlans(){
       throw new Error('CLOUD_LOAD_FAILED: '+error.message);
     }
     // Return cloud rows verbatim (an empty array is a valid, authoritative answer).
-    return (data||[]).map(row=>row.data).filter(Boolean);
+    return (data||[]).map(row=>sanitizeIds(row.data)).filter(Boolean);
   }
   // Only when Supabase was never configured do we use local storage.
   return storageLoadAll();
@@ -3361,7 +3369,7 @@ function renderAdminDashboard(rawPlans){
     h+='<button style="'+tabStyle(selYear==="all")+'" onclick="sessionStorage.setItem(&quot;adminYear&quot;,&quot;all&quot;);loadAdminPlansInto()">All years ('+allPlans.length+')</button>';
     for(const yr of years){
       const cnt=allPlans.filter(p=>(p.profile&&p.profile.aoYear?p.profile.aoYear:'Unknown')===yr).length;
-      h+='<button style="'+tabStyle(selYear===yr)+'" onclick="sessionStorage.setItem(&quot;adminYear&quot;,&quot;'+yr+'&quot;);loadAdminPlansInto()">'+esc(yr)+' ('+cnt+')</button>';
+      h+='<button style="'+tabStyle(selYear===yr)+'" data-y="'+esc(yr)+'" onclick="sessionStorage.setItem(&quot;adminYear&quot;,this.dataset.y);loadAdminPlansInto()">'+esc(yr)+' ('+cnt+')</button>';
     }
     h+='</div></div>';
   }
@@ -3574,7 +3582,7 @@ async function loadAdminForecasts(){
     if(error){
       throw new Error('CLOUD_LOAD_FAILED: '+error.message);
     }
-    return (data||[]).map(row=>row.data).filter(Boolean);
+    return (data||[]).map(row=>sanitizeIds(row.data)).filter(Boolean);
   }
   return fcStorageLoadAll();
 }
@@ -3636,7 +3644,7 @@ function renderAdminFcDashboard(rawForecasts){
     h+='<button style="'+tabStyle(selYear==="all")+'" onclick="sessionStorage.setItem(&quot;adminFcYear&quot;,&quot;all&quot;);loadAdminForecastsInto()">All years ('+allFc.length+')</button>';
     for(const yr of years){
       const cnt=allFc.filter(f=>(f.profile&&f.profile.eventYear?f.profile.eventYear:'Unknown')===yr).length;
-      h+='<button style="'+tabStyle(selYear===yr)+'" onclick="sessionStorage.setItem(&quot;adminFcYear&quot;,&quot;'+yr+'&quot;);loadAdminForecastsInto()">'+esc(yr)+' ('+cnt+')</button>';
+      h+='<button style="'+tabStyle(selYear===yr)+'" data-y="'+esc(yr)+'" onclick="sessionStorage.setItem(&quot;adminFcYear&quot;,this.dataset.y);loadAdminForecastsInto()">'+esc(yr)+' ('+cnt+')</button>';
     }
     h+='</div></div>';
   }
@@ -5139,8 +5147,8 @@ function imgSlotBlock(a,slot,label){
   const url=a[F.url],ref=a[F.ref];
   const hasImg=!!url;
   const thumb=hasImg
-    ? '<a href="'+esc(url)+'" target="_blank" rel="noopener" style="flex-shrink:0;display:block">'
-      +'<img src="'+esc(url)+'" alt="'+esc(ref||label)+'" '
+    ? '<a href="'+esc(safeUrl(url))+'" target="_blank" rel="noopener" style="flex-shrink:0;display:block">'
+      +'<img src="'+esc(safeUrl(url))+'" alt="'+esc(ref||label)+'" '
       +'style="width:74px;height:74px;object-fit:cover;border-radius:8px;border:1px solid #dde2e8;display:block"></a>'
     : '<div style="width:74px;height:74px;border-radius:8px;border:1.5px dashed #d0cdc7;background:#faf9f7;display:flex;align-items:center;justify-content:center;color:#c4c0b8;font-size:22px;flex-shrink:0">&#9634;</div>';
   const btnStyle='font-size:11.5px;font-weight:600;padding:6px 12px;border-radius:7px;cursor:pointer;border:1px solid #d0cdc7;background:#fff;color:#555;font-family:inherit;width:auto';
@@ -5365,7 +5373,7 @@ function stepSummary(plan){
   h+='<div class="card">';
   h+='<div class="sechd" style="margin-top:0">Plan details</div>';
   h+='<div class="g2"><div><div style="font-size:12px;color:#888">Business</div><div style="font-size:14px;font-weight:600;margin-top:2px">'+(esc(p.businessName)||'-')+'</div></div><div><div style="font-size:12px;color:#888">Plan owner</div><div style="font-size:14px;margin-top:2px">'+(esc(p.ownerName)||'-')+'</div></div></div>';
-  h+='<div class="g2" style="margin-top:10px"><div><div style="font-size:12px;color:#888">Role</div><div style="font-size:14px;margin-top:2px">'+(esc(p.role)||'-')+'</div></div><div><div style="font-size:12px;color:#888">Date</div><div style="font-size:14px;margin-top:2px">'+fmtAUDate(p.date)+'</div></div></div>';
+  h+='<div class="g2" style="margin-top:10px"><div><div style="font-size:12px;color:#888">Role</div><div style="font-size:14px;margin-top:2px">'+(esc(p.role)||'-')+'</div></div><div><div style="font-size:12px;color:#888">Date</div><div style="font-size:14px;margin-top:2px">'+esc(fmtAUDate(p.date))+'</div></div></div>';
   const sumCode=planCode(S.plan.id);
   h+='<div class="plan-id-badge">'
     +'<div><div class="plan-id-lbl">Plan ID</div><div class="plan-id-code">'+sumCode+'</div></div>'
@@ -5697,7 +5705,7 @@ function importPlanXLS(input){
           // way a routine spreadsheet update can never silently disconnect a photo.
           const p1=String(photo1Path||'').trim()||(prior&&prior.imagePath)||'';
           const p2=String(photo2Path||'').trim()||(prior&&prior.image2Path)||'';
-          assetMap[key]={id:(prior&&prior.id)||String(linkKey||'').trim()||uid(),expanded:(prior&&prior.expanded)||false,_srcRow:r,serialNumber:clamp(serialNumber,1000),serialNumberNew:clamp(serialNew,1000),assetId:clamp(assetNumRaw,100),
+          assetMap[key]={id:(prior&&prior.id)||(SAFE_ID_RE.test(String(linkKey||'').trim())?String(linkKey).trim():'')||uid(),expanded:(prior&&prior.expanded)||false,_srcRow:r,serialNumber:clamp(serialNumber,1000),serialNumberNew:clamp(serialNew,1000),assetId:clamp(assetNumRaw,100),
             prec:clamp(prec,100),precCustom:(prior&&prior.precCustom)||'',assetName:clamp(assetName,200),desc:clamp(desc,500),
             noOfItems:clamp(noOfItems,30),yearBuilt:clamp(yearBuilt,20),
             builderSupplier:clamp(builder,200),comments:clamp(comments,500),
@@ -6805,7 +6813,7 @@ function rpRowHtml(a,m,j){
   // Verify photo lives on the asset (its bump-out photo), so it is offered once per asset, on its first material.
   if(j===0&&(a.materials||[]).some(x=>x.outcome&&!/mixed construction waste/i.test(x.outcome))){
     h+='<div class="rp-verify"><input type="file" accept="image/*" id="img-file2-'+A+'" style="display:none" onchange="uploadAssetImage(this,\''+A+'\',2)">';
-    if(a.image2Url)h+='<a href="'+esc(a.image2Url)+'" target="_blank" rel="noopener"><img src="'+esc(a.image2Url)+'" alt=""></a>';
+    if(a.image2Url)h+='<a href="'+esc(safeUrl(a.image2Url))+'" target="_blank" rel="noopener"><img src="'+esc(safeUrl(a.image2Url))+'" alt=""></a>';
     h+='<button type="button" class="rp-link sky" onclick="document.getElementById(\'img-file2-'+A+'\').click()"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3z"/><circle cx="12" cy="13" r="3"/></svg>Verify &ndash; add a photo (optional)</button>';
     h+='<span class="rp-imgstat" id="img-stat2-'+A+'"></span></div>';
   }
