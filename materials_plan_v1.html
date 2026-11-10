@@ -7,7 +7,7 @@
 <meta http-equiv="Content-Security-Policy"
   content="default-src 'self';
     script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net;
-    connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.emailjs.com https://megtei.github.io;
+    connect-src 'self' https://bksznvzjzirrznfvktuh.supabase.co wss://bksznvzjzirrznfvktuh.supabase.co;
     style-src 'self' 'unsafe-inline';
     img-src 'self' data: blob: https://*.supabase.co;
     font-src 'self' data:;
@@ -716,9 +716,6 @@ select.stat-sel[data-tone=""]{padding-left:10px!important}
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.110.9/dist/umd/supabase.js"
   integrity="sha384-6foGJ1oz/y3anEo0BXRtTgBK1GvpnR0GbJZb0ijG+nBAJ4rYT+VqlD/9e3CSiFIA"
   crossorigin="anonymous"></script>
-<script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4.4.1/dist/email.min.js"
-  integrity="sha384-SALc35EccAf6RzGw4iNsyj7kTPr33K7RoGzYu+7heZhT8s0GZouafRiCg1qy44AS"
-  crossorigin="anonymous"></script>
 <style id="ux-compact">
 /* Headers, intro and step cards */
 #main .abq-body{padding:20px 22px 18px}
@@ -1091,8 +1088,11 @@ const TML=[
 // array in place — so all renderTMLInfo calls always use the freshest data.
 // If the fetch fails (offline / CORS / missing file) the embedded array above
 // is used silently as a fallback.
-const TML_REMOTE_URL  = 'https://megtei.github.io/Materials_Methods_Plan/tml-data.json';
-const TML_CACHE_KEY   = 'ao_tml_remote_cache_v3'; // bumped Oct 2026 list re-sync (v2 cached the pre-sync JSON)
+// Materials & Methods reference page linked from the forms and help text. One setting so
+// it can move to a TA-controlled address without touching the links themselves.
+const MATERIALS_METHODS_URL = 'https://megtei.github.io/Materials_Methods_Plan/';
+const TML_REMOTE_URL  = 'tml-data.json'; // served from this site (same origin)
+const TML_CACHE_KEY   = 'ao_tml_remote_cache_v4'; // bumped Oct 2026 list re-sync (v2 cached the pre-sync JSON)
 const TML_CACHE_TTL   = 24 * 60 * 60 * 1000; // 24 hours in ms
 
 async function syncRemoteTML(){
@@ -1187,38 +1187,66 @@ if(SUPABASE_READY){
   }
 }
 
-// ── Admin dashboard auth (Option B: server-side gated read) ────────────────────
-// The dashboard password is NOT stored in this file. The manager types it, and
-// it is sent as an `x-dashboard-key` request header on the admin read query.
-// A Postgres RLS policy (dashboard_authed()) compares it against a hashed value
-// in the database and returns plan rows only on a match — so a wrong password
-// returns zero rows regardless of anything done in the browser.
-// The key is held only in sessionStorage for the life of the tab so the
-// dashboard can re-query without re-prompting; it is cleared on sign-out.
+// ── Admin dashboard auth ─────────────────────────────────────────────────────
+// The dashboard password is NOT stored in this file. The manager types it and it is
+// passed to database functions (admin_check / admin_list_* / admin_get_plan) that check
+// it against a hash, lock out repeated failures and record each access. A wrong
+// password returns no rows regardless of anything done in the browser.
+// The key is held only in sessionStorage for the life of the tab, cleared on sign-out
+// or after 30 minutes without dashboard activity.
 const ADMIN_KEY_SS = 'adminDashKey';
-let sbAdmin = null;
-function buildAdminClient(key){
-  if(typeof supabase === 'undefined' || !SUPABASE_READY) return null;
-  try{
-    return supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
-      global: { headers: { 'x-dashboard-key': key } }
-    });
-  }catch(e){
-    console.warn('Admin client init failed:', e.message);
+const ADMIN_SEEN_SS = 'adminDashSeen';
+const ADMIN_IDLE_MS = 30 * 60 * 1000;   // signed out after 30 minutes without admin activity
+// Current dashboard password for this tab, or null if not signed in / idle too long.
+function adminKey(){
+  const k = sessionStorage.getItem(ADMIN_KEY_SS);
+  if(!k) return null;
+  const seen = +sessionStorage.getItem(ADMIN_SEEN_SS) || 0;
+  if(seen && Date.now() - seen > ADMIN_IDLE_MS){
+    sessionStorage.removeItem(ADMIN_KEY_SS); sessionStorage.removeItem(ADMIN_SEEN_SS);
     return null;
   }
+  sessionStorage.setItem(ADMIN_SEEN_SS, String(Date.now()));
+  return k;
 }
-// Rebuild the admin client from a stored session key (e.g. after a tab reload).
-function ensureAdminClient(){
-  if(sbAdmin) return sbAdmin;
-  const key = sessionStorage.getItem(ADMIN_KEY_SS);
-  if(key) sbAdmin = buildAdminClient(key);
-  return sbAdmin;
+// Admin reads go through database functions that check the password, apply the lockout
+// and record each access. A wrong password returns no rows.
+async function adminRpc(fn, args){
+  const key = adminKey();
+  if(!sb || !key) return { data: null, error: { message: 'Not signed in to the dashboard' } };
+  return sb.rpc(fn, Object.assign({ p_key: key }, args || {}));
 }
 
 // ── Plan storage abstraction ──────────────────────────────────────────────────
 // Swap this object's two methods to change the backend.
 // localStorage is always used as an offline fallback.
+// Message for a save that did not reach the cloud (F13) — never shown as success.
+function cloudSaveNote(res, what){
+  what=what||'plan';
+  if(res&&res.conflict)return 'This '+what+' was changed elsewhere — reload it before saving again';
+  if(res&&res.throttled)return 'Too many saves — please wait a minute and try again';
+  return 'Not saved to the cloud — your changes are only on this device';
+}
+function saveFailure(err){
+  const m=String((err&&err.message)||err||'');
+  return { ok: true, source: 'local', warning: m, conflict: /conflict/i.test(m), throttled: /too many attempts/i.test(m) };
+}
+function lookupThrottled(err){
+  if(/too many attempts/i.test(String((err&&err.message)||''))){showToast('Too many attempts — please wait a few minutes and try again');return true;}
+  return false;
+}
+// After a successful save keep the record's server version (_v) in step, so the next save
+// from this browser isn't mistaken for a stale copy. Records saved before versioning have no
+// _v; fetch it once.
+async function syncVersion(rec, kind, code){
+  try{
+    if(typeof rec._v==='number'){rec._v++;}
+    else{
+      const r=await sb.rpc(kind==='plan'?'get_plan_by_code':'get_forecast_by_code',{p_code:code});
+      if(r&&r.data&&typeof r.data._v==='number')rec._v=r.data._v;
+    }
+  }catch(e){}
+}
 const planDB = {
   async save(plan) {
     // Always save locally first (instant, offline-safe)
@@ -1229,19 +1257,14 @@ const planDB = {
       return { ok: true, source: 'local' };
     }
     try {
-      const { error } = await sb.from('plans').upsert({
-        id:         plan.id,
-        plan_code:  planCode(plan.id),
-        data:       plan,
-        business:   plan.profile.businessName || '',
-        owner:      plan.profile.ownerName    || '',
-        role:       plan.profile.role         || '',
-      }, { onConflict: 'id' });
+      const { data, error } = await sb.rpc('save_plan', { p_plan: plan });
       if (error) throw error;
+      await syncVersion(plan, 'plan', data);
+      storageSave(plan);
       return { ok: true, source: 'cloud' };
     } catch(err) {
       console.warn('Supabase save failed, plan saved locally:', err.message);
-      return { ok: true, source: 'local', warning: err.message };
+      return saveFailure(err);
     }
   },
 
@@ -1249,13 +1272,11 @@ const planDB = {
     const normalised = code.trim().toUpperCase().replace(/\s/g,'');
     if (sb) {
       try {
-        const { data, error } = await sb
-          .from('plans')
-          .select('data')
-          .eq('plan_code', normalised)
-          .single();
-        if (data?.data) return data.data;
+        const { data, error } = await sb.rpc('get_plan_by_code', { p_code: normalised });
+        if (error) throw error;
+        if (data) return sanitizeIds(data);
       } catch(err) {
+        if (lookupThrottled(err)) return null;
         console.warn('Supabase lookup failed, trying local:', err.message);
       }
     }
@@ -1296,7 +1317,14 @@ async function retrievePlan(){
 }
 
 
-function esc(s){return(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
+function esc(s){if(!s)return'';return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;')}
+// Ids are interpolated into inline handlers and id attributes, so only plain id characters are allowed.
+const SAFE_ID_RE=/^[A-Za-z0-9_-]{1,64}$/;
+function safeId(v){v=String(v==null?'':v).trim();return SAFE_ID_RE.test(v)?v:uid();}
+// URLs rendered into src/href: allow https, blob (local preview) and base64 image data URLs only.
+function safeUrl(u){u=String(u||'').trim();if(/^https:\/\//i.test(u)||/^blob:/i.test(u)||/^data:image\/(png|jpe?g|gif|webp);base64,[A-Za-z0-9+\/=]+$/i.test(u))return u;return'';}
+// Normalise asset/material ids on any plan or forecast entering the app (cloud, local, import).
+function sanitizeIds(p){if(!p||typeof p!=='object')return p;(Array.isArray(p.assets)?p.assets:[]).forEach(function(a){if(!a)return;a.id=safeId(a.id);(Array.isArray(a.materials)?a.materials:[]).forEach(function(m){if(m)m.id=safeId(m.id);});});(Array.isArray(p.materials)?p.materials:[]).forEach(function(m){if(m&&typeof m==='object')m.id=safeId(m.id);});return p;}
 function uid(){var CH="0123456789abcdefghijklmnopqrstuvwxyz",out=[],buf=new Uint8Array(24);if(typeof crypto!=="undefined"&&crypto.getRandomValues){crypto.getRandomValues(buf);}else{for(var i=0;i<buf.length;i++)buf[i]=Math.floor(Math.random()*256);}for(var j=0;j<buf.length&&out.length<16;j++){if(buf[j]<252)out.push(CH.charAt(buf[j]%36));}while(out.length<16)out.push(CH.charAt(Math.floor(Math.random()*36)));return out.join("");}
 function fmtDate(ts){if(!ts)return'never';return new Date(ts).toLocaleDateString('en-AU',{day:'numeric',month:'short',year:'numeric'})}
 function fmtAUDate(d){if(!d)return'-';const parts=d.split('-');if(parts.length===3)return parts[2]+'/'+parts[1]+'/'+parts[0];return d;}
@@ -1581,71 +1609,30 @@ function examplePlan(){
   };
 }
 
-// ── EmailJS config ────────────────────────────────────────────────────────────
-// Setup steps:
-// 1. Create a free account at https://www.emailjs.com
-// 2. Connect an email service (e.g. Gmail) → note the Service ID
-// 3. Create a template with these variables:
-//      {{to_name}}   – recipient's name
-//      {{to_email}}  – recipient's email address
-//      {{plan_id}}   – the AO plan reference code
-//      {{action}}    – "created" or "updated"
-//    Subject:  Your AO Materials Management Plan – {{plan_id}}
-//    Body:
-//      Hi {{to_name}},
-//
-//      Your AO Materials Management plan has been {{action}}.
-//      {{plan_id}}
-//
-//      You can return to view and edit here https://megtei.github.io/Materials-Management/
-// 4. Replace the three placeholder values below with your credentials
-//    (found in EmailJS dashboard → Account → API Keys / Email Services / Email Templates)
-const EMAILJS_PUBLIC_KEY  = 'YOUR_EMAILJS_PUBLIC_KEY';   // e.g. 'user_xxxxxxxxxxxx'
-const EMAILJS_SERVICE_ID  = 'YOUR_EMAILJS_SERVICE_ID';   // e.g. 'service_xxxxxxx'
-const EMAILJS_TEMPLATE_ID = 'YOUR_EMAILJS_TEMPLATE_ID';  // e.g. 'template_xxxxxxx'
-
-const EMAILJS_READY = (
-  EMAILJS_PUBLIC_KEY  !== 'YOUR_EMAILJS_PUBLIC_KEY' &&
-  EMAILJS_SERVICE_ID  !== 'YOUR_EMAILJS_SERVICE_ID' &&
-  EMAILJS_TEMPLATE_ID !== 'YOUR_EMAILJS_TEMPLATE_ID'
-);
-
-if(EMAILJS_READY && typeof emailjs !== 'undefined'){
-  emailjs.init({publicKey: EMAILJS_PUBLIC_KEY});
-}
-
 // ── Netlify email endpoint ───────────────────────────────────────────────────
 // Superseded EmailJS above — sends now go through a Netlify Function
 // (config'd on the Netlify side) so the API key never sits in client code.
 // Same-origin call since the app is now deployed on Netlify itself.
 const NETLIFY_EMAIL_URL = '/.netlify/functions/send-confirmation';
 
-async function sendCheckinEmail({toName, toEmail, code, action, type}){
-  if(!toEmail){return;} // no email address on file — skip silently
+// The server looks up the recipient from the stored record and applies the sending
+// limits, so only the record type, code and action are sent from the browser.
+async function sendCheckinEmail({code, action, type}){
   try{
     const res = await fetch(NETLIFY_EMAIL_URL, {
       method: 'POST',
       headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({
-        to_name : toName || 'there',
-        to_email: toEmail,
-        code    : code,
-        action  : action,   // 'created' | 'updated'
-        type    : type      // 'plan' | 'forecast'
-      })
+      body: JSON.stringify({ code: code, action: action, type: type })   // action: 'created' | 'updated'
     });
-    if(!res.ok){console.warn('Netlify email send failed:', res.status, await res.text());return;}
-    console.info('Confirmation email sent to', toEmail);
+    if(!res.ok){console.warn('Confirmation email not sent:', res.status);}
   }catch(err){
-    console.warn('Netlify email send error:', err);
+    console.warn('Confirmation email error:', err && err.message);
   }
 }
 
 async function sendPlanEmail(plan, isNew){
-  const email = (plan.profile.email||'').trim();
+  if(!(plan.profile.email||'').trim())return; // no email address on file
   await sendCheckinEmail({
-    toName : plan.profile.ownerName || plan.profile.editorName,
-    toEmail: email,
     code   : planCode(plan.id),
     action : isNew ? 'created' : 'updated',
     type   : 'plan'
@@ -1682,7 +1669,9 @@ function fcStorageSave(fc){
   try{fc.savedAt=Date.now();localStorage.setItem(FC_STORAGE_PREFIX+fc.id,JSON.stringify(fc));return true}catch(e){return false}
 }
 function fcCode(id){
-  if(/^AO27-FC-[A-Z0-9]{4}$/i.test(id||''))return String(id).toUpperCase();
+  if(/^AO27-FC-[A-Z0-9]{4}(-[A-Z0-9]{4})?$/i.test(id||''))return String(id).toUpperCase();
+  // v2 ids (new forecasts): 8 random characters -> AO27-FC-XXXX-XXXX
+  if(/^v2/.test(id||'')){const c=String(id).slice(2).replace(/[^a-z0-9]/gi,'').toUpperCase().padEnd(8,'0');return 'AO27-FC-'+c.slice(0,4)+'-'+c.slice(4,8);}
   const ch=(id||'').replace(/[^a-z0-9]/gi,'').toUpperCase().padEnd(4,'0');
   return 'AO27-FC-'+ch.slice(0,4);
 }
@@ -1710,7 +1699,7 @@ function fcMatOptsHtml(val){
 
 function newForecast(){
   return{
-    id:uid(),createdAt:Date.now(),actualsLoggedAt:null,
+    id:'v2'+uid().slice(0,14),createdAt:Date.now(),actualsLoggedAt:null,
     profile:{org:'',website:'',role:'',project:'',eventYear:'AO27',contactName:'',contactEmail:''},
     targets:{reuseTarget:'',wasteTarget:'',circPractices:'',reuseStoredPct:'',disposedPct:''},
     materials:[newFcMat()],
@@ -1743,7 +1732,7 @@ function migrateForecast(fc){
   fc.notes=Object.assign({largeStructures:'',hazardousDetail:'',circularHero:'',feedback:''},fc.notes||{});
   if(!Array.isArray(fc.materials)||!fc.materials.length)fc.materials=[newFcMat()];
   fc.materials.forEach(m=>{
-    if(m.id==null)m.id=uid();
+    m.id=safeId(m.id);
     if(m.precinctLocation==null)m.precinctLocation='';
     if(m.yearBuilt==null)m.yearBuilt='';
     if(m.assetName==null)m.assetName='';
@@ -1769,20 +1758,21 @@ const forecastDB = {
     fcStorageSave(fc);
     if (!sb) return { ok: true, source: 'local' };
     try {
-      const { error } = await sb.from('forecasts').upsert({
-        id:              fc.id,
-        fc_code:         fcCode(fc.id),
-        data:            fc,
-        business:        fc.profile.org || '',
-        role:            fc.profile.role || '',
-        contact_email:   fc.profile.contactEmail || '',
-        actuals_logged:  !!fc.actualsLoggedAt,
-      }, { onConflict: 'id' });
+      let { data, error } = await sb.rpc('save_forecast', { p_fc: fc });
+      // A new forecast whose code is already taken gets a fresh id and one retry.
+      if (error && /forecast code in use/i.test(error.message) && typeof fc._v !== 'number') {
+        try { localStorage.removeItem(FC_STORAGE_PREFIX + fc.id); } catch (e) {}
+        fc.id = 'v2' + uid().slice(0, 14);
+        fcStorageSave(fc);
+        ({ data, error } = await sb.rpc('save_forecast', { p_fc: fc }));
+      }
       if (error) throw error;
+      await syncVersion(fc, 'forecast', data);
+      fcStorageSave(fc);
       return { ok: true, source: 'cloud' };
     } catch(err) {
       console.warn('Supabase forecast save failed, saved locally:', err.message);
-      return { ok: true, source: 'local', warning: err.message };
+      return saveFailure(err);
     }
   },
 
@@ -1790,13 +1780,11 @@ const forecastDB = {
     const normalised = code.trim().toUpperCase().replace(/\s/g,'');
     if (sb) {
       try {
-        const { data, error } = await sb
-          .from('forecasts')
-          .select('data')
-          .eq('fc_code', normalised)
-          .single();
-        if (data?.data) return migrateForecast(data.data);
+        const { data, error } = await sb.rpc('get_forecast_by_code', { p_code: normalised });
+        if (error) throw error;
+        if (data) return migrateForecast(data);
       } catch(err) {
+        if (lookupThrottled(err)) return null;
         console.warn('Supabase forecast lookup failed, trying local:', err.message);
       }
     }
@@ -1830,6 +1818,7 @@ function migratePlan(p){
       if(a.image2Path===undefined)a.image2Path='';
     }
   }
+  sanitizeIds(p);
   return p;
 }
 
@@ -1961,7 +1950,7 @@ function renderPlanTab(){
     <div class="atm-acc open" id="acc-atm">
       <div class="sechd sechd-first" style="cursor:pointer" onclick="toggleAcc('acc-atm')">AO target materials<span class="acc-chevron">&#8964;</span></div>
       <div class="atm-acc-body" id="acc-atm-body">
-        <div class="atm-sub">Many materials currently used in the AO temporary build <span style="font-style:italic;text-decoration:underline">can</span> be reused or recycled. It&rsquo;s how we treat, finish and handle them that turns resources into waste.<br><a href="https://megtei.github.io/Materials_Methods_Plan/" target="_blank" rel="noopener" style="color:#0091D2;font-weight:700;text-decoration:underline">View the AO target materials list to know which materials to use more or less &#8599;</a></div>
+        <div class="atm-sub">Many materials currently used in the AO temporary build <span style="font-style:italic;text-decoration:underline">can</span> be reused or recycled. It&rsquo;s how we treat, finish and handle them that turns resources into waste.<br><a href="${MATERIALS_METHODS_URL}" target="_blank" rel="noopener" style="color:#0091D2;font-weight:700;text-decoration:underline">View the AO target materials list to know which materials to use more or less &#8599;</a></div>
         <div class="atm-grid">
           <div>
             <div class="atm-colhd"><div class="atm-icon">C</div><div><h4>Materials currently in use</h4><span class="atm-colsub">The AO27 target material categories</span></div></div>
@@ -2307,7 +2296,7 @@ async function fcStartReport(){
   const inp=document.getElementById('fc-report-input');const msg=document.getElementById('fc-report-msg');
   if(!inp)return;
   const code=inp.value.trim().toUpperCase();
-  if(code.length<12){if(msg){msg.textContent='Enter a full TA-ID (format: AO27-FC-XXXX)';msg.style.color='#A32D2D';}return;}
+  if(!/^AO27-FC-[A-Z0-9]{4}(-[A-Z0-9]{4})?$/.test(code.replace(/\s/g,''))){if(msg){msg.textContent='Enter a full TA-ID (format: AO27-FC-XXXX-XXXX)';msg.style.color='#A32D2D';}return;}
   if(msg){msg.textContent=SUPABASE_READY?'Searching cloud...':'Searching local forecasts...';msg.style.color='#888';}
   const fc=await forecastDB.loadById(code);
   if(!fc){if(msg){msg.textContent='TA-ID not found. Check the ID and try again.';msg.style.color='#A32D2D';}return;}
@@ -2359,7 +2348,7 @@ function fcRpRowHtml(m,i){
   if(m.outcome==='Recycle on site with AO Take-back program')h+='<div class="fg" style="margin:10px 0 0"><label>Take-back program name</label><input type="text" data-mid="'+M+'" data-f="takeBackProgram" value="'+esc(m.takeBackProgram)+'" placeholder="Name of the take-back program" onblur="fcUpMat(this)"></div>';
   if(m.outcome&&!/mixed construction waste/i.test(m.outcome)){
     h+='<div class="rp-verify"><input type="file" accept="image/*" id="fc-ev-'+M+'" style="display:none" onchange="fcUploadEvidence(this,\''+M+'\')">';
-    if(m.evidence)h+='<img src="'+m.evidence+'" alt="">';
+    if(m.evidence&&safeUrl(m.evidence))h+='<img src="'+esc(safeUrl(m.evidence))+'" alt="">';
     h+='<button type="button" class="rp-link sky" onclick="document.getElementById(\'fc-ev-'+M+'\').click()"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3z"/><circle cx="12" cy="13" r="3"/></svg>Verify &ndash; add a photo (optional)</button>';
     if(m.evidence)h+='<button type="button" class="rp-link" style="color:#A32D2D" onclick="fcRemoveEvidence(\''+M+'\')">Remove</button>';
     h+='</div>';
@@ -2406,13 +2395,11 @@ async function fcSaveAndExit(){
     const res=await forecastDB.save(fc);
     S._fcSavedFor=fc.id;S._fcSavedIds=new Set(fc.materials.map(x=>x.id));
     S.fc.pending=false;
-    showToast(res.source==='cloud'?'Forecast submitted':'Forecast saved to this device');
+    if(res.source==='cloud')S._fcCloudSaved=fc.id;
+    showToast(res.source==='cloud'?'Forecast submitted':cloudSaveNote(res,'forecast'));
   }
-  if(fc){
-    const p=fc.profile;
+  if(fc&&S._fcCloudSaved===fc.id&&(fc.profile.contactEmail||'').trim()){
     sendCheckinEmail({
-      toName : p.contactName,
-      toEmail: p.contactEmail,
       code   : fcCode(fc.id),
       action : S.fc.isUpdate ? 'updated' : 'created',
       type   : 'forecast'
@@ -2508,7 +2495,7 @@ function renderFcForm(){
     ?'Return after bump-out to record actual outcomes and complete your circularity report.'
     :isUpdate
     ?'Make changes to your forecast if needed prior to bump-out.'
-    :'Use the 80/20 rule for your materials &#8212; typically a small number of key materials make up the majority of build and waste volumes.<br>Focus on what is <a href="https://megtei.github.io/Materials_Methods_Plan/" target="_blank" rel="noopener">High Volume and High Impact.</a>')+'</p>';
+    :'Use the 80/20 rule for your materials &#8212; typically a small number of key materials make up the majority of build and waste volumes.<br>Focus on what is <a href="'+MATERIALS_METHODS_URL+'" target="_blank" rel="noopener">High Volume and High Impact.</a>')+'</p>';
   h+='</div></div>';
   h+='<div class="sechd">Waste &amp; reuse forecast</div>';
   h+='<div id="fc-mats">';
@@ -2829,7 +2816,7 @@ async function fcRetrieve(){
   const btn=document.querySelector('#fc-retrieve-input').nextElementSibling;
   if(!inp)return;
   const code=inp.value.trim().toUpperCase();
-  if(code.length<12){if(msg){msg.textContent='Enter a full TA-ID (format: AO27-FC-XXXX)';msg.style.color='#A32D2D';}return;}
+  if(!/^AO27-FC-[A-Z0-9]{4}(-[A-Z0-9]{4})?$/.test(code.replace(/\s/g,''))){if(msg){msg.textContent='Enter a full TA-ID (format: AO27-FC-XXXX-XXXX)';msg.style.color='#A32D2D';}return;}
   if(msg){msg.textContent=SUPABASE_READY?'Searching cloud...':'Searching local forecasts...';msg.style.color='#888';}
   if(btn){btn.disabled=true;btn.textContent='Loading...';}
   try{
@@ -2897,7 +2884,7 @@ function fcRemoveEvidence(mid){
 function fcEvidenceBlock(m){
   const hasImg=!!m.evidence;
   const thumb=hasImg
-    ? '<img src="'+m.evidence+'" alt="Evidence photo" style="width:74px;height:74px;object-fit:cover;border-radius:8px;border:1px solid #dde2e8;display:block;flex-shrink:0">'
+    ? '<img src="'+esc(safeUrl(m.evidence))+'" alt="Evidence photo" style="width:74px;height:74px;object-fit:cover;border-radius:8px;border:1px solid #dde2e8;display:block;flex-shrink:0">'
     : '<div style="width:74px;height:74px;border-radius:8px;border:1.5px dashed #d0cdc7;background:#faf9f7;display:flex;align-items:center;justify-content:center;color:#c4c0b8;font-size:22px;flex-shrink:0">&#9634;</div>';
   const btnStyle='font-size:11.5px;font-weight:600;padding:6px 12px;border-radius:7px;cursor:pointer;border:1px solid #d0cdc7;background:#fff;color:#555;font-family:inherit;width:auto';
   let btns='<input type="file" accept="image/*" id="fc-ev-'+m.id+'" style="display:none" onchange="fcUploadEvidence(this,&#39;'+m.id+'&#39;)">';
@@ -3049,9 +3036,9 @@ function renderAdmin(){
   const pb=document.getElementById('page-body-wrap');
   if(pb)pb.style.padding='1.25rem 1rem 2rem';
 
-  // Password gate — the password is validated server-side (see buildAdminClient
-  // / dashboard_authed RLS policy). No password is stored in this file.
-  if(!sessionStorage.getItem(ADMIN_KEY_SS)){
+  // Password gate — the password is checked server-side by admin_check / admin_list_*
+  // (with lockout). No password is stored in this file.
+  if(!adminKey()){
     let h='<div class="admin-login">';
     h+='<h3>Admin Dashboard</h3>';
     h+='<p>Restricted access. Enter the dashboard password to view all submitted plans.</p>';
@@ -3209,17 +3196,13 @@ function renderAdminUpload(){
   refreshRollForward();
 }
 
-// Look up a plan by code using the ADMIN client. The dashboard's RLS policy requires
-// the x-dashboard-key header, so the plain anon client returns nothing here — which
-// made the target lookup silently find no plan.
+// Look up a plan by code for the admin Upload tab (password-checked admin_get_plan).
 async function adminLoadPlanByCode(code){
   const want=String(code||'').trim().toUpperCase();
-  const client=ensureAdminClient();
-  if(client){
-    const{data,error}=await client.from('plans').select('data').eq('plan_code',want).limit(1);
+  if(sb){
+    const{data,error}=await adminRpc('admin_get_plan',{p_code:want});
     if(error)throw new Error(error.message);
-    if(data&&data.length&&data[0].data)return data[0].data;
-    return null;
+    return data?sanitizeIds(data):null;
   }
   return storageLoadAll().find(p=>planCode(p.id)===want)||null;
 }
@@ -3293,21 +3276,16 @@ async function loadAdminPlans(){
   // result — and must NOT blend in this browser's localStorage, otherwise
   // stale/deleted plans (and the example plan) reappear and Supabase deletions
   // never show up in the dashboard.
-  // Reads go through the admin client, which carries the x-dashboard-key header
-  // required by the dashboard_authed() RLS policy. Without a valid password the
-  // database returns zero rows, so the gate is enforced server-side.
-  const client = ensureAdminClient();
-  if(client){
-    const{data,error}=await client.from('plans')
-      .select('data,updated_at')
-      .order('updated_at',{ascending:false})
-      .limit(300);
+  // Reads go through admin_list_plans, which checks the dashboard password server-side;
+  // without a valid password it returns zero rows.
+  if(sb){
+    const{data,error}=await adminRpc('admin_list_plans');
     if(error){
       // Surface the failure instead of silently falling back to local data.
       throw new Error('CLOUD_LOAD_FAILED: '+error.message);
     }
     // Return cloud rows verbatim (an empty array is a valid, authoritative answer).
-    return (data||[]).map(row=>row.data).filter(Boolean);
+    return (data||[]).map(row=>sanitizeIds(row.data)).filter(Boolean);
   }
   // Only when Supabase was never configured do we use local storage.
   return storageLoadAll();
@@ -3382,7 +3360,7 @@ function renderAdminDashboard(rawPlans){
     h+='<button style="'+tabStyle(selYear==="all")+'" onclick="sessionStorage.setItem(&quot;adminYear&quot;,&quot;all&quot;);loadAdminPlansInto()">All years ('+allPlans.length+')</button>';
     for(const yr of years){
       const cnt=allPlans.filter(p=>(p.profile&&p.profile.aoYear?p.profile.aoYear:'Unknown')===yr).length;
-      h+='<button style="'+tabStyle(selYear===yr)+'" onclick="sessionStorage.setItem(&quot;adminYear&quot;,&quot;'+yr+'&quot;);loadAdminPlansInto()">'+esc(yr)+' ('+cnt+')</button>';
+      h+='<button style="'+tabStyle(selYear===yr)+'" data-y="'+esc(yr)+'" onclick="sessionStorage.setItem(&quot;adminYear&quot;,this.dataset.y);loadAdminPlansInto()">'+esc(yr)+' ('+cnt+')</button>';
     }
     h+='</div></div>';
   }
@@ -3586,16 +3564,12 @@ function renderAdminDashboard(rawPlans){
 // admin-hero, admin-section, .metg/.met, .insight-card/.insight-row/.insight-bar,
 // .admin-table — so it reads as the same dashboard, just a different dataset) ──
 async function loadAdminForecasts(){
-  const client=ensureAdminClient();
-  if(client){
-    const{data,error}=await client.from('forecasts')
-      .select('data,updated_at')
-      .order('updated_at',{ascending:false})
-      .limit(300);
+  if(sb){
+    const{data,error}=await adminRpc('admin_list_forecasts');
     if(error){
       throw new Error('CLOUD_LOAD_FAILED: '+error.message);
     }
-    return (data||[]).map(row=>row.data).filter(Boolean);
+    return (data||[]).map(row=>sanitizeIds(row.data)).filter(Boolean);
   }
   return fcStorageLoadAll();
 }
@@ -3657,7 +3631,7 @@ function renderAdminFcDashboard(rawForecasts){
     h+='<button style="'+tabStyle(selYear==="all")+'" onclick="sessionStorage.setItem(&quot;adminFcYear&quot;,&quot;all&quot;);loadAdminForecastsInto()">All years ('+allFc.length+')</button>';
     for(const yr of years){
       const cnt=allFc.filter(f=>(f.profile&&f.profile.eventYear?f.profile.eventYear:'Unknown')===yr).length;
-      h+='<button style="'+tabStyle(selYear===yr)+'" onclick="sessionStorage.setItem(&quot;adminFcYear&quot;,&quot;'+yr+'&quot;);loadAdminForecastsInto()">'+esc(yr)+' ('+cnt+')</button>';
+      h+='<button style="'+tabStyle(selYear===yr)+'" data-y="'+esc(yr)+'" onclick="sessionStorage.setItem(&quot;adminFcYear&quot;,this.dataset.y);loadAdminForecastsInto()">'+esc(yr)+' ('+cnt+')</button>';
     }
     h+='</div></div>';
   }
@@ -3836,15 +3810,12 @@ function exportAdminFcCSV(){
 
 function adminSignOut(){
   sessionStorage.removeItem(ADMIN_KEY_SS);
-  sbAdmin=null;
+  sessionStorage.removeItem(ADMIN_SEEN_SS);
   renderAdmin();
 }
 
-// Validate the typed dashboard password by attempting a gated read against
-// Supabase. The dashboard_authed() RLS policy returns rows only when the
-// x-dashboard-key header matches the hashed password stored server-side, so a
-// successful query (no error) proves the password is correct. No password is
-// stored in this file.
+// Validate the typed dashboard password with admin_check (server-side hash check with
+// lockout after repeated failures). No password is stored in this file.
 async function checkAdminPin(){
   const val=document.getElementById('admin-pin');
   const msg=document.getElementById('admin-login-msg');
@@ -3863,19 +3834,16 @@ async function checkAdminPin(){
   if(btn){btn.disabled=true;btn.textContent='Checking...';}
   if(msg){msg.style.color='#888';msg.textContent='Checking password...';}
 
-  const probe=buildAdminClient(key);
   try{
-    // HEAD count request: returns a count when the gate passes, 0 rows / no
-    // error is also a pass (valid empty table). A wrong password trips the RLS
-    // policy and Supabase returns an error, which we treat as "denied".
-    const{error}=await probe.from('plans').select('id',{count:'exact',head:true});
+    const{data,error}=await sb.rpc('admin_check',{p_key:key});
     if(error) throw error;
-    // Password accepted — persist for the session and promote the admin client.
+    if(data!==true) throw new Error('denied');
     sessionStorage.setItem(ADMIN_KEY_SS, key);
-    sbAdmin=probe;
+    sessionStorage.setItem(ADMIN_SEEN_SS, String(Date.now()));
     renderAdmin();
   }catch(err){
-    if(msg){msg.style.color='#A32D2D';msg.textContent='Incorrect password.';}
+    const locked=/locked/i.test(String(err&&err.message));
+    if(msg){msg.style.color='#A32D2D';msg.textContent=locked?'Too many attempts — try again in 15 minutes.':'Incorrect password.';}
     if(val){val.style.borderColor='#dc2626';val.value='';val.focus();}
     if(btn){btn.disabled=false;btn.textContent='Access dashboard';}
   }
@@ -3928,7 +3896,7 @@ function renderFAQ(){
     },
     {
       q:'How do I start with Circular Design?',
-      a:'There are two parts to the recommended materials and methods. The first covers recommended materials and suppliers with preferred pricing. The second covers responsible practices that reduce waste and increase reuse - such as modular design and design for disassembly (DfD).\n\nReview the <a href="https://megtei.github.io/Materials_Methods_Plan/" target="_blank" style="color:#0091D2">AO Target Materials &amp; Responsible Methods</a> and start with the top 3 waste categories: Wood/Timber, Cladding &amp; Facades, and Flooring.',
+      a:'There are two parts to the recommended materials and methods. The first covers recommended materials and suppliers with preferred pricing. The second covers responsible practices that reduce waste and increase reuse - such as modular design and design for disassembly (DfD).\n\nReview the <a href="'+MATERIALS_METHODS_URL+'" target="_blank" style="color:#0091D2">AO Target Materials &amp; Responsible Methods</a> and start with the top 3 waste categories: Wood/Timber, Cladding &amp; Facades, and Flooring.',
       tip:null
     },
     {
@@ -3995,7 +3963,7 @@ function renderFAQ(){
   }
   h+='</div>';
   h+='<div style="padding:0 0 1.5rem"><div style="background:#E6F1FB;border-radius:12px;padding:13px 15px;font-size:12.5px;color:#0091D2;line-height:1.7;margin-bottom:1rem">';
-  h+='Have a question not covered here? Contact your TA project lead or visit the <a href="https://megtei.github.io/Materials_Methods_Plan/" target="_blank" style="font-weight:600;color:#0091D2">AO Target Materials &amp; Responsible Methods &#8599;</a>';
+  h+='Have a question not covered here? Contact your TA project lead or visit the <a href="'+MATERIALS_METHODS_URL+'" target="_blank" style="font-weight:600;color:#0091D2">AO Target Materials &amp; Responsible Methods &#8599;</a>';
   h+='</div></div>';
   document.getElementById('main').innerHTML=h;
 }
@@ -5160,8 +5128,8 @@ function imgSlotBlock(a,slot,label){
   const url=a[F.url],ref=a[F.ref];
   const hasImg=!!url;
   const thumb=hasImg
-    ? '<a href="'+esc(url)+'" target="_blank" rel="noopener" style="flex-shrink:0;display:block">'
-      +'<img src="'+esc(url)+'" alt="'+esc(ref||label)+'" '
+    ? '<a href="'+esc(safeUrl(url))+'" target="_blank" rel="noopener" style="flex-shrink:0;display:block">'
+      +'<img src="'+esc(safeUrl(url))+'" alt="'+esc(ref||label)+'" '
       +'style="width:74px;height:74px;object-fit:cover;border-radius:8px;border:1px solid #dde2e8;display:block"></a>'
     : '<div style="width:74px;height:74px;border-radius:8px;border:1.5px dashed #d0cdc7;background:#faf9f7;display:flex;align-items:center;justify-content:center;color:#c4c0b8;font-size:22px;flex-shrink:0">&#9634;</div>';
   const btnStyle='font-size:11.5px;font-weight:600;padding:6px 12px;border-radius:7px;cursor:pointer;border:1px solid #d0cdc7;background:#fff;color:#555;font-family:inherit;width:auto';
@@ -5294,7 +5262,7 @@ function matRowHtml(aid,m,idx){
     <div class="mt-ed${_open?' on':''}" id="mte-${m.id}">
 
     <div class="fg">
-      <label><span class="qn">6</span>Material details <span class="req">*</span><span class="name-sub-label">Select from AO Target Materials List (<a href="https://megtei.github.io/Materials_Methods_Plan/" target="_blank" style="color:#0091D2;font-weight:700">view full list &#8599;</a>) or tell us at 6a</span></label>
+      <label><span class="qn">6</span>Material details <span class="req">*</span><span class="name-sub-label">Select from AO Target Materials List (<a href="${MATERIALS_METHODS_URL}" target="_blank" style="color:#0091D2;font-weight:700">view full list &#8599;</a>) or tell us at 6a</span></label>
       <select data-aid="${aid}" data-mid="${m.id}" data-f="tmlRef" onchange="pickAssetMatTML(this)">
         <option value="">- Select material -</option>
         <option value="OTHER"${m.tmlRef==='OTHER'?' selected':''}>Not AO target material \u2013 go to 6a</option>
@@ -5340,7 +5308,7 @@ function stepSummary(plan){
   const tmlMats=allMats.filter(m=>m.tmlRef&&m.tmlRef!=='OTHER');
   const customMats=allMats.filter(m=>!m.tmlRef||m.tmlRef==='OTHER');
   const flaggedAssets=assets.filter(a=>a.materials.some(m=>{if(!m.tmlRef||m.tmlRef==='OTHER')return false;const t=TML.find(x=>x.ref===m.tmlRef);return t&&t.status==='no';}));
-  const flaggedBlock=flaggedAssets.length?'<div class="card"><div class="sechd" style="margin-top:0;color:#854F0B">Limit use if possible or seek alternatives ('+flaggedAssets.length+')</div><div style="background:#FAEEDA;border-radius:8px;padding:10px 12px;font-size:13px;color:#854F0B;margin-bottom:12px">Review these assets. Consider switching to AO recommended alternatives where possible. <a href="https://megtei.github.io/Materials_Methods_Plan/" target="_blank" style="color:#854F0B;font-weight:700;text-decoration:underline">View AO Target Materials List &#8599;</a></div>'+flaggedAssets.map(a=>{const flagMats=a.materials.filter(m=>{if(!m.tmlRef||m.tmlRef==='OTHER')return false;const t=TML.find(x=>x.ref===m.tmlRef);return t&&t.status==='no';});return'<div class="srow"><span class="bdg am">'+esc(a.assetName||'Asset')+'</span><span style="flex:1;margin:0 8px;color:#555;font-size:12px">'+flagMats.map(m=>esc(m.name||m.tmlRef)).join(', ')+'</span></div>';}).join('')+'</div>':'';
+  const flaggedBlock=flaggedAssets.length?'<div class="card"><div class="sechd" style="margin-top:0;color:#854F0B">Limit use if possible or seek alternatives ('+flaggedAssets.length+')</div><div style="background:#FAEEDA;border-radius:8px;padding:10px 12px;font-size:13px;color:#854F0B;margin-bottom:12px">Review these assets. Consider switching to AO recommended alternatives where possible. <a href="'+MATERIALS_METHODS_URL+'" target="_blank" style="color:#854F0B;font-weight:700;text-decoration:underline">View AO Target Materials List &#8599;</a></div>'+flaggedAssets.map(a=>{const flagMats=a.materials.filter(m=>{if(!m.tmlRef||m.tmlRef==='OTHER')return false;const t=TML.find(x=>x.ref===m.tmlRef);return t&&t.status==='no';});return'<div class="srow"><span class="bdg am">'+esc(a.assetName||'Asset')+'</span><span style="flex:1;margin:0 8px;color:#555;font-size:12px">'+flagMats.map(m=>esc(m.name||m.tmlRef)).join(', ')+'</span></div>';}).join('')+'</div>':'';
   const assetRows=groupAssetsByApp(assets,assets.map((a,idx2)=>{
     const precLabel=a.prec||'';
     const matList=a.materials.map(m=>{
@@ -5386,7 +5354,7 @@ function stepSummary(plan){
   h+='<div class="card">';
   h+='<div class="sechd" style="margin-top:0">Plan details</div>';
   h+='<div class="g2"><div><div style="font-size:12px;color:#888">Business</div><div style="font-size:14px;font-weight:600;margin-top:2px">'+(esc(p.businessName)||'-')+'</div></div><div><div style="font-size:12px;color:#888">Plan owner</div><div style="font-size:14px;margin-top:2px">'+(esc(p.ownerName)||'-')+'</div></div></div>';
-  h+='<div class="g2" style="margin-top:10px"><div><div style="font-size:12px;color:#888">Role</div><div style="font-size:14px;margin-top:2px">'+(esc(p.role)||'-')+'</div></div><div><div style="font-size:12px;color:#888">Date</div><div style="font-size:14px;margin-top:2px">'+fmtAUDate(p.date)+'</div></div></div>';
+  h+='<div class="g2" style="margin-top:10px"><div><div style="font-size:12px;color:#888">Role</div><div style="font-size:14px;margin-top:2px">'+(esc(p.role)||'-')+'</div></div><div><div style="font-size:12px;color:#888">Date</div><div style="font-size:14px;margin-top:2px">'+esc(fmtAUDate(p.date))+'</div></div></div>';
   const sumCode=planCode(S.plan.id);
   h+='<div class="plan-id-badge">'
     +'<div><div class="plan-id-lbl">Plan ID</div><div class="plan-id-code">'+sumCode+'</div></div>'
@@ -5718,7 +5686,7 @@ function importPlanXLS(input){
           // way a routine spreadsheet update can never silently disconnect a photo.
           const p1=String(photo1Path||'').trim()||(prior&&prior.imagePath)||'';
           const p2=String(photo2Path||'').trim()||(prior&&prior.image2Path)||'';
-          assetMap[key]={id:(prior&&prior.id)||String(linkKey||'').trim()||uid(),expanded:(prior&&prior.expanded)||false,_srcRow:r,serialNumber:clamp(serialNumber,1000),serialNumberNew:clamp(serialNew,1000),assetId:clamp(assetNumRaw,100),
+          assetMap[key]={id:(prior&&prior.id)||(SAFE_ID_RE.test(String(linkKey||'').trim())?String(linkKey).trim():'')||uid(),expanded:(prior&&prior.expanded)||false,_srcRow:r,serialNumber:clamp(serialNumber,1000),serialNumberNew:clamp(serialNew,1000),assetId:clamp(assetNumRaw,100),
             prec:clamp(prec,100),precCustom:(prior&&prior.precCustom)||'',assetName:clamp(assetName,200),desc:clamp(desc,500),
             noOfItems:clamp(noOfItems,30),yearBuilt:clamp(yearBuilt,20),
             builderSupplier:clamp(builder,200),comments:clamp(comments,500),
@@ -5889,7 +5857,7 @@ function importPlanXLS(input){
                   if(k>=0)S.plans[k]=JSON.parse(JSON.stringify(plan));
                   S._unsaved=!(saveRes&&saveRes.ok&&saveRes.source==='cloud');
                   render();
-                  showToast(summary+((saveRes&&saveRes.source==='cloud')?' \u2014 saved to cloud':' \u2014 saved locally'));
+                  showToast(summary+((saveRes&&saveRes.source==='cloud')?' \u2014 saved to cloud':' \u2014 '+cloudSaveNote(saveRes,'plan')));
                 });
               }else{
                 showToast(summary+' \u2014 see console');
@@ -6605,6 +6573,10 @@ function savePlan(){
     const i=S.plans.findIndex(p=>p.id===S.plan.id);
     if(i>=0)S.plans[i]=JSON.parse(JSON.stringify(S.plan));
     else S.plans.unshift(JSON.parse(JSON.stringify(S.plan)));
+    if(res.ok&&res.source!=='cloud'&&SUPABASE_READY){
+      showToast(cloudSaveNote(res,'plan'));
+      return;
+    }
     if(res.ok){
       S._planDraftFor=null; // submitted — no longer a create-mode draft
       S._unsaved=false; // clear dirty flag
@@ -6615,7 +6587,7 @@ function savePlan(){
       // "Save & exit": send the confirmation right here, at the moment the save
       // actually happens — not deferred to some later "leave" action, since a user
       // who saves and then just leaves the tab open would otherwise never trigger it.
-      sendPlanEmail(S.plan, isNew);
+      if(res.source==='cloud')sendPlanEmail(S.plan, isNew);
       const code=planCode(S.plan.id);
       if(S._reportMode){showReportThanksModal();return;}
       // Land on the home screen underneath the confirmation modal, so closing the
@@ -6651,7 +6623,8 @@ function saveProgress(){
       S._unsaved=false;
       const badge=document.getElementById('unsaved-badge');
       if(badge)badge.remove();
-      showToast(res.source==='cloud'?'Progress saved':'Progress saved locally'+(SUPABASE_READY?'':' (Supabase not configured)'));
+      if(res.source!=='cloud'&&SUPABASE_READY){S._unsaved=true;showToast(cloudSaveNote(res,'plan'));}
+      else showToast(res.source==='cloud'?'Progress saved':'Progress saved on this device (cloud storage not configured)');
     } else {
       showToast('Save failed - please try again');
     }
@@ -6826,7 +6799,7 @@ function rpRowHtml(a,m,j){
   // Verify photo lives on the asset (its bump-out photo), so it is offered once per asset, on its first material.
   if(j===0&&(a.materials||[]).some(x=>x.outcome&&!/mixed construction waste/i.test(x.outcome))){
     h+='<div class="rp-verify"><input type="file" accept="image/*" id="img-file2-'+A+'" style="display:none" onchange="uploadAssetImage(this,\''+A+'\',2)">';
-    if(a.image2Url)h+='<a href="'+esc(a.image2Url)+'" target="_blank" rel="noopener"><img src="'+esc(a.image2Url)+'" alt=""></a>';
+    if(a.image2Url)h+='<a href="'+esc(safeUrl(a.image2Url))+'" target="_blank" rel="noopener"><img src="'+esc(safeUrl(a.image2Url))+'" alt=""></a>';
     h+='<button type="button" class="rp-link sky" onclick="document.getElementById(\'img-file2-'+A+'\').click()"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3z"/><circle cx="12" cy="13" r="3"/></svg>Verify &ndash; add a photo (optional)</button>';
     h+='<span class="rp-imgstat" id="img-stat2-'+A+'"></span></div>';
   }

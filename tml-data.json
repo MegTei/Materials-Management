@@ -1,0 +1,546 @@
+[
+  {
+    "ref": "26",
+    "name": "GH Corsica Oak Engineered Timber Flooring 5G Insta Clic® floating.",
+    "cat": "Flooring - engineered wood",
+    "rec": "Yes",
+    "circ": "Eligible for take back rehome program 5G Insta Clic® board reuse possible.",
+    "status": "yes"
+  },
+  {
+    "ref": "59",
+    "name": "EnduraFloor by Laminex — Particleboard Flooring",
+    "cat": "Flooring - engineered wood",
+    "rec": "Unknown",
+    "circ": "Particleboard generally non-recyclable — primary pathway is landfill.",
+    "status": "maybe"
+  },
+  {
+    "ref": "C23",
+    "name": "Engineered wood flooring",
+    "cat": "Flooring - engineered wood",
+    "rec": "No",
+    "circ": "No - cannot be recycled (waste stream)",
+    "status": "no"
+  },
+  {
+    "ref": "27",
+    "name": "GH Curious Path Broadloom Carpet (roll)",
+    "cat": "Flooring - carpet",
+    "rec": "Unknown",
+    "circ": "No take-back, roll difficult to recycle",
+    "status": "maybe"
+  },
+  {
+    "ref": "28",
+    "name": "GH Thematic Thread Carpet Tiles & Planks 5G Insta Clic® floating.",
+    "cat": "Flooring - carpet",
+    "rec": "Yes",
+    "circ": "Tiles well suited to GH take-back rehome program Modular tile format supports DfD. EPD, Declare Red List Free, Australian Made",
+    "status": "yes"
+  },
+  {
+    "ref": "29",
+    "name": "GH Netcorp 100% Wool Broadloom Carpet 5G Insta Clic® floating. Unique natural credentials- biodegradable",
+    "cat": "Flooring - carpet",
+    "rec": "Unknown",
+    "circ": "Roll carpet difficult to recycle 100% Wool and Jute are biodegradable/ compostable. No active composting program confirmed.",
+    "status": "maybe"
+  },
+  {
+    "ref": "30",
+    "name": "GH Long Grain II Carpet Tiles",
+    "cat": "Flooring - carpet",
+    "rec": "Yes",
+    "circ": "Tiles well suited to GH take-back rehome program. Optimal for modular & DfD.",
+    "status": "yes"
+  },
+  {
+    "ref": "33",
+    "name": "Milliken AMPLIFIER — Beats/Echo/Treble/Octave",
+    "cat": "Flooring - carpet",
+    "rec": "Yes",
+    "circ": "N/XT Life™ 100% recyclable, zero landfill guarantee. You can choose to palletise installation off-cuts/used tiles and send back for recycling. Milliken will cover transport fees.",
+    "status": "yes"
+  },
+  {
+    "ref": "34",
+    "name": "Milliken DISTINCT FORMS — Cement/Construction",
+    "cat": "Flooring - carpet",
+    "rec": "Yes",
+    "circ": "N/XT Life™ 100% recyclable, zero landfill guarantee. You can choose to palletise installation off-cuts/used tiles and send back for recycling. Milliken will cover transport fees.",
+    "status": "yes"
+  },
+  {
+    "ref": "35",
+    "name": "Milliken MAJOR FREQUENCY ONE — Vibration/Distortion",
+    "cat": "Flooring - carpet",
+    "rec": "Yes",
+    "circ": "N/XT Life™ 100% recyclable, zero landfill guarantee. You can choose to palletise installation off-cuts/used tiles and send back for recycling. Milliken will cover transport fees.",
+    "status": "yes"
+  },
+  {
+    "ref": "36",
+    "name": "Milliken WHALE SONG AUNZ — Beluga/Humpback",
+    "cat": "Flooring - carpet",
+    "rec": "Yes",
+    "circ": "N/XT Life™ 100% recyclable, zero landfill guarantee. You can choose to palletise installation off-cuts/used tiles and send back for recycling. Milliken will cover transport fees.",
+    "status": "yes"
+  },
+  {
+    "ref": "37",
+    "name": "Milliken SALT LAKE — Fata Morgana/Strata/Crystals",
+    "cat": "Flooring - carpet",
+    "rec": "Yes",
+    "circ": "N/XT Life™ 100% recyclable, zero landfill guarantee. You can choose to palletise installation off-cuts/used tiles and send back for recycling. Milliken will cover transport fees.",
+    "status": "yes"
+  },
+  {
+    "ref": "38",
+    "name": "Milliken HEAVY META — Alloy/Foundry",
+    "cat": "Flooring - carpet",
+    "rec": "Yes",
+    "circ": "N/XT Life™ 100% recyclable, zero landfill guarantee. You can choose to palletise installation off-cuts/used tiles and send back for recycling. Milliken will cover transport fees.",
+    "status": "yes"
+  },
+  {
+    "ref": "41",
+    "name": "DESSO Desert EcoBase Air Purifying. Adhesive free install with Tarket tape",
+    "cat": "Flooring - carpet",
+    "rec": "Yes",
+    "circ": "Made with 58% recycled content AU ReStart® - Desso carpet tiles with Ecobase backing can be recycled at end of life at mill in the Netherlands if you choose to take-back. A complete closed-loop product range and the leader in the market (verified by EPD’s) and have lowest carbon footprint.",
+    "status": "yes"
+  },
+  {
+    "ref": "42",
+    "name": "DESSO Stratos EcoBase Air Purifying. Adhesive free install with Tarket tape",
+    "cat": "Flooring - carpet",
+    "rec": "Yes",
+    "circ": "Made with 70% recycled content AU ReStart® - Desso carpet tiles with Ecobase backing can be recycled at end of life at mill in the Netherlands if you choose to take-back. A complete closed-loop product range and the leader in the market (verified by EPD’s) and have lowest carbon footprint.",
+    "status": "yes"
+  },
+  {
+    "ref": "C17",
+    "name": "Carpet tiles - widely available (source suited to reuse or take back program)",
+    "cat": "Flooring - carpet",
+    "rec": "Yes",
+    "circ": "Yes - can be recycled",
+    "status": "yes"
+  },
+  {
+    "ref": "31",
+    "name": "Bolon Flooring — RIFF Heavy commerical (events/ hospitality)",
+    "cat": "Flooring - Vinyl",
+    "rec": "Unknown",
+    "circ": "Back2Bolon - recycling system. Tack tiles - (no glue) qualify for take-back - TA logistics need to separate and ship to Bolon",
+    "status": "maybe"
+  },
+  {
+    "ref": "32",
+    "name": "Bolon Flooring — ELEMENTS Heavy commerical (events/ hospitality)",
+    "cat": "Flooring - Vinyl",
+    "rec": "Unknown",
+    "circ": "Back2Bolon- recycling system. Tiles/Acoustic Tiles (IOBAC tack, non-permanent) TA logistics need to separate and ship to Bolon",
+    "status": "maybe"
+  },
+  {
+    "ref": "39",
+    "name": "Milliken TOPIARY — Rigid Core LVT",
+    "cat": "Flooring - Vinyl",
+    "rec": "Yes",
+    "circ": "Resiloop program for resilient flooring - accept off-cuts to be recycled",
+    "status": "yes"
+  },
+  {
+    "ref": "40",
+    "name": "Milliken RENASCI — Circular Mixed Polymer Flooring",
+    "cat": "Flooring - Vinyl",
+    "rec": "Yes",
+    "circ": "RENASCI is made FROM 80% carpet waste + 20% soft plastic waste — the N/XT Life™ circular loop. You can choose to palletise installation off-cuts/used tiles and send back for recycling. Milliken will cover transport fees.",
+    "status": "yes"
+  },
+  {
+    "ref": "43",
+    "name": "Tarkett iD Square Loose-Lay LVT (No Adhesive)",
+    "cat": "Flooring - Vinyl",
+    "rec": "Yes",
+    "circ": "20% post-industrial recycled content. Global ReStart® LVT. Recycling via European mill turned into part of the backing for new HE vinyl.",
+    "status": "yes"
+  },
+  {
+    "ref": "44",
+    "name": "Tarkett iD Tilt HIT LVT (Heavy Industrial) (No Adhesive)",
+    "cat": "Flooring - Vinyl",
+    "rec": "Yes",
+    "circ": "15% post-industrial recycled content. Recycling via European mill turned into part of the backing for new HE vinyl if you choose to take-back. iD Tilt Hit is one of the only modular products with an “Industrial” rating and should be able to be used for many events before needing recycling.",
+    "status": "yes"
+  },
+  {
+    "ref": "45",
+    "name": "Tarkett Granit Safe.T (Safety/Slip-Resistant - R11/P4)",
+    "cat": "Flooring - Vinyl",
+    "rec": "Yes",
+    "circ": "20% post-industrial recycled content. Global ReStart® LVT. Recycling via European mill turned into part of the backing for new HE vinyl.",
+    "status": "yes"
+  },
+  {
+    "ref": "C16",
+    "name": "Astro turf",
+    "cat": "Flooring - outdoor",
+    "rec": "Yes",
+    "circ": "Yes - can be recycled via Re4orm program",
+    "status": "yes"
+  },
+  {
+    "ref": "C24",
+    "name": "Slip resistant decking - Evolution forest Composite / PVC",
+    "cat": "Flooring - outdoor",
+    "rec": "No",
+    "circ": "No - cannot be recycled (waste stream)",
+    "status": "no"
+  },
+  {
+    "ref": "51",
+    "name": "Paperock SOLID Phenolic Paper Composite (Compact Laminate equivalent) *MDF Alternative",
+    "cat": "Engineered wood",
+    "rec": "Yes",
+    "circ": "Non recyclable; no take-back. Excellent durability = long service life reduces replacement frequency.",
+    "status": "yes"
+  },
+  {
+    "ref": "52",
+    "name": "Paperock PLY - FSC Birch Plywood with Phenolic Paper Composite Faces *MDF Alternative",
+    "cat": "Engineered wood",
+    "rec": "Unknown",
+    "circ": "Composite bonded panel difficult to recycle.",
+    "status": "maybe"
+  },
+  {
+    "ref": "53",
+    "name": "Paperock TACTILE HPL-Faced FSC Birch Plywood *MDF Alternative",
+    "cat": "Engineered wood",
+    "rec": "Unknown",
+    "circ": "Composite panel difficult to recycle. Durable surface extends service life.",
+    "status": "maybe"
+  },
+  {
+    "ref": "54",
+    "name": "Low Pressure Melamine Particleboard LPM STD",
+    "cat": "Engineered wood",
+    "rec": "Yes",
+    "circ": "TBC - if can be recycled. EOL: energy recovery or landfill. Biomass incineration is viable EOL.",
+    "status": "yes"
+  },
+  {
+    "ref": "56",
+    "name": "Laminex Compact Laminate Multipurpose (HPL-Type, Phenolic Core) *MDF Alternative",
+    "cat": "Engineered wood",
+    "rec": "Yes",
+    "circ": "Diffcicult to recycle EOL: landfill or energy recovery.",
+    "status": "yes"
+  },
+  {
+    "ref": "57",
+    "name": "Laminex Decorated Particleboard (Low Pressure Melamine)",
+    "cat": "Engineered wood",
+    "rec": "Yes",
+    "circ": "Particleboard subsrate should be recyclable Specify E0 grade.",
+    "status": "yes"
+  },
+  {
+    "ref": "58",
+    "name": "Laminex Raw Particleboard (Trade Essentials®)",
+    "cat": "Engineered wood",
+    "rec": "Yes",
+    "circ": "Particleboard subsrate should be recyclable",
+    "status": "yes"
+  },
+  {
+    "ref": "62",
+    "name": "SELEX® Plywood — Structural B/D & Non-Structural Pine Structural CD",
+    "cat": "Engineered wood",
+    "rec": "Yes",
+    "circ": "Yes - can be recycled",
+    "status": "yes"
+  },
+  {
+    "ref": "63",
+    "name": "EGGER OSB 3 E0 — Oriented Strand Board",
+    "cat": "Engineered wood",
+    "rec": "Yes",
+    "circ": "Yes - can be recycled",
+    "status": "yes"
+  },
+  {
+    "ref": "64",
+    "name": "EGGER Eurodekor® MFC Panels —Super E0",
+    "cat": "Engineered wood",
+    "rec": "Yes",
+    "circ": "76% recycled content (24% PCR). EGGER closed-loop chipboard. Recyclable at EOL.",
+    "status": "yes"
+  },
+  {
+    "ref": "65",
+    "name": "EGGER Eurodekor® Feelwood MFC Panels —Super E0 ( MR Particleboard)",
+    "cat": "Engineered wood",
+    "rec": "Yes",
+    "circ": "76% recycled content (24% PCR). EGGER closed-loop chipboard. Recyclable at EOL.",
+    "status": "yes"
+  },
+  {
+    "ref": "66",
+    "name": "EGGER Laminate — CPL (Continuous Pressure Laminate)",
+    "cat": "Engineered wood",
+    "rec": "Yes",
+    "circ": "Not recyclable",
+    "status": "yes"
+  },
+  {
+    "ref": "67",
+    "name": "EGGER PerfectSense® Lacquered ParticleBoard — Feelwood & Texture",
+    "cat": "Engineered wood",
+    "rec": "Yes",
+    "circ": "68% recycled EGGER closed-loop. Recyclable at EOL. Best circularity in EGGER range.",
+    "status": "yes"
+  },
+  {
+    "ref": "71",
+    "name": "Durra panel wall, ceiling & acoustic systems",
+    "cat": "Engineered wood",
+    "rec": "Yes",
+    "circ": "Yes - can be recycled",
+    "status": "yes"
+  },
+  {
+    "ref": "C1",
+    "name": "Particleboard/ chipboard (Type A-Bond) Phenol Formaldehyde - PF",
+    "cat": "Engineered wood",
+    "rec": "Yes",
+    "circ": "Yes - can be recycled",
+    "status": "yes"
+  },
+  {
+    "ref": "C2",
+    "name": "Structural ply (Type A-bond)",
+    "cat": "Engineered wood",
+    "rec": "Yes",
+    "circ": "Yes - can be recycled",
+    "status": "yes"
+  },
+  {
+    "ref": "C3",
+    "name": "AA Grade Marine Plywood BS1088",
+    "cat": "Engineered wood",
+    "rec": "Yes",
+    "circ": "While it is a sound material for reuse it has MUF/ UF and cannot be recycled (waste stream) Consider alternatives: F17 Radiata Pine ply/ formply",
+    "status": "yes"
+  },
+  {
+    "ref": "C5",
+    "name": "FormPly",
+    "cat": "Engineered wood",
+    "rec": "Yes",
+    "circ": "Yes - can be recycled",
+    "status": "yes"
+  },
+  {
+    "ref": "C6",
+    "name": "Melamine particleboard substrate (white)",
+    "cat": "Engineered wood",
+    "rec": "Yes",
+    "circ": "Some recycling supported Source melamine with Chipboard substrate PF",
+    "status": "yes"
+  },
+  {
+    "ref": "C7",
+    "name": "LVL E10 90x45 Premium engineered framing",
+    "cat": "Engineered wood",
+    "rec": "Yes",
+    "circ": "Yes - can be recycled",
+    "status": "yes"
+  },
+  {
+    "ref": "C18",
+    "name": "Non-structural ply CD Suitable for cladding",
+    "cat": "Engineered wood",
+    "rec": "No",
+    "circ": "No - has MUF/ UF cannot be recycled (waste stream)",
+    "status": "no"
+  },
+  {
+    "ref": "C19",
+    "name": "MDF (Décor/ MR) * Consider alternatives: Melamine/ Formica/ Compact Laminate",
+    "cat": "Engineered wood",
+    "rec": "No",
+    "circ": "No - has MUF/ UF cannot be recycled (waste stream) Consider alternatives: Melamine/ Formica/ Compact Laminate",
+    "status": "no"
+  },
+  {
+    "ref": "C20",
+    "name": "Raw MDF * Consider alternatives: particleboard/ chipboard",
+    "cat": "Engineered wood",
+    "rec": "No",
+    "circ": "No - has MUF/ UF cannot be recycled (waste stream)",
+    "status": "no"
+  },
+  {
+    "ref": "C4",
+    "name": "90x45 MGP 10 untreated pine (Choose blue)",
+    "cat": "Timber/ wood",
+    "rec": "Yes",
+    "circ": "Yes - can be recycled (Note: Green moisture treatment cannot be recycled)",
+    "status": "yes"
+  },
+  {
+    "ref": "C8",
+    "name": "MGP 10 untreated pine (kiln dried)",
+    "cat": "Timber/ wood",
+    "rec": "Yes",
+    "circ": "Yes - can be recycled",
+    "status": "yes"
+  },
+  {
+    "ref": "C9",
+    "name": "90x45 MGP 10 untreated pine Choose blue",
+    "cat": "Timber/ wood",
+    "rec": "Yes",
+    "circ": "Yes - can be recycled (Note: Green moisture treatment cannot be recycled)",
+    "status": "yes"
+  },
+  {
+    "ref": "C22",
+    "name": "90×45 F-grade MGP10 H2 treated pine (Green) Contains: LOSP /CCA",
+    "cat": "Timber/ wood",
+    "rec": "No",
+    "circ": "No - cannot be recycled (waste stream)",
+    "status": "no"
+  },
+  {
+    "ref": "55",
+    "name": "EKOply Board — 100% Recycled Post-Consumer Plastic",
+    "cat": "Engineered wood - recycled plastic alternative",
+    "rec": "Unknown",
+    "circ": "TBC - if can be recycled. Resolve fire performance gap and EPD programme compatibility",
+    "status": "maybe"
+  },
+  {
+    "ref": "68",
+    "name": "Weathertex cladding",
+    "cat": "Facade graphics & cladding",
+    "rec": "Yes",
+    "circ": "Yes - can be recycled",
+    "status": "yes"
+  },
+  {
+    "ref": "C12",
+    "name": "ACM/ ACP (aluminium composite panel) AS 1530.1-1994 rated",
+    "cat": "Facade graphics & cladding",
+    "rec": "Unknown",
+    "circ": "Yes - ACM can be recycled if separated. Note: Aluminium has high value - keep it out of landfill",
+    "status": "maybe"
+  },
+  {
+    "ref": "C21",
+    "name": "Foamex hoarding sheets XPS (Extruded Polystyrene)",
+    "cat": "Facade graphics & cladding",
+    "rec": "No",
+    "circ": "No - cannot be recycled (waste stream) - inferior to other materials, warps in heat",
+    "status": "no"
+  },
+  {
+    "ref": "C29",
+    "name": "ACM/ ACP (aluminium composite panel) not Aus standard",
+    "cat": "Facade graphics & cladding",
+    "rec": "No",
+    "circ": "Not recommended",
+    "status": "no"
+  },
+  {
+    "ref": "C10",
+    "name": "Bluescope steel",
+    "cat": "Structures & framing",
+    "rec": "Yes",
+    "circ": "Yes - can be recycled",
+    "status": "yes"
+  },
+  {
+    "ref": "C11",
+    "name": "Aluminium",
+    "cat": "Structures & framing",
+    "rec": "Yes",
+    "circ": "Yes - can be recycled",
+    "status": "yes"
+  },
+  {
+    "ref": "60",
+    "name": "Paintback Greyscale water-based Paint",
+    "cat": "Surfaces - paint",
+    "rec": "Yes",
+    "circ": "Highly circular paint product with 99%+ PCR content, active AU take-back, Green Star VOC compliance, and Australian manufacture.",
+    "status": "yes"
+  },
+  {
+    "ref": "61",
+    "name": "Paintback Tinted water-based rWBP",
+    "cat": "Surfaces - paint",
+    "rec": "Yes",
+    "circ": "Most relevant Paintback product for AO brand colour requirements. 99%+ PCR base, active AU take-back, Australian made. Custom colour matching enables project-specific palette.",
+    "status": "yes"
+  },
+  {
+    "ref": "C14",
+    "name": "Wattyl ID water based",
+    "cat": "Surfaces - paint",
+    "rec": "Yes",
+    "circ": "Yes - can be recycled. Choose waterbased for timber use so that it can be recycled",
+    "status": "yes"
+  },
+  {
+    "ref": "C26",
+    "name": "FX Australia range",
+    "cat": "Surfaces - paint",
+    "rec": "Yes",
+    "circ": "Yes - can be recycled. Choose waterbased for timber use so that it can be recycled",
+    "status": "yes"
+  },
+  {
+    "ref": "C27",
+    "name": "Dulux Enviro range",
+    "cat": "Surfaces - paint",
+    "rec": "Yes",
+    "circ": "Yes - can be recycled. Choose waterbased for timber use so that it can be recycled",
+    "status": "yes"
+  },
+  {
+    "ref": "C13",
+    "name": "Fabric façades and structures. Supports sublimation printing and secondary print materials",
+    "cat": "Branding/ Graphics/ skins on facades",
+    "rec": "Yes",
+    "circ": "Recovery pathways in development",
+    "status": "yes"
+  },
+  {
+    "ref": "C15",
+    "name": "PVC banners (sail track)",
+    "cat": "Branding/ Graphics/ skins on facades",
+    "rec": "Unknown",
+    "circ": "Yes - can be recycled via TA take-back program",
+    "status": "maybe"
+  },
+  {
+    "ref": "C25",
+    "name": "Vinyl - SAV",
+    "cat": "Branding/ Graphics/ skins on facades",
+    "rec": "No",
+    "circ": "No - cannot be recycled (waste stream)",
+    "status": "no"
+  },
+  {
+    "ref": "C28",
+    "name": "Visionary Digital Removable SAV",
+    "cat": "Branding/ Graphics/ skins on facades",
+    "rec": "Yes",
+    "circ": "Yes - can be recycled",
+    "status": "yes"
+  }
+]
