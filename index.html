@@ -386,6 +386,8 @@ select.stat-sel[data-tone=""]{padding-left:10px!important}
 .unit-combo .unit-sel{cursor:pointer}
 .unit-combo .unit-txt,.ux-assets .acard .unit-combo .unit-txt{position:absolute;left:1px;top:1px;bottom:1px;width:calc(100% - 30px);border:0;border-radius:7px 0 0 7px;background:#fff;box-shadow:none;padding-right:4px}
 .unit-combo:focus-within .unit-sel{border-color:#0091D2;box-shadow:0 0 0 3px rgba(0,145,210,.15)}
+/* The unit text box is borderless inside the select — show a required-field miss on the select's border */
+.unit-combo:has(.unit-txt[style*="border-color"]) .unit-sel{border-color:#dc2626}
 /* Feedback */
 #fb-tab{position:fixed;right:0;top:50%;transform:translateY(-50%);z-index:900;width:34px;height:112px;padding:0;border:none;border-radius:8px 0 0 8px;background:var(--ux-blue);color:#fff;font-size:12.5px;font-weight:700;writing-mode:vertical-rl;letter-spacing:.03em}
 #fb-tab:hover{background:#005F8C}
@@ -916,7 +918,13 @@ select.stat-sel[data-tone=""]{padding-left:10px!important}
 #main .mt-edit{background:none;border:none;color:var(--ux-sky);font-weight:700;font-size:12.5px;padding:0;height:auto;justify-self:end}
 #main .mt-ed{display:none;background:#fff;border-top:1px solid var(--ux-soft);padding:12px 12px 4px}
 #main .mt-ed.on{display:block}
-#main .mt-ed-ft{display:flex;justify-content:flex-start;padding:2px 0 8px}
+#main .mt-ed-ft{display:flex;justify-content:flex-end;padding:2px 0 8px}
+#main .mt-ed-ft .asset-del{margin-right:0;margin-left:auto}
+.ic-strip{display:flex;align-items:center;gap:8px;flex-wrap:wrap;background:#FCEBEB;border:1px solid #F0C4C4;border-radius:8px;padding:8px 10px;margin:8px 0}
+.ic-strip .ic-msg{flex:1;min-width:180px;font-size:13px;font-weight:600;color:#7A1F1F}
+.ic-strip button{height:32px;padding:0 14px;border-radius:7px;font-size:12.5px;font-weight:700;cursor:pointer;font-family:inherit;width:auto}
+.ic-strip .ic-no{border:1px solid #d9dde2;background:#fff;color:#555}
+.ic-strip .ic-yes{border:none;background:#A32E2E;color:#fff}
 #main .mt-add{display:block;width:100%;border:none;border-top:1.5px dashed var(--ux-line);background:#fff;padding:11px;color:#0072A8;font-weight:700;font-size:13px;text-align:center;height:auto;border-radius:0}
 #main .mt-add:hover{background:#F7FBFE}
 #main .ac-ft{display:flex;align-items:center;gap:10px;margin-top:14px;padding-top:12px;border-top:1px solid var(--ux-soft)}
@@ -1549,7 +1557,7 @@ function newAsset(o){
   return Object.assign({id:uid(),expanded:false,serialNumber:'',serialNumberNew:'',assetId:'',prec:'',precCustom:'',assetName:'',desc:'',noOfItems:'',yearBuilt:'',builderSupplier:'',imageRef:'',imageUrl:'',imagePath:'',image2Ref:'',image2Url:'',image2Path:'',comments:'',materials:[newAssetMat()]},o||{});
 }
 function newAssetMat(o){
-  return Object.assign({id:uid(),cat:'',app:'',tmlRef:'',name:'',vol:'',vunit:'sqm',stat:'',outcome:''},o||{});
+  return Object.assign({id:uid(),cat:'',app:'',tmlRef:'',name:'',vol:'',vunit:'sqm',stat:'',statTakeBack:'',outcome:''},o||{});
 }
 function newPlan(){
   return{id:uid(),savedAt:null,createdAt:Date.now(),step:0,imported:false,roleType:'',profile:{date:new Date().toISOString().split('T')[0],businessName:'',ownerName:'',email:'',role:'',editorName:'',aoYear:'AO27',wasteTarget:'10% reduction of total waste volume',reuseTarget:'10% increase in reuse',storageDetails:''},assets:[],audit:[]};
@@ -1709,7 +1717,7 @@ function newForecast(){
 function newFcMat(){
   return{
     id:uid(),precinctLocation:'',yearBuilt:'',assetName:'',detail:'',detailOther:'',vol:'',vunit:'',stat:'',
-    receivingOrg:'',takeBackProgram:'',outcome:'',evidence:''
+    receivingOrg:'',takeBackProgram:'',statTakeBack:'',outcome:'',evidence:''
   };
 }
 // Backfill any fields a forecast was saved without (older schema, a hand-edited
@@ -1745,6 +1753,7 @@ function migrateForecast(fc){
     }
     if(m.receivingOrg==null)m.receivingOrg='';
     if(m.takeBackProgram==null)m.takeBackProgram='';
+    if(m.statTakeBack==null)m.statTakeBack='';
     if(m.outcome==null)m.outcome='';
     if(m.evidence==null)m.evidence='';
   });
@@ -2350,7 +2359,7 @@ function fcRpRowHtml(m,i){
     h+='<div class="rp-verify"><input type="file" accept="image/*" id="fc-ev-'+M+'" style="display:none" onchange="fcUploadEvidence(this,\''+M+'\')">';
     if(m.evidence&&safeUrl(m.evidence))h+='<img src="'+esc(safeUrl(m.evidence))+'" alt="">';
     h+='<button type="button" class="rp-link sky" onclick="document.getElementById(\'fc-ev-'+M+'\').click()"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3z"/><circle cx="12" cy="13" r="3"/></svg>Verify &ndash; add a photo (optional)</button>';
-    if(m.evidence)h+='<button type="button" class="rp-link" style="color:#A32D2D" onclick="fcRemoveEvidence(\''+M+'\')">Remove</button>';
+    if(m.evidence)h+='<button type="button" class="rp-link" style="color:#A32D2D" onclick="fcRemoveEvidence(\''+M+'\',this)">Remove</button>';
     h+='</div>';
   }
   return h+'</div>';
@@ -2388,6 +2397,8 @@ function fcBackToLanding(){S._fcDirty=false;S._fcReportFor=null;S.fc={mode:'land
 async function fcSaveAndExit(){
   const fc=S.fc.saved;
   const wasReport=!!(fc&&S._fcReportFor===fc.id);
+  const wasPending=!!(fc&&S.fc.pending);
+  if(fc&&S.fc.submitted&&!wasReport){fcBackToLanding();return;}
   if(fc&&S.fc.pending){
     // Create mode: first (and only) database write for a new forecast.
     const btn=document.getElementById('fc-submit-btn');
@@ -2406,6 +2417,12 @@ async function fcSaveAndExit(){
     });
   }
   if(wasReport){showReportThanksModal();return;}
+  if(fc&&wasPending){
+    // Stay on the Summary page after Submit — it now shows as submitted, with a Done button.
+    S.fc.isUpdate=true;S.fc.submitted=true;S._fcDirty=false;
+    render();window.scrollTo({top:0,behavior:'smooth'});
+    return;
+  }
   fcBackToLanding();
 }
 
@@ -2566,7 +2583,9 @@ function fcToggleMatCollapse(mid){
   if(row)row.outerHTML=fcMatRowHtml(m,idx);
 }
 // Forecast material fields 1-5 (all labelled *).
-function fcMatMissing(m){return !String(m.precinctLocation||'').trim()||!String(m.yearBuilt||'').trim()||!String(m.assetName||'').trim()||!m.detail||!String(m.vol||'').trim()||!m.stat||(m.detail==='Other'&&!String(m.detailOther||'').trim());}
+const FC_TAKEBACK_STAT='Recycle on site with AO Take-back program';
+// Forecast material fields 1-5 (all labelled *), plus "Tell us which one" when the take-back status is chosen.
+function fcMatMissing(m){return !String(m.precinctLocation||'').trim()||!String(m.yearBuilt||'').trim()||!String(m.assetName||'').trim()||!m.detail||!String(m.vol||'').trim()||!String(m.vunit||'').trim()||!m.stat||(m.detail==='Other'&&!String(m.detailOther||'').trim())||(m.stat===FC_TAKEBACK_STAT&&!String(m.statTakeBack||'').trim());}
 // Red border on an empty required forecast field, once a Save has failed on this forecast.
 function fcMiss(v){return (S._fcShowErr&&S.fc&&S.fc.draft&&S._fcShowErr===S.fc.draft.id&&!String(v||'').trim())?' style="border-color:#dc2626"':'';}
 function fcMatRowHtml(m,idx){
@@ -2592,16 +2611,17 @@ function fcMatRowHtml(m,idx){
     ?('<div class="fg"><label><span class="qn">1</span>Precinct location <span class="req">*</span></label><input type="text" data-mid="'+m.id+'" data-f="precinctLocation"'+fcMiss(m.precinctLocation)+' value="'+esc(m.precinctLocation)+'" placeholder="e.g. New Balance/ GSO" onblur="fcUpMat(this)"></div>'
       +'<div style="display:flex;gap:8px;align-items:flex-end">'
       +'<div class="fg" style="flex:1;margin-bottom:0"><label><span class="qn">2</span>Description of asset/ materials <span class="req">*</span></label><input type="text" data-mid="'+m.id+'" data-f="assetName"'+fcMiss(m.assetName)+' value="'+esc(m.assetName)+'" placeholder="Activation facades/ photo wall" onblur="fcUpMat(this)"></div>'
-      +'<div class="fg" style="width:180px;margin-bottom:0"><label>Which event year did you build this asset <span class="req">*</span></label><input type="text" data-mid="'+m.id+'" data-f="yearBuilt"'+fcMiss(m.yearBuilt)+' value="'+esc(m.yearBuilt)+'" placeholder="e.g. 2023" onblur="fcUpMat(this)"></div>'
+      +'<div class="fg" style="width:300px;max-width:45%;margin-bottom:0"><label>Which event year did you build this asset <span class="req">*</span></label><input type="text" data-mid="'+m.id+'" data-f="yearBuilt"'+fcMiss(m.yearBuilt)+' value="'+esc(m.yearBuilt)+'" placeholder="e.g. 2023" onblur="fcUpMat(this)"></div>'
       +'</div>'
       +'<div class="fg"><label><span class="qn">3</span>Material details <span class="req">*</span></label><select data-mid="'+m.id+'" data-f="detail"'+fcMiss(m.detail)+' onchange="fcUpMat(this)">'+fcMatOptsHtml(m.detail)+'</select></div>'
       +(showOther?'<div class="fg"><label>If other, list below <span class="req">*</span></label><input type="text" data-mid="'+m.id+'" data-f="detailOther"'+fcMiss(m.detailOther)+' value="'+esc(m.detailOther)+'" placeholder="Describe the material" onblur="fcUpMat(this)"></div>':'')
       +'<div style="display:flex;gap:8px;align-items:flex-end">'
       +'<div class="fg" style="flex:1;margin-bottom:0"><label><span class="qn">4</span>Expected volume <span class="req">*</span></label><input type="text" data-mid="'+m.id+'" data-f="vol"'+fcMiss(m.vol)+' value="'+esc(m.vol)+'" placeholder="10/ 20/ 100" onblur="fcUpMat(this)"></div>'
-      +'<div class="fg unit-fg" style="width:200px;margin-bottom:0"><label>Unit</label><div class="unit-combo"><select class="unit-sel" tabindex="-1" aria-label="Choose unit" data-mid="'+m.id+'" onchange="fcPickUnit(this)"><option value=""'+(fcUnit?'':' selected')+'></option>'+VOLS.map(v=>'<option'+(!fcUnitOther&&v===fcUnit?' selected':'')+'>'+esc(v)+'</option>').join('')+'<option value="Other"'+(fcUnitOther?' selected':'')+'>Other</option></select><input type="text" class="unit-txt" id="fc-unit-txt-'+m.id+'" data-mid="'+m.id+'" data-f="vunit" value="'+esc(fcUnit)+'" autocomplete="off" onblur="fcTypeUnit(this)"></div></div>'
+      +'<div class="fg unit-fg" style="width:200px;margin-bottom:0"><label>Unit <span class="req">*</span></label><div class="unit-combo"><select class="unit-sel" tabindex="-1" aria-label="Choose unit" data-mid="'+m.id+'" onchange="fcPickUnit(this)"><option value=""'+(fcUnit?'':' selected')+'></option>'+VOLS.map(v=>'<option'+(!fcUnitOther&&v===fcUnit?' selected':'')+'>'+esc(v)+'</option>').join('')+'<option value="Other"'+(fcUnitOther?' selected':'')+'>Other</option></select><input type="text" class="unit-txt" id="fc-unit-txt-'+m.id+'" data-mid="'+m.id+'" data-f="vunit"'+fcMiss(fcUnit)+' value="'+esc(fcUnit)+'" autocomplete="off" onblur="fcTypeUnit(this)"></div></div>'
       +'</div>'
       +'<div class="fg" style="margin-top:8px"><label><span class="qn">5</span>Expected status <span class="req">*</span></label><select class="stat-sel" data-tone="'+statTone(m.stat)+'" data-mid="'+m.id+'" data-f="stat"'+fcMiss(m.stat)+' onchange="fcUpMat(this)">'+mkOpts(STATS,m.stat,'Select status...')+'</select></div>'
-      +((isUpdate||fcMatIsSaved(m))?'<div class="fc-del-row">'+(fcMatIsSaved(m)?'<button type="button" class="asset-del" onclick="fcConfirmDelMaterial(&#39;'+m.id+'&#39;)">Delete material</button>':'')+(isUpdate?'<button type="button" onclick="fcToggleMatCollapse(&#39;'+m.id+'&#39;)" style="margin-left:auto;background:none;border:none;color:#0091D2;font-size:12px;font-weight:700;cursor:pointer;text-decoration:underline">Collapse forecast details</button>':'')+'</div>':''))
+      +(m.stat===FC_TAKEBACK_STAT?'<div class="fg"><label>Tell us which one <span class="req">*</span></label><input type="text" data-mid="'+m.id+'" data-f="statTakeBack"'+fcMiss(m.statTakeBack)+' value="'+esc(m.statTakeBack)+'" placeholder="Name of the take-back program" onblur="fcUpMat(this)"></div>':'')
+      +((isUpdate||fcMatIsSaved(m))?'<div class="fc-del-row">'+(fcMatIsSaved(m)?'<button type="button" class="asset-del" onclick="fcConfirmDelMaterial(&#39;'+m.id+'&#39;,this)">Delete material</button>':'')+(isUpdate?'<button type="button" onclick="fcToggleMatCollapse(&#39;'+m.id+'&#39;)" style="margin-left:auto;background:none;border:none;color:#0091D2;font-size:12px;font-weight:700;cursor:pointer;text-decoration:underline">Collapse forecast details</button>':'')+'</div>':''))
     :('<div class="fg" style="margin-bottom:10px"><div style="display:flex;align-items:center;gap:8px;background:#F7F6F2;border-radius:8px;padding:9px 12px;font-size:12px;color:#555"><span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">1&ndash;5. '+summaryLine+'</span>'+(m.stat?fcStatTag(m.stat):'')+'<button type="button" onclick="fcToggleMatCollapse(&#39;'+m.id+'&#39;)" style="background:none;border:none;color:#0091D2;font-weight:700;cursor:pointer;font-size:12px;flex-shrink:0">Edit</button></div></div>');
   return'<div class="mat-row" id="fcmr-'+m.id+'">'
     +'<div class="mat-row-hd">'
@@ -2692,12 +2712,11 @@ function fcMatIsSaved(m){
   if(S._fcSavedFor!==fc.id){S._fcSavedFor=fc.id;S._fcSavedIds=new Set(S.fc.isUpdate?fc.materials.map(x=>x.id):[]);}
   return !!(S._fcSavedIds&&S._fcSavedIds.has(m.id));
 }
-function fcConfirmDelMaterial(mid){
+function fcConfirmDelMaterial(mid,btn){
   const fc=S.fc&&S.fc.draft;if(!fc)return;
   const i=fc.materials.findIndex(x=>x.id===mid);if(i<0)return;
   if(fc.materials.length<=1){showToast('A forecast needs at least one material.');return;}
-  if(!confirm('Delete Material '+(i+1)+' from this forecast?'))return;
-  fcDelMaterial(mid);
+  inlineConfirm(btn,'Delete Material '+(i+1)+' from this forecast?','Delete material',()=>fcDelMaterial(mid));
 }
 function fcDelMaterial(mid){
   if(S.fc.draft.materials.length<=1){showToast('A forecast needs at least one material.');return;}
@@ -2728,7 +2747,7 @@ async function fcSaveForecast(){
     const first=document.querySelector('.ux-fc [style*="border-color:#dc2626"],.ux-fc [style*="border-color: rgb(220, 38, 38)"]');
     if(first&&first.scrollIntoView)first.scrollIntoView({behavior:'smooth',block:'center'});
   }
-  if(missingMats.length){showToast('Please complete precinct location, event year built, description of asset/ materials, material details, expected volume and expected status for every material.');return;}
+  if(missingMats.length){showToast('Please complete precinct location, event year built, description of asset/ materials, material details, expected volume, unit and expected status for every material'+(missingMats.some(m=>m.stat===FC_TAKEBACK_STAT&&!String(m.statTakeBack||'').trim())?', and tell us which take-back program.':'.'));return;}
   if(!fc.notes.largeStructures){showToast('Please answer whether you will have large structures or hazardous materials in onsite bins.');return;}
   if(hzNeedDetail&&!String(fc.notes.hazardousDetail||'').trim()){showToast('Please provide details on the large structures or hazardous materials.');return;}
   if(!fc.notes.circularHero){showToast('Please let us know if you\'d like to profile your circular hero story.');return;}
@@ -2795,12 +2814,13 @@ function renderFcSummary(){
   const circBody=sc.total>0?'<div style="display:flex;justify-content:space-between;font-size:12px;color:#888;margin-bottom:4px;margin-top:10px"><span>Circularity rate</span><span style="font-weight:600;color:'+cl+'">'+pctText(sc.pctExact)+'</span></div><div class="strack"><div class="sfill" style="width:'+sc.pct+'%;background:'+cl+'"></div></div><div style="font-size:11px;color:#aaa;margin-top:3px">AO target: 10% improvement per year</div>':'';
   const loggedActuals=!!fc.actualsLoggedAt;
   const pending=!!S.fc.pending;
+  const submitted=!!S.fc.submitted&&!loggedActuals;
   let h='';
   h+='<div class="ux-summary" style="padding:1.25rem 1rem 2rem">';
   h+='<div class="abq-card"><div class="abq-bar"><div class="abq-fill" style="width:100%"></div></div><div class="abq-body" style="padding-bottom:22px">';
   h+='<div class="abq-meta"><b>AO27</b></div>';
-  h+='<h2 class="abq-h" style="margin-bottom:6px">'+(loggedActuals?'Event report':pending?'Review &amp; submit your forecast':'Forecast saved')+'</h2>';
-  h+='<p class="abq-sub" style="margin-bottom:0">'+(loggedActuals?'Your actuals are logged &#8212; print or export a copy of your event report below.':pending?'Your forecast is not saved yet &#8212; check the details below, then click Submit. Keep your TA-ID &#8212; you&rsquo;ll need it to log what actually happened after the event.':'Save your TA-ID below &#8212; you&rsquo;ll need it to log what actually happened after the event.')+'</p>';
+  h+='<h2 class="abq-h" style="margin-bottom:6px">'+(loggedActuals?'Event report':pending?'Review &amp; submit your forecast':submitted?'Forecast submitted &#10003;':'Forecast saved')+'</h2>';
+  h+='<p class="abq-sub" style="margin-bottom:0">'+(submitted?'Thank you &#8212; your forecast has been submitted. Keep your TA-ID &#8212; you&rsquo;ll need it to report what actually happened after the event.':loggedActuals?'Your actuals are logged &#8212; print or export a copy of your event report below.':pending?'Your forecast is not saved yet &#8212; check the details below, then click Submit. Keep your TA-ID &#8212; you&rsquo;ll need it to log what actually happened after the event.':'Save your TA-ID below &#8212; you&rsquo;ll need it to log what actually happened after the event.')+'</p>';
   h+='</div></div>';
 
   if(!loggedActuals)h+='<div class="hbox"><strong>What happens following submission of your forecast?</strong><br><br>&bull; Simple post-event reporting &#8212; return here with your TA-ID to report your actuals using Q6</div>';
@@ -2821,10 +2841,10 @@ function renderFcSummary(){
   const stRows=Object.entries(stCts).sort((a,b)=>b[1]-a[1]).map(([s,n])=>'<div class="srow"><div class="sdot" style="background:'+(STCOL[s]||'#9ca3af')+'"></div><div style="flex:1;color:#1a1a1a">'+esc(s)+'</div><div style="font-weight:600;min-width:20px;text-align:right">'+n+'</div></div>').join('');
   const actualCts={};for(const m of fc.materials)if(m.outcome)actualCts[m.outcome]=(actualCts[m.outcome]||0)+1;
   const actualRows=Object.entries(actualCts).sort((a,b)=>b[1]-a[1]).map(([s,n])=>'<div class="srow"><div class="sdot" style="background:'+(STCOL[s]||'#9ca3af')+'"></div><div style="flex:1;color:#1a1a1a">'+esc(s)+'</div><div style="font-weight:600;min-width:20px;text-align:right">'+n+'</div></div>').join('');
-  const fcRptLink=(S.fc.isUpdate&&S._fcReportFor!==fc.id)?'<div class="rpt-link"><a href="#" onclick="fcGoReportHub();return false">Ready to submit an end of event report?</a></div>':'';
+  const fcRptLink=(S.fc.isUpdate&&!S.fc.submitted&&S._fcReportFor!==fc.id)?'<div class="rpt-link"><a href="#" onclick="fcGoReportHub();return false">Ready to submit an end of event report?</a></div>':'';
   if(stRows)h+='<div class="card"><div style="display:grid;grid-template-columns:1fr 1fr;gap:16px"><div><div class="sechd" style="margin-top:0">Materials by expected status</div>'+stRows+'</div><div><div class="sechd" style="margin-top:0;color:#0091D2">Materials ACTUALS POST EVENT</div>'+(actualRows||'<div style="font-size:13px;color:#aaa;margin-top:6px">Return with your TA-ID after the event to log actuals.</div>')+fcRptLink+'</div></div></div>';
 
-  h+='<div class="acts"><button type="button" class="abq-link" onclick="fcBackFromSummary()">&larr; Back</button><button type="button" class="sum-sec" onclick="window.print()"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9V2h12v7"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>Print / PDF</button><button type="button" class="sum-sec" onclick="fcExportXLS()"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m7 10 5 5 5-5"/><path d="M12 15V3"/></svg>Export XLS</button><button id="fc-submit-btn" onclick="fcSaveAndExit()" style="background:#0091D2;color:#fff;border-color:#0091D2;font-weight:700">'+(S._fcReportFor===fc.id?'Submit end of event report':pending?'Submit':'Save &amp; exit')+'</button></div>'+(stRows?'':fcRptLink);
+  h+='<div class="acts"><button type="button" class="abq-link" onclick="fcBackFromSummary()">&larr; Back</button><button type="button" class="sum-sec" onclick="window.print()"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9V2h12v7"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>Print / PDF</button><button type="button" class="sum-sec" onclick="fcExportXLS()"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m7 10 5 5 5-5"/><path d="M12 15V3"/></svg>Export XLS</button><button id="fc-submit-btn" onclick="fcSaveAndExit()" style="background:#0091D2;color:#fff;border-color:#0091D2;font-weight:700">'+(S._fcReportFor===fc.id?'Submit end of event report':pending?'Submit':submitted?'Done':'Save &amp; exit')+'</button></div>'+(stRows?'':fcRptLink);
   h+='</div>';
   document.getElementById('main').innerHTML=h;
 }
@@ -2888,8 +2908,8 @@ function fcUploadEvidence(input,mid){
   img.onerror=function(){URL.revokeObjectURL(url);showToast('Could not read that image.');};
   img.src=url;
 }
-function fcRemoveEvidence(mid){
-  if(!confirm('Remove this photo?'))return;
+function fcRemoveEvidence(mid,btn){
+  if(btn){inlineConfirm(btn,'Remove this photo?','Remove photo',()=>fcRemoveEvidence(mid));return;}
   const fc=S.fc.draft;const m=fc.materials.find(x=>x.id===mid);if(!m)return;
   m.evidence='';
   const idx=fc.materials.findIndex(x=>x.id===mid);
@@ -2908,7 +2928,7 @@ function fcEvidenceBlock(m){
   const btnStyle='font-size:11.5px;font-weight:600;padding:6px 12px;border-radius:7px;cursor:pointer;border:1px solid #d0cdc7;background:#fff;color:#555;font-family:inherit;width:auto';
   let btns='<input type="file" accept="image/*" id="fc-ev-'+m.id+'" style="display:none" onchange="fcUploadEvidence(this,&#39;'+m.id+'&#39;)">';
   btns+='<button type="button" style="'+btnStyle+'" onclick="document.getElementById(&#39;fc-ev-'+m.id+'&#39;).click()">'+(hasImg?'Replace':'&#8593; Upload image')+'</button>';
-  if(hasImg)btns+='<button type="button" style="'+btnStyle+';color:#A32D2D;border-color:#f0cfcf" onclick="fcRemoveEvidence(&#39;'+m.id+'&#39;)">Remove</button>';
+  if(hasImg)btns+='<button type="button" style="'+btnStyle+';color:#A32D2D;border-color:#f0cfcf" onclick="fcRemoveEvidence(&#39;'+m.id+'&#39;,this)">Remove</button>';
   return '<div class="fg" style="margin-top:8px;margin-bottom:0">'
     +'<label style="font-size:14px;font-weight:800;color:#003A5D;display:flex;align-items:center;gap:8px"><svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="#1E5A73" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink:0"><circle cx="12" cy="12" r="11"/><g transform="translate(12 12) scale(1.35) translate(-12 -11)" stroke-width="1.05"><path d="M12 5.2c-.9.7-2 1-3.2 1-.5 0-.8.4-.8.9v3.6c0 3 1.7 5.3 4 6.3 2.3-1 4-3.3 4-6.3V7.1c0-.5-.3-.9-.8-.9-1.2 0-2.3-.3-3.2-1z"/><path d="m10 11.4 1.5 1.5 2.8-2.8"/></g></svg>Verify</label>'
     +'<div style="font-size:12px;color:#888;margin-bottom:6px">To substantiate your report, provide evidence of any recycled/ reused materials with an image upload</div>'
@@ -3018,7 +3038,7 @@ async function _doFcExportXLS(){
     s1=setCell(s1,'D'+row,detail);
     s1=setCell(s1,'E'+row,m.vol||'');
     s1=setCell(s1,'F'+row,m.vunit||'');
-    s1=setCell(s1,'G'+row,m.stat||'');
+    s1=setCell(s1,'G'+row,(m.stat||'')+(m.stat===FC_TAKEBACK_STAT&&m.statTakeBack?' — '+m.statTakeBack:''));
     s1=setCell(s1,'H'+row,m.outcome||'');
     s1=setCell(s1,'I'+row,m.evidence?'Yes — view in app':'');
   });
@@ -3806,14 +3826,14 @@ function renderAdminFcDashboard(rawForecasts){
 function exportAdminFcCSV(){
   loadAdminForecasts().then(forecasts=>{
     if(!forecasts.length){showToast('No forecasts to export');return;}
-    const rows=[['Organisation','Website','Project','Role','Contact name','Contact email','Event year','TA-ID','Asset name','Material','Expected volume','Unit','Expected status','Actual material status (Bump-out)','Receiving org (Donate)','Take-back program name']];
+    const rows=[['Organisation','Website','Project','Role','Contact name','Contact email','Event year','TA-ID','Asset name','Material','Expected volume','Unit','Expected status','Expected take-back program','Actual material status (Bump-out)','Receiving org (Donate)','Take-back program name']];
     for(const f of forecasts){
       const code=fcCode(f.id);
       for(const m of (f.materials||[])){
         rows.push([
           f.profile.org||'',f.profile.website||'',f.profile.project||'',f.profile.role||'',f.profile.contactName||'',f.profile.contactEmail||'',
           f.profile.eventYear||'',code,
-          m.assetName||'',m.detail==='Other'?(m.detailOther||'Other'):(m.detail||''),m.vol||'',m.vunit||'',m.stat||'',fcMatOutcome(m),
+          m.assetName||'',m.detail==='Other'?(m.detailOther||'Other'):(m.detail||''),m.vol||'',m.vunit||'',m.stat||'',m.statTakeBack||'',fcMatOutcome(m),
           m.receivingOrg||'',m.takeBackProgram||(m.actual&&(m.actual.takeBackProgram||m.actual.takeBackNote))||''
         ]);
       }
@@ -3872,7 +3892,7 @@ function exportAdminCSV(){
   loadAdminPlans().then(rawPlans=>{
     const plans=(rawPlans||[]).filter(p=>!isExamplePlan(p));
     if(!plans.length){showToast('No plans to export');return;}
-  const rows=[['Business','Owner','Role','Email','Date Saved','Asset','Precinct','Material','TML Ref','Volume','Unit','Status','Outcome']];
+  const rows=[['Business','Owner','Role','Email','Date Saved','Asset','Precinct','Material','TML Ref','Volume','Unit','Status','Take-back program','Outcome']];
   for(const p of plans){
     for(const a of (p.assets||[])){
       for(const m of (a.materials||[])){
@@ -3881,7 +3901,7 @@ function exportAdminCSV(){
           p.savedAt?new Date(p.savedAt).toLocaleDateString('en-AU'):'',
           a.assetName||'',
           a.prec||'',
-          m.name||'',m.tmlRef||'',m.vol||'',m.vunit||'',m.stat||'',m.outcome||''
+          m.name||'',m.tmlRef||'',m.vol||'',m.vunit||'',m.stat||'',m.statTakeBack||'',m.outcome||''
         ]);
       }
     }
@@ -4191,7 +4211,7 @@ function abqLenient(){return planLenient();}
 // Business name is a hidden field (no *) on TA-type plans — the department stands in for it.
 function planNeedsBiz(){return !(S.plan&&S.plan.roleType==='TA');}
 // Unit carries a * on every plan except TA-type plans.
-function planNeedsUnit(){return !(S.plan&&S.plan.roleType==='TA');}
+function planNeedsUnit(){return true;}
 // Red border on an empty required plan field, once a Next has failed on this plan.
 function planMiss(v){return (S._planShowErr&&S.plan&&S._planShowErr===S.plan.id&&!String(v||'').trim())?' style="border-color:#dc2626"':'';}
 // Per-question check mirrors saveAbout()'s required list and email rule, scoped to the
@@ -5116,10 +5136,10 @@ async function uploadAssetImage(input,aid,slot){
   }
 }
 
-async function removeAssetImage(aid,slot){
+async function removeAssetImage(aid,slot,btn){
   const F=imgSlotFields(slot||1);
   const a=S.plan.assets.find(x=>x.id===aid);if(!a)return;
-  if(!confirm('Remove this image? This deletes it from storage and cannot be undone.'))return;
+  if(btn){inlineConfirm(btn,'Remove this image? This deletes it from storage and cannot be undone.','Remove image',()=>removeAssetImage(aid,slot));return;}
   const path=a[F.path];
   a[F.url]='';a[F.path]='';a[F.ref]='';
   S._unsaved=true;
@@ -5161,7 +5181,7 @@ function imgSlotBlock(a,slot,label){
   const btnStyle='font-size:11.5px;font-weight:600;padding:6px 12px;border-radius:7px;cursor:pointer;border:1px solid #d0cdc7;background:#fff;color:#555;font-family:inherit;width:auto';
   let btns='<input type="file" accept="image/*" id="img-file'+F.tag+'-'+a.id+'" style="display:none" onchange="uploadAssetImage(this,\''+a.id+'\','+slot+')">';
   btns+='<button type="button" style="'+btnStyle+'" onclick="document.getElementById(\'img-file'+F.tag+'-'+a.id+'\').click()">'+(hasImg?'Replace':'&#8593; Upload image')+'</button>';
-  if(hasImg)btns+='<button type="button" style="'+btnStyle+';color:#A32D2D;border-color:#f0cfcf" onclick="removeAssetImage(\''+a.id+'\','+slot+')">Remove</button>';
+  if(hasImg)btns+='<button type="button" style="'+btnStyle+';color:#A32D2D;border-color:#f0cfcf" onclick="removeAssetImage(\''+a.id+'\','+slot+',this)">Remove</button>';
 
   return '<div class="fg">'
     +'<label>'+esc(label)+'</label>'
@@ -5215,8 +5235,8 @@ function assetCard(a,i){
         <select data-aid="${a.id}" data-mid="${_m0.id}" data-f="app"${planMiss(_appVal)} onchange="upAssetMat(this)"><option value="">Select application...</option>${_appCustom?`<option value="${esc(_appVal)}" selected>${esc(_appVal)}</option>`:''}${mkOpts(_appList,(_appList.find(o=>o.toLowerCase()===_appVal.toLowerCase())||_appVal))}</select>
       </div>`:'';
   const f5=`<div class="fg">
-        <label><span class="qn">5</span>Year built</label>
-        <input type="text" data-aid="${a.id}" data-f="yearBuilt" value="${esc(a.yearBuilt||'')}" onblur="upAsset(this)">
+        <label><span class="qn">5</span>Year built <span class="req">*</span></label>
+        <input type="text" data-aid="${a.id}" data-f="yearBuilt"${planMiss(a.yearBuilt)} value="${esc(a.yearBuilt||'')}" placeholder="e.g. 2025" onblur="upAsset(this)">
       </div>`;
   const f45=`<div class="g2" style="margin-bottom:0">${f4}${f5}</div>`;
   return`<div class="acard" id="ac-${a.id}">
@@ -5251,7 +5271,7 @@ ${taBlock}
         <button type="button" class="mt-add" onclick="addAssetMat('${a.id}')">+ Add another material to this asset</button>
       </div>
       <div class="ac-ft">
-        <button type="button" class="asset-del" onclick="${assetIsSaved(a)?`confirmDelAsset('${a.id}')`:`delAsset('${a.id}')`}">Delete asset</button>
+        <button type="button" class="asset-del" onclick="${assetIsSaved(a)?`confirmDelAsset('${a.id}',this)`:`delAsset('${a.id}')`}">Delete asset</button>
         <span style="flex:1"></span>
         <button type="button" class="sum-exit" onclick="toggleAsset('${a.id}')">Close</button>
         <button type="button" class="abq-next ac-save" onclick="saveAsset('${a.id}')">Save asset &#10003;</button>
@@ -5303,18 +5323,22 @@ function matRowHtml(aid,m,idx){
     </div>
     <div style="display:flex;gap:8px;align-items:flex-end">
       <div class="fg" style="flex:1;margin-bottom:0"><label><span class="qn">7</span>Volume (estimate) <span class="req">*</span></label><input type="text" data-aid="${aid}" data-mid="${m.id}" data-f="vol"${planMiss(m.vol)} value="${esc(m.vol)}" onblur="upAssetMat(this)"></div>
-      <div class="fg unit-fg" style="width:130px;margin-bottom:0"><label>Unit${S.plan.roleType==='TA'?'':' <span class="req">*</span>'}</label><div class="unit-combo"><select class="unit-sel" tabindex="-1" aria-label="Choose unit" data-aid="${aid}" data-mid="${m.id}" onchange="pickUnit(this)"><option value=""${vunitVal?'':' selected'}></option>${VOLS.map(v=>`<option${!unitIsOther&&v===vunitVal?' selected':''}>${esc(v)}</option>`).join('')}<option value="Other"${unitIsOther?' selected':''}>Other</option></select><input type="text" class="unit-txt" id="unit-txt-${m.id}" data-aid="${aid}" data-mid="${m.id}" data-f="vunit"${planNeedsUnit()?planMiss(vunitVal):''} value="${esc(vunitVal)}" autocomplete="off" onblur="typeUnit(this)"></div></div>
+      <div class="fg unit-fg" style="width:130px;margin-bottom:0"><label>Unit <span class="req">*</span></label><div class="unit-combo"><select class="unit-sel" tabindex="-1" aria-label="Choose unit" data-aid="${aid}" data-mid="${m.id}" onchange="pickUnit(this)"><option value=""${vunitVal?'':' selected'}></option>${VOLS.map(v=>`<option${!unitIsOther&&v===vunitVal?' selected':''}>${esc(v)}</option>`).join('')}<option value="Other"${unitIsOther?' selected':''}>Other</option></select><input type="text" class="unit-txt" id="unit-txt-${m.id}" data-aid="${aid}" data-mid="${m.id}" data-f="vunit"${planNeedsUnit()?planMiss(vunitVal):''} value="${esc(vunitVal)}" autocomplete="off" onblur="typeUnit(this)"></div></div>
     </div>
     <div class="fg" style="margin-top:8px">
       <label><span class="qn">8</span>Expected material status at end of event <span class="req">*</span></label>
-      <select class="stat-sel" data-tone="${statTone(m.stat)}" data-aid="${aid}" data-mid="${m.id}" data-f="stat"${planMiss(m.stat)} onchange="upAssetMat(this);this.dataset.tone=statTone(this.value)">${mkOpts(STATS,m.stat,'Select status...')}</select>
+      <select class="stat-sel" data-tone="${statTone(m.stat)}" data-aid="${aid}" data-mid="${m.id}" data-f="stat"${planMiss(m.stat)} onchange="upAssetMat(this);this.dataset.tone=statTone(this.value);toggleStatTakeBack(this)">${mkOpts(STATS,m.stat,'Select status...')}</select>
+    </div>
+    <div class="fg" id="stb-${m.id}"${m.stat===FC_TAKEBACK_STAT?'':' style="display:none"'}>
+      <label>Tell us which one <span class="req">*</span></label>
+      <input type="text" data-aid="${aid}" data-mid="${m.id}" data-f="statTakeBack"${m.stat===FC_TAKEBACK_STAT?planMiss(m.statTakeBack):''} value="${esc(m.statTakeBack||'')}" placeholder="Name of the take-back program" onblur="upAssetMat(this)">
     </div>
     <div class="fg f7-box">
       <label><span class="qn gy">9</span>Actual outcome<span class="f7-tag">complete post-event</span></label>
       <select data-aid="${aid}" data-mid="${m.id}" data-f="outcome" onchange="upAssetMat(this);toggleOutcomeOther(this,'${aid}','${m.id}')">${outOpts}</select>
       ${m.outcome==='Other'?`<input type="text" data-aid="${aid}" data-mid="${m.id}" data-f="outcomeOther" value="${esc(m.outcomeOther||'')}" placeholder="Please specify..." onblur="upAssetMat(this)" style="margin-top:6px">`:'<span id="outcome-other-'+aid+'-'+m.id+'" style="display:none"><input type="text" data-aid="'+aid+'" data-mid="'+m.id+'" data-f="outcomeOther" value="'+esc(m.outcomeOther||'')+'" placeholder="Please specify..." onblur="upAssetMat(this)" style="margin-top:6px"></span>'}
     </div>
-      <div class="mt-ed-ft"><button type="button" class="asset-del" onclick="delAssetMat('${aid}','${m.id}')">Delete material</button></div>
+      <div class="mt-ed-ft"><button type="button" class="asset-del" onclick="delAssetMat('${aid}','${m.id}',this)">Delete material</button></div>
     </div>
   </div>`;
 }
@@ -5741,10 +5765,13 @@ function importPlanXLS(input){
         // against the Target Materials List. See matchTMLRef() above.
         const tmlRefGuess=tmlRefRaw?'':matchTMLRef(matName);
         const tmlRef=tmlRefRaw?clamp(tmlRefRaw,10):(tmlRefGuess||(taUpload?'OTHER':''));
+        // Expected status may carry the take-back program as "<status> — <program>" (see the export, col M).
+        let statIn=String(stat||''),statTB='';
+        if(statIn.indexOf(FC_TAKEBACK_STAT+' — ')===0){statTB=statIn.slice((FC_TAKEBACK_STAT+' — ').length).trim();statIn=FC_TAKEBACK_STAT;}
         // Field 5a (material name) maps to Material Name (col I)
         assetMap[key].materials.push(
           {id:uid(),cat:'',app:clamp(taUpload?appNorm(app):app,150),tmlRef:tmlRef,name:clamp(matName,200),
-           vol:volSafe,vunit:clamp(vunit,20),stat:clamp(stat,100),outcome:clamp(outcome,100)}
+           vol:volSafe,vunit:clamp(vunit,20),stat:clamp(statIn,100),statTakeBack:clamp(statTB,150),outcome:clamp(outcome,100)}
         );
         r++;
       }
@@ -6072,7 +6099,7 @@ async function _doExportXLS(){
           m.app||'',                  // J Precinct Application
           m.vol||'',                  // K Volume
           m.vunit||'',                // L Unit
-          m.stat||'',                 // M Expected Status
+          (m.stat||'')+(m.stat===FC_TAKEBACK_STAT&&m.statTakeBack?' — '+m.statTakeBack:''), // M Expected Status (+ take-back program)
           a.yearBuilt||'',            // N Year built
           m.outcome||'',              // O Actual Outcome
           a.builderSupplier||'',      // P Builder / supplier
@@ -6390,6 +6417,25 @@ if(!window._navDirtyBound){
     if(t)mark({target:t});
   },true);
 }
+// In-form confirmation for deletes: hides the button and shows a small confirm strip
+// just above its row, instead of the browser's own confirm() box.
+function inlineConfirm(btn,msg,yesLabel,onYes){
+  if(!btn||!btn.parentNode)return;
+  const host=btn.parentNode;
+  const prev=host.previousElementSibling;
+  if(prev&&prev.classList&&prev.classList.contains('ic-strip'))return;
+  btn.style.display='none';
+  const strip=document.createElement('div');
+  strip.className='ic-strip';strip.setAttribute('role','alert');
+  strip.innerHTML='<span class="ic-msg"></span><button type="button" class="ic-no">Cancel</button><button type="button" class="ic-yes"></button>';
+  strip.querySelector('.ic-msg').textContent=msg;
+  strip.querySelector('.ic-yes').textContent=yesLabel||'Delete';
+  const done=()=>{strip.remove();btn.style.display='';};
+  strip.querySelector('.ic-no').onclick=()=>{done();btn.focus();};
+  strip.querySelector('.ic-yes').onclick=()=>{done();onYes();};
+  host.parentNode.insertBefore(strip,host);
+  strip.querySelector('.ic-no').focus();
+}
 function confirmLeaveIfUnsaved(proceedFn){
   // Centred pop-up (same look as the other modals) instead of a bar along the bottom.
   // Keeps id "unsaved-warn" — savePlan() and the Save now button remove it by that id.
@@ -6515,6 +6561,7 @@ function goNext(){
       const label='Asset '+(i+1)+(a.assetName?' ('+a.assetName+')':'');
       if(!a.prec&&!lenient)errors.push(label+': Precinct is required');
       if(!a.assetName&&!lenient)errors.push(label+': Asset name is required');
+      if(!String(a.yearBuilt||'').trim()&&!lenient)errors.push(label+': Year built (field 5) is required');
       a.materials.forEach((m,j)=>{
         const ml=label+', Material '+(j+1);
         if(j===0&&!a.materials[0].app&&!lenient)errors.push(label+': Precinct application (field 4) is required');
@@ -6523,6 +6570,7 @@ function goNext(){
         if(!String(m.vol||'').trim()&&!lenient)errors.push(ml+': Volume (estimate) (field 7) is required');
         if(needUnit&&!String(m.vunit||'').trim()&&!lenient)errors.push(ml+': Unit (field 7) is required');
         if(!m.stat&&!lenient)errors.push(ml+': Expected material status (field 8) is required');
+        if(m.stat===FC_TAKEBACK_STAT&&!String(m.statTakeBack||'').trim()&&!lenient)errors.push(ml+': Tell us which take-back program (field 8)');
       });
     });
     if(errors.length){
@@ -6792,10 +6840,9 @@ function assetIsSaved(a){
   const saved=(S.plans||[]).find(p=>S.plan&&p.id===S.plan.id);
   return !!(saved&&(saved.assets||[]).some(x=>x.id===a.id));
 }
-function confirmDelAsset(aid){
+function confirmDelAsset(aid,btn){
   const a=(S.plan.assets||[]).find(x=>x.id===aid);if(!a)return;
-  if(!confirm('Delete "'+(a.assetName||'this asset')+'" and all its materials?'))return;
-  delAsset(aid);S._unsaved=true;
+  inlineConfirm(btn,'Delete "'+(a.assetName||'this asset')+'" and all its materials?','Delete asset',()=>{delAsset(aid);S._unsaved=true;});
 }
 // End of event reporting: one-line summary of fields 4–6 with Edit, like a saved forecast.
 // ── End of event reporting (materials plan): one checklist grouped by precinct ──
@@ -6941,12 +6988,12 @@ function mtRender(aid){
 function mtOpenIncomplete(lenient){
   (S.plan.assets||[]).forEach(a=>{
     const red=(sel,bad)=>{const el=document.querySelector(sel);if(el)el.style.borderColor=bad?'#dc2626':'';};
-    const aMiss={prec:!String(a.prec||'').trim(),assetName:!String(a.assetName||'').trim(),app:!!(a.materials[0]&&!a.materials[0].app)};
-    let hit=!lenient&&(aMiss.prec||aMiss.assetName||aMiss.app);
-    if(!lenient){red('#abd-'+a.id+' [data-f="prec"]',aMiss.prec);red('#abd-'+a.id+' [data-f="assetName"]',aMiss.assetName);red('#abd-'+a.id+' select[data-f="app"]',aMiss.app);}
+    const aMiss={prec:!String(a.prec||'').trim(),assetName:!String(a.assetName||'').trim(),yearBuilt:!String(a.yearBuilt||'').trim(),app:!!(a.materials[0]&&!a.materials[0].app)};
+    let hit=!lenient&&(aMiss.prec||aMiss.assetName||aMiss.yearBuilt||aMiss.app);
+    if(!lenient){red('#abd-'+a.id+' [data-f="prec"]',aMiss.prec);red('#abd-'+a.id+' [data-f="assetName"]',aMiss.assetName);red('#abd-'+a.id+' [data-f="yearBuilt"]',aMiss.yearBuilt);red('#abd-'+a.id+' select[data-f="app"]',aMiss.app);}
     (a.materials||[]).forEach(m=>{
       if(lenient)return;
-      const mm={tmlRef:!m.tmlRef,name:m.tmlRef==='OTHER'&&!String(m.name||'').trim(),vol:!String(m.vol||'').trim(),vunit:planNeedsUnit()&&!String(m.vunit||'').trim(),stat:!m.stat};
+      const mm={tmlRef:!m.tmlRef,name:m.tmlRef==='OTHER'&&!String(m.name||'').trim(),vol:!String(m.vol||'').trim(),vunit:planNeedsUnit()&&!String(m.vunit||'').trim(),stat:!m.stat,statTakeBack:m.stat===FC_TAKEBACK_STAT&&!String(m.statTakeBack||'').trim()};
       const miss=Object.values(mm).some(Boolean);
       Object.keys(mm).forEach(k=>red('#mte-'+m.id+' [data-f="'+k+'"]',mm[k]));
       if(miss){hit=true;if(!S._mtOpen)S._mtOpen={};S._mtOpen[m.id]=true;const ed=document.getElementById('mte-'+m.id);if(ed)ed.classList.add('on');mtSumRefresh(a.id,m.id);}
@@ -7006,6 +7053,11 @@ function toggleOutcomeOther(sel,aid,mid){
 }
 
 function upAssetMat(el){_upAssetMat0(el);mtSumRefresh(el.dataset.aid,el.dataset.mid);}
+// Show "Tell us which one" under field 8 only for the take-back status.
+function toggleStatTakeBack(sel){
+  const w=document.getElementById('stb-'+sel.dataset.mid);
+  if(w)w.style.display=sel.value===FC_TAKEBACK_STAT?'':'none';
+}
 function _upAssetMat0(el){
   const aid=el.dataset.aid;const mid=el.dataset.mid;const f=el.dataset.f;
   const a=S.plan.assets.find(x=>x.id===aid);if(!a)return;
@@ -7058,11 +7110,11 @@ function addAssetMat(aid){
   const row=document.getElementById('mr-'+nm.id);if(row)row.scrollIntoView({behavior:'smooth',block:'center'});
 }
 
-function delAssetMat(aid,mid){
+function delAssetMat(aid,mid,btn){
   const a=S.plan.assets.find(x=>x.id===aid);if(!a)return;
   if(a.materials.length<=1){showToast('An asset needs at least one material. Delete the asset to remove it entirely.');return;}
   const j=a.materials.findIndex(m=>m.id===mid);if(j<0)return;
-  if(!confirm('Delete Material '+(j+1)+' from this asset?'))return;
+  if(btn){inlineConfirm(btn,'Delete Material '+(j+1)+' from this asset?','Delete material',()=>delAssetMat(aid,mid));return;}
   // field 4 is stored on Material 1 — carry it over if Material 1 is the one removed
   if(j===0&&a.materials[1]&&!a.materials[1].app)a.materials[1].app=a.materials[0].app;
   a.materials.splice(j,1);
