@@ -7121,10 +7121,21 @@ function delAssetMat(aid,mid,btn){
   mtRender(aid);S._unsaved=true;
 }
 
+// Direct links: <site>/#create opens "Create a materials plan", <site>/#forecast opens the Forecast page.
+// The hash is cleared once handled, so a later refresh doesn't keep jumping back there.
+const DEEP_LINKS={create:()=>goCreateIntro(),'new-plan':()=>goCreateIntro(),plan:()=>goCreateIntro(),forecast:()=>switchTab('forecast')};
+function openDeepLink(){
+  const key=String(location.hash||'').replace(/^#\/?/,'').toLowerCase().trim();
+  const go=DEEP_LINKS[key];if(!go)return false;
+  try{history.replaceState(null,'',location.pathname+location.search);}catch(e){}
+  go();return true;
+}
+window.addEventListener('hashchange',openDeepLink);
 function init(){
   const raw=storageLoadAll();
   S.plans=raw.map(migratePlan);
   S.screen='home';render();
+  openDeepLink();
   // Background TML sync — fetches latest data from Materials_Methods_Plan repo.
   // Re-renders if TML changed so any open Step 5 reflects fresh data.
   syncRemoteTML().then(()=>{
