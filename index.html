@@ -7,7 +7,7 @@
 <meta http-equiv="Content-Security-Policy"
   content="default-src 'self';
     script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net;
-    connect-src 'self' https://bksznvzjzirrznfvktuh.supabase.co wss://bksznvzjzirrznfvktuh.supabase.co;
+    connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.emailjs.com https://megtei.github.io;
     style-src 'self' 'unsafe-inline';
     img-src 'self' data: blob: https://*.supabase.co;
     font-src 'self' data:;
@@ -716,6 +716,9 @@ select.stat-sel[data-tone=""]{padding-left:10px!important}
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.110.9/dist/umd/supabase.js"
   integrity="sha384-6foGJ1oz/y3anEo0BXRtTgBK1GvpnR0GbJZb0ijG+nBAJ4rYT+VqlD/9e3CSiFIA"
   crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4.4.1/dist/email.min.js"
+  integrity="sha384-SALc35EccAf6RzGw4iNsyj7kTPr33K7RoGzYu+7heZhT8s0GZouafRiCg1qy44AS"
+  crossorigin="anonymous"></script>
 <style id="ux-compact">
 /* Headers, intro and step cards */
 #main .abq-body{padding:20px 22px 18px}
@@ -1088,11 +1091,8 @@ const TML=[
 // array in place — so all renderTMLInfo calls always use the freshest data.
 // If the fetch fails (offline / CORS / missing file) the embedded array above
 // is used silently as a fallback.
-// Materials & Methods reference page linked from the forms and help text. One setting so
-// it can move to a TA-controlled address without touching the links themselves.
-const MATERIALS_METHODS_URL = 'https://megtei.github.io/Materials_Methods_Plan/';
-const TML_REMOTE_URL  = 'tml-data.json'; // served from this site (same origin)
-const TML_CACHE_KEY   = 'ao_tml_remote_cache_v4'; // bumped Oct 2026 list re-sync (v2 cached the pre-sync JSON)
+const TML_REMOTE_URL  = 'https://megtei.github.io/Materials_Methods_Plan/tml-data.json';
+const TML_CACHE_KEY   = 'ao_tml_remote_cache_v3'; // bumped Oct 2026 list re-sync (v2 cached the pre-sync JSON)
 const TML_CACHE_TTL   = 24 * 60 * 60 * 1000; // 24 hours in ms
 
 async function syncRemoteTML(){
@@ -1187,66 +1187,38 @@ if(SUPABASE_READY){
   }
 }
 
-// ── Admin dashboard auth ─────────────────────────────────────────────────────
-// The dashboard password is NOT stored in this file. The manager types it and it is
-// passed to database functions (admin_check / admin_list_* / admin_get_plan) that check
-// it against a hash, lock out repeated failures and record each access. A wrong
-// password returns no rows regardless of anything done in the browser.
-// The key is held only in sessionStorage for the life of the tab, cleared on sign-out
-// or after 30 minutes without dashboard activity.
+// ── Admin dashboard auth (Option B: server-side gated read) ────────────────────
+// The dashboard password is NOT stored in this file. The manager types it, and
+// it is sent as an `x-dashboard-key` request header on the admin read query.
+// A Postgres RLS policy (dashboard_authed()) compares it against a hashed value
+// in the database and returns plan rows only on a match — so a wrong password
+// returns zero rows regardless of anything done in the browser.
+// The key is held only in sessionStorage for the life of the tab so the
+// dashboard can re-query without re-prompting; it is cleared on sign-out.
 const ADMIN_KEY_SS = 'adminDashKey';
-const ADMIN_SEEN_SS = 'adminDashSeen';
-const ADMIN_IDLE_MS = 30 * 60 * 1000;   // signed out after 30 minutes without admin activity
-// Current dashboard password for this tab, or null if not signed in / idle too long.
-function adminKey(){
-  const k = sessionStorage.getItem(ADMIN_KEY_SS);
-  if(!k) return null;
-  const seen = +sessionStorage.getItem(ADMIN_SEEN_SS) || 0;
-  if(seen && Date.now() - seen > ADMIN_IDLE_MS){
-    sessionStorage.removeItem(ADMIN_KEY_SS); sessionStorage.removeItem(ADMIN_SEEN_SS);
+let sbAdmin = null;
+function buildAdminClient(key){
+  if(typeof supabase === 'undefined' || !SUPABASE_READY) return null;
+  try{
+    return supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
+      global: { headers: { 'x-dashboard-key': key } }
+    });
+  }catch(e){
+    console.warn('Admin client init failed:', e.message);
     return null;
   }
-  sessionStorage.setItem(ADMIN_SEEN_SS, String(Date.now()));
-  return k;
 }
-// Admin reads go through database functions that check the password, apply the lockout
-// and record each access. A wrong password returns no rows.
-async function adminRpc(fn, args){
-  const key = adminKey();
-  if(!sb || !key) return { data: null, error: { message: 'Not signed in to the dashboard' } };
-  return sb.rpc(fn, Object.assign({ p_key: key }, args || {}));
+// Rebuild the admin client from a stored session key (e.g. after a tab reload).
+function ensureAdminClient(){
+  if(sbAdmin) return sbAdmin;
+  const key = sessionStorage.getItem(ADMIN_KEY_SS);
+  if(key) sbAdmin = buildAdminClient(key);
+  return sbAdmin;
 }
 
 // ── Plan storage abstraction ──────────────────────────────────────────────────
 // Swap this object's two methods to change the backend.
 // localStorage is always used as an offline fallback.
-// Message for a save that did not reach the cloud (F13) — never shown as success.
-function cloudSaveNote(res, what){
-  what=what||'plan';
-  if(res&&res.conflict)return 'This '+what+' was changed elsewhere — reload it before saving again';
-  if(res&&res.throttled)return 'Too many saves — please wait a minute and try again';
-  return 'Not saved to the cloud — your changes are only on this device';
-}
-function saveFailure(err){
-  const m=String((err&&err.message)||err||'');
-  return { ok: true, source: 'local', warning: m, conflict: /conflict/i.test(m), throttled: /too many attempts/i.test(m) };
-}
-function lookupThrottled(err){
-  if(/too many attempts/i.test(String((err&&err.message)||''))){showToast('Too many attempts — please wait a few minutes and try again');return true;}
-  return false;
-}
-// After a successful save keep the record's server version (_v) in step, so the next save
-// from this browser isn't mistaken for a stale copy. Records saved before versioning have no
-// _v; fetch it once.
-async function syncVersion(rec, kind, code){
-  try{
-    if(typeof rec._v==='number'){rec._v++;}
-    else{
-      const r=await sb.rpc(kind==='plan'?'get_plan_by_code':'get_forecast_by_code',{p_code:code});
-      if(r&&r.data&&typeof r.data._v==='number')rec._v=r.data._v;
-    }
-  }catch(e){}
-}
 const planDB = {
   async save(plan) {
     // Always save locally first (instant, offline-safe)
@@ -1257,14 +1229,19 @@ const planDB = {
       return { ok: true, source: 'local' };
     }
     try {
-      const { data, error } = await sb.rpc('save_plan', { p_plan: plan });
+      const { error } = await sb.from('plans').upsert({
+        id:         plan.id,
+        plan_code:  planCode(plan.id),
+        data:       plan,
+        business:   plan.profile.businessName || '',
+        owner:      plan.profile.ownerName    || '',
+        role:       plan.profile.role         || '',
+      }, { onConflict: 'id' });
       if (error) throw error;
-      await syncVersion(plan, 'plan', data);
-      storageSave(plan);
       return { ok: true, source: 'cloud' };
     } catch(err) {
       console.warn('Supabase save failed, plan saved locally:', err.message);
-      return saveFailure(err);
+      return { ok: true, source: 'local', warning: err.message };
     }
   },
 
@@ -1272,11 +1249,13 @@ const planDB = {
     const normalised = code.trim().toUpperCase().replace(/\s/g,'');
     if (sb) {
       try {
-        const { data, error } = await sb.rpc('get_plan_by_code', { p_code: normalised });
-        if (error) throw error;
-        if (data) return sanitizeIds(data);
+        const { data, error } = await sb
+          .from('plans')
+          .select('data')
+          .eq('plan_code', normalised)
+          .single();
+        if (data?.data) return data.data;
       } catch(err) {
-        if (lookupThrottled(err)) return null;
         console.warn('Supabase lookup failed, trying local:', err.message);
       }
     }
@@ -1317,14 +1296,7 @@ async function retrievePlan(){
 }
 
 
-function esc(s){if(!s)return'';return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;')}
-// Ids are interpolated into inline handlers and id attributes, so only plain id characters are allowed.
-const SAFE_ID_RE=/^[A-Za-z0-9_-]{1,64}$/;
-function safeId(v){v=String(v==null?'':v).trim();return SAFE_ID_RE.test(v)?v:uid();}
-// URLs rendered into src/href: allow https, blob (local preview) and base64 image data URLs only.
-function safeUrl(u){u=String(u||'').trim();if(/^https:\/\//i.test(u)||/^blob:/i.test(u)||/^data:image\/(png|jpe?g|gif|webp);base64,[A-Za-z0-9+\/=]+$/i.test(u))return u;return'';}
-// Normalise asset/material ids on any plan or forecast entering the app (cloud, local, import).
-function sanitizeIds(p){if(!p||typeof p!=='object')return p;(Array.isArray(p.assets)?p.assets:[]).forEach(function(a){if(!a)return;a.id=safeId(a.id);(Array.isArray(a.materials)?a.materials:[]).forEach(function(m){if(m)m.id=safeId(m.id);});});(Array.isArray(p.materials)?p.materials:[]).forEach(function(m){if(m&&typeof m==='object')m.id=safeId(m.id);});return p;}
+function esc(s){return(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
 function uid(){var CH="0123456789abcdefghijklmnopqrstuvwxyz",out=[],buf=new Uint8Array(24);if(typeof crypto!=="undefined"&&crypto.getRandomValues){crypto.getRandomValues(buf);}else{for(var i=0;i<buf.length;i++)buf[i]=Math.floor(Math.random()*256);}for(var j=0;j<buf.length&&out.length<16;j++){if(buf[j]<252)out.push(CH.charAt(buf[j]%36));}while(out.length<16)out.push(CH.charAt(Math.floor(Math.random()*36)));return out.join("");}
 function fmtDate(ts){if(!ts)return'never';return new Date(ts).toLocaleDateString('en-AU',{day:'numeric',month:'short',year:'numeric'})}
 function fmtAUDate(d){if(!d)return'-';const parts=d.split('-');if(parts.length===3)return parts[2]+'/'+parts[1]+'/'+parts[0];return d;}
@@ -1609,30 +1581,71 @@ function examplePlan(){
   };
 }
 
+// ── EmailJS config ────────────────────────────────────────────────────────────
+// Setup steps:
+// 1. Create a free account at https://www.emailjs.com
+// 2. Connect an email service (e.g. Gmail) → note the Service ID
+// 3. Create a template with these variables:
+//      {{to_name}}   – recipient's name
+//      {{to_email}}  – recipient's email address
+//      {{plan_id}}   – the AO plan reference code
+//      {{action}}    – "created" or "updated"
+//    Subject:  Your AO Materials Management Plan – {{plan_id}}
+//    Body:
+//      Hi {{to_name}},
+//
+//      Your AO Materials Management plan has been {{action}}.
+//      {{plan_id}}
+//
+//      You can return to view and edit here https://megtei.github.io/Materials-Management/
+// 4. Replace the three placeholder values below with your credentials
+//    (found in EmailJS dashboard → Account → API Keys / Email Services / Email Templates)
+const EMAILJS_PUBLIC_KEY  = 'YOUR_EMAILJS_PUBLIC_KEY';   // e.g. 'user_xxxxxxxxxxxx'
+const EMAILJS_SERVICE_ID  = 'YOUR_EMAILJS_SERVICE_ID';   // e.g. 'service_xxxxxxx'
+const EMAILJS_TEMPLATE_ID = 'YOUR_EMAILJS_TEMPLATE_ID';  // e.g. 'template_xxxxxxx'
+
+const EMAILJS_READY = (
+  EMAILJS_PUBLIC_KEY  !== 'YOUR_EMAILJS_PUBLIC_KEY' &&
+  EMAILJS_SERVICE_ID  !== 'YOUR_EMAILJS_SERVICE_ID' &&
+  EMAILJS_TEMPLATE_ID !== 'YOUR_EMAILJS_TEMPLATE_ID'
+);
+
+if(EMAILJS_READY && typeof emailjs !== 'undefined'){
+  emailjs.init({publicKey: EMAILJS_PUBLIC_KEY});
+}
+
 // ── Netlify email endpoint ───────────────────────────────────────────────────
 // Superseded EmailJS above — sends now go through a Netlify Function
 // (config'd on the Netlify side) so the API key never sits in client code.
 // Same-origin call since the app is now deployed on Netlify itself.
 const NETLIFY_EMAIL_URL = '/.netlify/functions/send-confirmation';
 
-// The server looks up the recipient from the stored record and applies the sending
-// limits, so only the record type, code and action are sent from the browser.
-async function sendCheckinEmail({code, action, type}){
+async function sendCheckinEmail({toName, toEmail, code, action, type}){
+  if(!toEmail){return;} // no email address on file — skip silently
   try{
     const res = await fetch(NETLIFY_EMAIL_URL, {
       method: 'POST',
       headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({ code: code, action: action, type: type })   // action: 'created' | 'updated'
+      body: JSON.stringify({
+        to_name : toName || 'there',
+        to_email: toEmail,
+        code    : code,
+        action  : action,   // 'created' | 'updated'
+        type    : type      // 'plan' | 'forecast'
+      })
     });
-    if(!res.ok){console.warn('Confirmation email not sent:', res.status);}
+    if(!res.ok){console.warn('Netlify email send failed:', res.status, await res.text());return;}
+    console.info('Confirmation email sent to', toEmail);
   }catch(err){
-    console.warn('Confirmation email error:', err && err.message);
+    console.warn('Netlify email send error:', err);
   }
 }
 
 async function sendPlanEmail(plan, isNew){
-  if(!(plan.profile.email||'').trim())return; // no email address on file
+  const email = (plan.profile.email||'').trim();
   await sendCheckinEmail({
+    toName : plan.profile.ownerName || plan.profile.editorName,
+    toEmail: email,
     code   : planCode(plan.id),
     action : isNew ? 'created' : 'updated',
     type   : 'plan'
@@ -1669,9 +1682,7 @@ function fcStorageSave(fc){
   try{fc.savedAt=Date.now();localStorage.setItem(FC_STORAGE_PREFIX+fc.id,JSON.stringify(fc));return true}catch(e){return false}
 }
 function fcCode(id){
-  if(/^AO27-FC-[A-Z0-9]{4}(-[A-Z0-9]{4})?$/i.test(id||''))return String(id).toUpperCase();
-  // v2 ids (new forecasts): 8 random characters -> AO27-FC-XXXX-XXXX
-  if(/^v2/.test(id||'')){const c=String(id).slice(2).replace(/[^a-z0-9]/gi,'').toUpperCase().padEnd(8,'0');return 'AO27-FC-'+c.slice(0,4)+'-'+c.slice(4,8);}
+  if(/^AO27-FC-[A-Z0-9]{4}$/i.test(id||''))return String(id).toUpperCase();
   const ch=(id||'').replace(/[^a-z0-9]/gi,'').toUpperCase().padEnd(4,'0');
   return 'AO27-FC-'+ch.slice(0,4);
 }
@@ -1699,7 +1710,7 @@ function fcMatOptsHtml(val){
 
 function newForecast(){
   return{
-    id:'v2'+uid().slice(0,14),createdAt:Date.now(),actualsLoggedAt:null,
+    id:uid(),createdAt:Date.now(),actualsLoggedAt:null,
     profile:{org:'',website:'',role:'',project:'',eventYear:'AO27',contactName:'',contactEmail:''},
     targets:{reuseTarget:'',wasteTarget:'',circPractices:'',reuseStoredPct:'',disposedPct:''},
     materials:[newFcMat()],
@@ -1732,7 +1743,7 @@ function migrateForecast(fc){
   fc.notes=Object.assign({largeStructures:'',hazardousDetail:'',circularHero:'',feedback:''},fc.notes||{});
   if(!Array.isArray(fc.materials)||!fc.materials.length)fc.materials=[newFcMat()];
   fc.materials.forEach(m=>{
-    m.id=safeId(m.id);
+    if(m.id==null)m.id=uid();
     if(m.precinctLocation==null)m.precinctLocation='';
     if(m.yearBuilt==null)m.yearBuilt='';
     if(m.assetName==null)m.assetName='';
@@ -1758,21 +1769,20 @@ const forecastDB = {
     fcStorageSave(fc);
     if (!sb) return { ok: true, source: 'local' };
     try {
-      let { data, error } = await sb.rpc('save_forecast', { p_fc: fc });
-      // A new forecast whose code is already taken gets a fresh id and one retry.
-      if (error && /forecast code in use/i.test(error.message) && typeof fc._v !== 'number') {
-        try { localStorage.removeItem(FC_STORAGE_PREFIX + fc.id); } catch (e) {}
-        fc.id = 'v2' + uid().slice(0, 14);
-        fcStorageSave(fc);
-        ({ data, error } = await sb.rpc('save_forecast', { p_fc: fc }));
-      }
+      const { error } = await sb.from('forecasts').upsert({
+        id:              fc.id,
+        fc_code:         fcCode(fc.id),
+        data:            fc,
+        business:        fc.profile.org || '',
+        role:            fc.profile.role || '',
+        contact_email:   fc.profile.contactEmail || '',
+        actuals_logged:  !!fc.actualsLoggedAt,
+      }, { onConflict: 'id' });
       if (error) throw error;
-      await syncVersion(fc, 'forecast', data);
-      fcStorageSave(fc);
       return { ok: true, source: 'cloud' };
     } catch(err) {
       console.warn('Supabase forecast save failed, saved locally:', err.message);
-      return saveFailure(err);
+      return { ok: true, source: 'local', warning: err.message };
     }
   },
 
@@ -1780,11 +1790,13 @@ const forecastDB = {
     const normalised = code.trim().toUpperCase().replace(/\s/g,'');
     if (sb) {
       try {
-        const { data, error } = await sb.rpc('get_forecast_by_code', { p_code: normalised });
-        if (error) throw error;
-        if (data) return migrateForecast(data);
+        const { data, error } = await sb
+          .from('forecasts')
+          .select('data')
+          .eq('fc_code', normalised)
+          .single();
+        if (data?.data) return migrateForecast(data.data);
       } catch(err) {
-        if (lookupThrottled(err)) return null;
         console.warn('Supabase forecast lookup failed, trying local:', err.message);
       }
     }
@@ -1818,7 +1830,6 @@ function migratePlan(p){
       if(a.image2Path===undefined)a.image2Path='';
     }
   }
-  sanitizeIds(p);
   return p;
 }
 
@@ -1950,7 +1961,7 @@ function renderPlanTab(){
     <div class="atm-acc open" id="acc-atm">
       <div class="sechd sechd-first" style="cursor:pointer" onclick="toggleAcc('acc-atm')">AO target materials<span class="acc-chevron">&#8964;</span></div>
       <div class="atm-acc-body" id="acc-atm-body">
-        <div class="atm-sub">Many materials currently used in the AO temporary build <span style="font-style:italic;text-decoration:underline">can</span> be reused or recycled. It&rsquo;s how we treat, finish and handle them that turns resources into waste.<br><a href="${MATERIALS_METHODS_URL}" target="_blank" rel="noopener" style="color:#0091D2;font-weight:700;text-decoration:underline">View the AO target materials list to know which materials to use more or less &#8599;</a></div>
+        <div class="atm-sub">Many materials currently used in the AO temporary build <span style="font-style:italic;text-decoration:underline">can</span> be reused or recycled. It&rsquo;s how we treat, finish and handle them that turns resources into waste.<br><a href="https://megtei.github.io/Materials_Methods_Plan/" target="_blank" rel="noopener" style="color:#0091D2;font-weight:700;text-decoration:underline">View the AO target materials list to know which materials to use more or less &#8599;</a></div>
         <div class="atm-grid">
           <div>
             <div class="atm-colhd"><div class="atm-icon">C</div><div><h4>Materials currently in use</h4><span class="atm-colsub">The AO27 target material categories</span></div></div>
@@ -2296,7 +2307,7 @@ async function fcStartReport(){
   const inp=document.getElementById('fc-report-input');const msg=document.getElementById('fc-report-msg');
   if(!inp)return;
   const code=inp.value.trim().toUpperCase();
-  if(!/^AO27-FC-[A-Z0-9]{4}(-[A-Z0-9]{4})?$/.test(code.replace(/\s/g,''))){if(msg){msg.textContent='Enter a full TA-ID (format: AO27-FC-XXXX-XXXX)';msg.style.color='#A32D2D';}return;}
+  if(code.length<12){if(msg){msg.textContent='Enter a full TA-ID (format: AO27-FC-XXXX)';msg.style.color='#A32D2D';}return;}
   if(msg){msg.textContent=SUPABASE_READY?'Searching cloud...':'Searching local forecasts...';msg.style.color='#888';}
   const fc=await forecastDB.loadById(code);
   if(!fc){if(msg){msg.textContent='TA-ID not found. Check the ID and try again.';msg.style.color='#A32D2D';}return;}
@@ -2348,7 +2359,7 @@ function fcRpRowHtml(m,i){
   if(m.outcome==='Recycle on site with AO Take-back program')h+='<div class="fg" style="margin:10px 0 0"><label>Take-back program name</label><input type="text" data-mid="'+M+'" data-f="takeBackProgram" value="'+esc(m.takeBackProgram)+'" placeholder="Name of the take-back program" onblur="fcUpMat(this)"></div>';
   if(m.outcome&&!/mixed construction waste/i.test(m.outcome)){
     h+='<div class="rp-verify"><input type="file" accept="image/*" id="fc-ev-'+M+'" style="display:none" onchange="fcUploadEvidence(this,\''+M+'\')">';
-    if(m.evidence&&safeUrl(m.evidence))h+='<img src="'+esc(safeUrl(m.evidence))+'" alt="">';
+    if(m.evidence)h+='<img src="'+m.evidence+'" alt="">';
     h+='<button type="button" class="rp-link sky" onclick="document.getElementById(\'fc-ev-'+M+'\').click()"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3z"/><circle cx="12" cy="13" r="3"/></svg>Verify &ndash; add a photo (optional)</button>';
     if(m.evidence)h+='<button type="button" class="rp-link" style="color:#A32D2D" onclick="fcRemoveEvidence(\''+M+'\')">Remove</button>';
     h+='</div>';
@@ -2395,11 +2406,13 @@ async function fcSaveAndExit(){
     const res=await forecastDB.save(fc);
     S._fcSavedFor=fc.id;S._fcSavedIds=new Set(fc.materials.map(x=>x.id));
     S.fc.pending=false;
-    if(res.source==='cloud')S._fcCloudSaved=fc.id;
-    showToast(res.source==='cloud'?'Forecast submitted':cloudSaveNote(res,'forecast'));
+    showToast(res.source==='cloud'?'Forecast submitted':'Forecast saved to this device');
   }
-  if(fc&&S._fcCloudSaved===fc.id&&(fc.profile.contactEmail||'').trim()){
+  if(fc){
+    const p=fc.profile;
     sendCheckinEmail({
+      toName : p.contactName,
+      toEmail: p.contactEmail,
       code   : fcCode(fc.id),
       action : S.fc.isUpdate ? 'updated' : 'created',
       type   : 'forecast'
@@ -2495,7 +2508,7 @@ function renderFcForm(){
     ?'Return after bump-out to record actual outcomes and complete your circularity report.'
     :isUpdate
     ?'Make changes to your forecast if needed prior to bump-out.'
-    :'Use the 80/20 rule for your materials &#8212; typically a small number of key materials make up the majority of build and waste volumes.<br>Focus on what is <a href="'+MATERIALS_METHODS_URL+'" target="_blank" rel="noopener">High Volume and High Impact.</a>')+'</p>';
+    :'Use the 80/20 rule for your materials &#8212; typically a small number of key materials make up the majority of build and waste volumes.<br>Focus on what is <a href="https://megtei.github.io/Materials_Methods_Plan/" target="_blank" rel="noopener">High Volume and High Impact.</a>')+'</p>';
   h+='</div></div>';
   h+='<div class="sechd">Waste &amp; reuse forecast</div>';
   h+='<div id="fc-mats">';
@@ -2505,7 +2518,7 @@ function renderFcForm(){
   h+='<div class="card">';
   h+='<div class="sechd sechd-first">Anything else?</div>';
   h+=fcHazardBlockHtml();
-  h+='<div class="fg"><label>Are you a circular hero and want to profile your story? *</label><select data-f="circularHero" onchange="fcUpNotes(this)"><option value="">Select...</option>'+mkOpts(['Yes','No'],fc.notes.circularHero)+'</select></div>';
+  h+='<div class="fg"><label>Are you a circular hero and want to profile your story? *</label><select data-f="circularHero"'+fcMiss(fc.notes.circularHero)+' onchange="fcUpNotes(this)"><option value="">Select...</option>'+mkOpts(['Yes','No'],fc.notes.circularHero)+'</select></div>';
   h+='<div class="fg"><label>We value feedback and continuously seek to improve &ndash; any thoughts, feelings, ideas &ndash; let us know</label><textarea rows="2" data-f="feedback" onblur="fcUpNotes(this)">'+esc(fc.notes.feedback)+'</textarea></div>';
   h+='</div>';
   h+='<div class="acts"><button type="button" class="abq-link" style="margin-right:auto'+(rpt?';visibility:hidden':'')+'" onclick="fcToDetails()">&larr; Back</button><button type="button" class="abq-link" onclick="fcBackToLanding()">Cancel</button><button id="fc-save-forecast-btn" onclick="fcSaveForecast()" style="background:linear-gradient(135deg,#0091D2,#0072A8);color:#fff;border-color:#0072A8;font-weight:700;padding:9px 20px;box-shadow:0 2px 8px rgba(0,145,210,.3)">'+(isUpdate?'Save &#10003;':'Next: Review &rarr;')+'</button></div>';
@@ -2522,11 +2535,11 @@ function fcPickRole(btn){
 // runs in full on Save.
 function fcQCheck(q){
   const fc=fcActive(),p=fc.profile,t=fc.targets;let msg='';
-  if(q===0&&!p.role){msg=(fcIsTA(p)?'Please complete department, project, role, contact name and email.':'Please complete organisation, website, project, role, contact name and email.');const g=document.getElementById('fc-roles');if(g)g.classList.add('err');}
+  if(q===0&&!p.role){msg=(fcIsTA(p)?'Please complete department, project, role, event year, contact name and email.':'Please complete organisation, website, project, role, event year, contact name and email.');const g=document.getElementById('fc-roles');if(g)g.classList.add('err');const rs=document.querySelector('.ux-fc select[data-f="role"]');if(rs)rs.style.borderColor='#dc2626';}
   if(q===1){
-    if(!p.org||(!p.website&&!fcIsTA(p))||!p.project||!p.contactName||!p.contactEmail)msg=(fcIsTA(p)?'Please complete department, project, role, contact name and email.':'Please complete organisation, website, project, role, contact name and email.');
+    if(!p.org||(!p.website&&!fcIsTA(p))||!p.project||!p.eventYear||!p.contactName||!p.contactEmail)msg=(fcIsTA(p)?'Please complete department, project, role, event year, contact name and email.':'Please complete organisation, website, project, role, event year, contact name and email.');
     else if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(p.contactEmail))msg='Please enter a valid contact email.';
-    const map={org:p.org,website:p.website||fcIsTA(p),project:p.project,contactName:p.contactName,contactEmail:p.contactEmail&&/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(p.contactEmail)};
+    const map={org:p.org,website:p.website||fcIsTA(p),project:p.project,eventYear:p.eventYear,contactName:p.contactName,contactEmail:p.contactEmail&&/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(p.contactEmail)};
     Object.keys(map).forEach(k=>{const el=document.querySelector('.ux-fc [data-f="'+k+'"]');if(el)el.style.borderColor=map[k]?'':'#dc2626';});
   }
   if(q===2){
@@ -2547,7 +2560,7 @@ function fcQNext(){
   window.scrollTo({top:0,behavior:'smooth'});
 }
 // Clear a field's red "missing" border as soon as it's filled in (About you + Forecast details).
-if(!window._abqClearBound){window._abqClearBound=true;['input','change'].forEach(t=>document.addEventListener(t,e=>{const el=e.target;if(el&&el.closest&&el.closest('.abq')&&el.style&&el.style.borderColor&&String(el.value||'').trim())el.style.borderColor='';}));}
+if(!window._abqClearBound){window._abqClearBound=true;['input','change'].forEach(t=>document.addEventListener(t,e=>{let el=e.target;if(!el||!el.closest||!el.closest('.abq,.acard,.ux-fc'))return;if(el.classList&&el.classList.contains('unit-sel')){const w=el.closest('.unit-combo');el=w&&w.querySelector('.unit-txt');if(!el)return;}if(el.style&&el.style.borderColor&&String(el.value||'').trim())el.style.borderColor='';}));}
 function fcQPrev(){if(S._fcFromHub&&(S._fcQ||0)<=(S._fcDoor==='TA'?1:0)){fcBackToLanding();return;}S._fcQ=Math.max(0,(S._fcQ||0)-1);renderFcForm();window.scrollTo({top:0,behavior:'smooth'});}
 function fcToDetails(){S.fc.stage='details';S._fcQ=2;renderFcForm();window.scrollTo({top:0,behavior:'smooth'});}
 
@@ -2565,6 +2578,10 @@ function fcToggleMatCollapse(mid){
   const row=document.getElementById('fcmr-'+mid);
   if(row)row.outerHTML=fcMatRowHtml(m,idx);
 }
+// Forecast material fields 1-5 (all labelled *).
+function fcMatMissing(m){return !String(m.precinctLocation||'').trim()||!String(m.yearBuilt||'').trim()||!String(m.assetName||'').trim()||!m.detail||!String(m.vol||'').trim()||!m.stat||(m.detail==='Other'&&!String(m.detailOther||'').trim());}
+// Red border on an empty required forecast field, once a Save has failed on this forecast.
+function fcMiss(v){return (S._fcShowErr&&S.fc&&S.fc.draft&&S._fcShowErr===S.fc.draft.id&&!String(v||'').trim())?' style="border-color:#dc2626"':'';}
 function fcMatRowHtml(m,idx){
   if(document.getElementById('frp-view'))return fcRpRowHtml(m,idx);
   const showOther=m.detail==='Other';
@@ -2585,18 +2602,18 @@ function fcMatRowHtml(m,idx){
   const fcUnitOther=!!fcUnit&&!VOLS.includes(fcUnit);
   const summaryLine=[m.precinctLocation,m.assetName,m.detail==='Other'?m.detailOther:m.detail,m.vol?(m.vol+(m.vunit?' '+m.vunit:'')):'',m.stat].filter(Boolean).map(esc).join(' &middot; ')||'No details yet';
   const detailFields=expanded
-    ?('<div class="fg"><label><span class="qn">1</span>Precinct location <span class="req">*</span></label><input type="text" data-mid="'+m.id+'" data-f="precinctLocation" value="'+esc(m.precinctLocation)+'" placeholder="e.g. New Balance/ GSO" onblur="fcUpMat(this)"></div>'
+    ?('<div class="fg"><label><span class="qn">1</span>Precinct location <span class="req">*</span></label><input type="text" data-mid="'+m.id+'" data-f="precinctLocation"'+fcMiss(m.precinctLocation)+' value="'+esc(m.precinctLocation)+'" placeholder="e.g. New Balance/ GSO" onblur="fcUpMat(this)"></div>'
       +'<div style="display:flex;gap:8px;align-items:flex-end">'
-      +'<div class="fg" style="flex:1;margin-bottom:0"><label><span class="qn">2</span>Description of asset/ materials <span class="req">*</span></label><input type="text" data-mid="'+m.id+'" data-f="assetName" value="'+esc(m.assetName)+'" placeholder="Activation facades/ photo wall" onblur="fcUpMat(this)"></div>'
-      +'<div class="fg" style="width:180px;margin-bottom:0"><label>Which event year did you build this asset <span class="req">*</span></label><input type="text" data-mid="'+m.id+'" data-f="yearBuilt" value="'+esc(m.yearBuilt)+'" placeholder="e.g. 2023" onblur="fcUpMat(this)"></div>'
+      +'<div class="fg" style="flex:1;margin-bottom:0"><label><span class="qn">2</span>Description of asset/ materials <span class="req">*</span></label><input type="text" data-mid="'+m.id+'" data-f="assetName"'+fcMiss(m.assetName)+' value="'+esc(m.assetName)+'" placeholder="Activation facades/ photo wall" onblur="fcUpMat(this)"></div>'
+      +'<div class="fg" style="width:180px;margin-bottom:0"><label>Which event year did you build this asset <span class="req">*</span></label><input type="text" data-mid="'+m.id+'" data-f="yearBuilt"'+fcMiss(m.yearBuilt)+' value="'+esc(m.yearBuilt)+'" placeholder="e.g. 2023" onblur="fcUpMat(this)"></div>'
       +'</div>'
-      +'<div class="fg"><label><span class="qn">3</span>Material details <span class="req">*</span></label><select data-mid="'+m.id+'" data-f="detail" onchange="fcUpMat(this)">'+fcMatOptsHtml(m.detail)+'</select></div>'
-      +(showOther?'<div class="fg"><label>If other, list below <span class="req">*</span></label><input type="text" data-mid="'+m.id+'" data-f="detailOther" value="'+esc(m.detailOther)+'" placeholder="Describe the material" onblur="fcUpMat(this)"></div>':'')
+      +'<div class="fg"><label><span class="qn">3</span>Material details <span class="req">*</span></label><select data-mid="'+m.id+'" data-f="detail"'+fcMiss(m.detail)+' onchange="fcUpMat(this)">'+fcMatOptsHtml(m.detail)+'</select></div>'
+      +(showOther?'<div class="fg"><label>If other, list below <span class="req">*</span></label><input type="text" data-mid="'+m.id+'" data-f="detailOther"'+fcMiss(m.detailOther)+' value="'+esc(m.detailOther)+'" placeholder="Describe the material" onblur="fcUpMat(this)"></div>':'')
       +'<div style="display:flex;gap:8px;align-items:flex-end">'
-      +'<div class="fg" style="flex:1;margin-bottom:0"><label><span class="qn">4</span>Expected volume <span class="req">*</span></label><input type="text" data-mid="'+m.id+'" data-f="vol" value="'+esc(m.vol)+'" placeholder="10/ 20/ 100" onblur="fcUpMat(this)"></div>'
+      +'<div class="fg" style="flex:1;margin-bottom:0"><label><span class="qn">4</span>Expected volume <span class="req">*</span></label><input type="text" data-mid="'+m.id+'" data-f="vol"'+fcMiss(m.vol)+' value="'+esc(m.vol)+'" placeholder="10/ 20/ 100" onblur="fcUpMat(this)"></div>'
       +'<div class="fg unit-fg" style="width:200px;margin-bottom:0"><label>Unit</label><div class="unit-combo"><select class="unit-sel" tabindex="-1" aria-label="Choose unit" data-mid="'+m.id+'" onchange="fcPickUnit(this)"><option value=""'+(fcUnit?'':' selected')+'></option>'+VOLS.map(v=>'<option'+(!fcUnitOther&&v===fcUnit?' selected':'')+'>'+esc(v)+'</option>').join('')+'<option value="Other"'+(fcUnitOther?' selected':'')+'>Other</option></select><input type="text" class="unit-txt" id="fc-unit-txt-'+m.id+'" data-mid="'+m.id+'" data-f="vunit" value="'+esc(fcUnit)+'" autocomplete="off" onblur="fcTypeUnit(this)"></div></div>'
       +'</div>'
-      +'<div class="fg" style="margin-top:8px"><label><span class="qn">5</span>Expected status <span class="req">*</span></label><select class="stat-sel" data-tone="'+statTone(m.stat)+'" data-mid="'+m.id+'" data-f="stat" onchange="fcUpMat(this)">'+mkOpts(STATS,m.stat,'Select status...')+'</select></div>'
+      +'<div class="fg" style="margin-top:8px"><label><span class="qn">5</span>Expected status <span class="req">*</span></label><select class="stat-sel" data-tone="'+statTone(m.stat)+'" data-mid="'+m.id+'" data-f="stat"'+fcMiss(m.stat)+' onchange="fcUpMat(this)">'+mkOpts(STATS,m.stat,'Select status...')+'</select></div>'
       +((isUpdate||fcMatIsSaved(m))?'<div class="fc-del-row">'+(fcMatIsSaved(m)?'<button type="button" class="asset-del" onclick="fcConfirmDelMaterial(&#39;'+m.id+'&#39;)">Delete material</button>':'')+(isUpdate?'<button type="button" onclick="fcToggleMatCollapse(&#39;'+m.id+'&#39;)" style="margin-left:auto;background:none;border:none;color:#0091D2;font-size:12px;font-weight:700;cursor:pointer;text-decoration:underline">Collapse forecast details</button>':'')+'</div>':''))
     :('<div class="fg" style="margin-bottom:10px"><div style="display:flex;align-items:center;gap:8px;background:#F7F6F2;border-radius:8px;padding:9px 12px;font-size:12px;color:#555"><span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">1&ndash;5. '+summaryLine+'</span>'+(m.stat?fcStatTag(m.stat):'')+'<button type="button" onclick="fcToggleMatCollapse(&#39;'+m.id+'&#39;)" style="background:none;border:none;color:#0091D2;font-weight:700;cursor:pointer;font-size:12px;flex-shrink:0">Edit</button></div></div>');
   return'<div class="mat-row" id="fcmr-'+m.id+'">'
@@ -2634,8 +2651,8 @@ function fcHazardBlockHtml(){
   const showDetail=val==='Yes'||val==='Unsure yet';
   let h='<div class="fg" id="fc-hazard-block">';
   h+='<label>Will you have large structures or hazardous materials that will go in onsite bins on bump out? *</label>';
-  h+='<select data-f="largeStructures" onchange="fcHazardChange(this)"><option value="">Select...</option>'+mkOpts(['Yes','No','Unsure yet'],val)+'</select>';
-  if(showDetail)h+='<textarea rows="2" style="margin-top:8px" data-f="hazardousDetail" onblur="fcUpNotes(this)" placeholder="Please provide details">'+esc(fc.notes.hazardousDetail)+'</textarea>';
+  h+='<select data-f="largeStructures"'+fcMiss(val)+' onchange="fcHazardChange(this)"><option value="">Select...</option>'+mkOpts(['Yes','No','Unsure yet'],val)+'</select>';
+  if(showDetail)h+='<textarea rows="2" style="margin-top:8px'+(fcMiss(fc.notes.hazardousDetail)?';border-color:#dc2626':'')+'" data-f="hazardousDetail" onblur="fcUpNotes(this)" placeholder="Please provide details *">'+esc(fc.notes.hazardousDetail)+'</textarea>';
   h+='</div>';
   return h;
 }
@@ -2705,15 +2722,30 @@ function fcDelMaterial(mid){
 async function fcSaveForecast(){
   const fc=S.fc.draft;
   const p=fc.profile;
-  if(!p.org||(!p.website&&!fcIsTA(p))||!p.project||!p.role||!p.contactName||!p.contactEmail){showToast((fcIsTA(p)?'Please complete department, project, role, contact name and email.':'Please complete organisation, website, project, role, contact name and email.'));return;}
+  if(!p.org||(!p.website&&!fcIsTA(p))||!p.project||!p.role||!p.eventYear||!p.contactName||!p.contactEmail){showToast((fcIsTA(p)?'Please complete department, project, role, event year, contact name and email.':'Please complete organisation, website, project, role, event year, contact name and email.'));return;}
   if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(p.contactEmail)){showToast('Please enter a valid contact email.');return;}
   const t=fc.targets;
   if(!t.reuseTarget||!t.wasteTarget||!t.disposedPct||!t.circPractices){showToast('Please complete all 4 questions in Targets & practices.');return;}
-  const missingMat=fc.materials.find(m=>!m.precinctLocation||!m.yearBuilt||!m.assetName||!m.detail||!m.vol||!m.stat||(m.detail==='Other'&&!m.detailOther));
-  if(missingMat){showToast('Please complete precinct location, event year built, description of asset/ materials, material details, expected volume and expected status for every material.');return;}
+  const missingMats=fc.materials.filter(fcMatMissing);
+  const hzNeedDetail=fc.notes.largeStructures==='Yes'||fc.notes.largeStructures==='Unsure yet';
+  const notesBad=!fc.notes.largeStructures||(hzNeedDetail&&!String(fc.notes.hazardousDetail||'').trim())||!fc.notes.circularHero;
+  if(missingMats.length||notesBad){
+    // Flag every empty * field in red, and open any collapsed material that has one.
+    S._fcShowErr=fc.id;
+    if(!S._fcExpanded)S._fcExpanded={};
+    missingMats.forEach(m=>{S._fcExpanded[m.id]=true;});
+    const wrap=document.getElementById('fc-mats');
+    if(wrap){let h='';fc.materials.forEach((m,i)=>{h+=fcMatRowHtml(m,i);});wrap.innerHTML=h;}
+    const hb=document.getElementById('fc-hazard-block');if(hb)hb.outerHTML=fcHazardBlockHtml();
+    const ch=document.querySelector('.ux-fc select[data-f="circularHero"]');if(ch)ch.style.borderColor=fc.notes.circularHero?'':'#dc2626';
+    const first=document.querySelector('.ux-fc [style*="border-color:#dc2626"],.ux-fc [style*="border-color: rgb(220, 38, 38)"]');
+    if(first&&first.scrollIntoView)first.scrollIntoView({behavior:'smooth',block:'center'});
+  }
+  if(missingMats.length){showToast('Please complete precinct location, event year built, description of asset/ materials, material details, expected volume and expected status for every material.');return;}
   if(!fc.notes.largeStructures){showToast('Please answer whether you will have large structures or hazardous materials in onsite bins.');return;}
-  if((fc.notes.largeStructures==='Yes'||fc.notes.largeStructures==='Unsure yet')&&!fc.notes.hazardousDetail){showToast('Please provide details on the large structures or hazardous materials.');return;}
+  if(hzNeedDetail&&!String(fc.notes.hazardousDetail||'').trim()){showToast('Please provide details on the large structures or hazardous materials.');return;}
   if(!fc.notes.circularHero){showToast('Please let us know if you\'d like to profile your circular hero story.');return;}
+  S._fcShowErr=null;
   const btn=document.getElementById('fc-save-forecast-btn');
   if(btn){btn.disabled=true;btn.textContent='Saving...';}
   // "Actuals logged" (and the Event report framing on the summary page) is only
@@ -2816,7 +2848,7 @@ async function fcRetrieve(){
   const btn=document.querySelector('#fc-retrieve-input').nextElementSibling;
   if(!inp)return;
   const code=inp.value.trim().toUpperCase();
-  if(!/^AO27-FC-[A-Z0-9]{4}(-[A-Z0-9]{4})?$/.test(code.replace(/\s/g,''))){if(msg){msg.textContent='Enter a full TA-ID (format: AO27-FC-XXXX-XXXX)';msg.style.color='#A32D2D';}return;}
+  if(code.length<12){if(msg){msg.textContent='Enter a full TA-ID (format: AO27-FC-XXXX)';msg.style.color='#A32D2D';}return;}
   if(msg){msg.textContent=SUPABASE_READY?'Searching cloud...':'Searching local forecasts...';msg.style.color='#888';}
   if(btn){btn.disabled=true;btn.textContent='Loading...';}
   try{
@@ -2884,7 +2916,7 @@ function fcRemoveEvidence(mid){
 function fcEvidenceBlock(m){
   const hasImg=!!m.evidence;
   const thumb=hasImg
-    ? '<img src="'+esc(safeUrl(m.evidence))+'" alt="Evidence photo" style="width:74px;height:74px;object-fit:cover;border-radius:8px;border:1px solid #dde2e8;display:block;flex-shrink:0">'
+    ? '<img src="'+m.evidence+'" alt="Evidence photo" style="width:74px;height:74px;object-fit:cover;border-radius:8px;border:1px solid #dde2e8;display:block;flex-shrink:0">'
     : '<div style="width:74px;height:74px;border-radius:8px;border:1.5px dashed #d0cdc7;background:#faf9f7;display:flex;align-items:center;justify-content:center;color:#c4c0b8;font-size:22px;flex-shrink:0">&#9634;</div>';
   const btnStyle='font-size:11.5px;font-weight:600;padding:6px 12px;border-radius:7px;cursor:pointer;border:1px solid #d0cdc7;background:#fff;color:#555;font-family:inherit;width:auto';
   let btns='<input type="file" accept="image/*" id="fc-ev-'+m.id+'" style="display:none" onchange="fcUploadEvidence(this,&#39;'+m.id+'&#39;)">';
@@ -3036,9 +3068,9 @@ function renderAdmin(){
   const pb=document.getElementById('page-body-wrap');
   if(pb)pb.style.padding='1.25rem 1rem 2rem';
 
-  // Password gate — the password is checked server-side by admin_check / admin_list_*
-  // (with lockout). No password is stored in this file.
-  if(!adminKey()){
+  // Password gate — the password is validated server-side (see buildAdminClient
+  // / dashboard_authed RLS policy). No password is stored in this file.
+  if(!sessionStorage.getItem(ADMIN_KEY_SS)){
     let h='<div class="admin-login">';
     h+='<h3>Admin Dashboard</h3>';
     h+='<p>Restricted access. Enter the dashboard password to view all submitted plans.</p>';
@@ -3196,13 +3228,17 @@ function renderAdminUpload(){
   refreshRollForward();
 }
 
-// Look up a plan by code for the admin Upload tab (password-checked admin_get_plan).
+// Look up a plan by code using the ADMIN client. The dashboard's RLS policy requires
+// the x-dashboard-key header, so the plain anon client returns nothing here — which
+// made the target lookup silently find no plan.
 async function adminLoadPlanByCode(code){
   const want=String(code||'').trim().toUpperCase();
-  if(sb){
-    const{data,error}=await adminRpc('admin_get_plan',{p_code:want});
+  const client=ensureAdminClient();
+  if(client){
+    const{data,error}=await client.from('plans').select('data').eq('plan_code',want).limit(1);
     if(error)throw new Error(error.message);
-    return data?sanitizeIds(data):null;
+    if(data&&data.length&&data[0].data)return data[0].data;
+    return null;
   }
   return storageLoadAll().find(p=>planCode(p.id)===want)||null;
 }
@@ -3276,16 +3312,21 @@ async function loadAdminPlans(){
   // result — and must NOT blend in this browser's localStorage, otherwise
   // stale/deleted plans (and the example plan) reappear and Supabase deletions
   // never show up in the dashboard.
-  // Reads go through admin_list_plans, which checks the dashboard password server-side;
-  // without a valid password it returns zero rows.
-  if(sb){
-    const{data,error}=await adminRpc('admin_list_plans');
+  // Reads go through the admin client, which carries the x-dashboard-key header
+  // required by the dashboard_authed() RLS policy. Without a valid password the
+  // database returns zero rows, so the gate is enforced server-side.
+  const client = ensureAdminClient();
+  if(client){
+    const{data,error}=await client.from('plans')
+      .select('data,updated_at')
+      .order('updated_at',{ascending:false})
+      .limit(300);
     if(error){
       // Surface the failure instead of silently falling back to local data.
       throw new Error('CLOUD_LOAD_FAILED: '+error.message);
     }
     // Return cloud rows verbatim (an empty array is a valid, authoritative answer).
-    return (data||[]).map(row=>sanitizeIds(row.data)).filter(Boolean);
+    return (data||[]).map(row=>row.data).filter(Boolean);
   }
   // Only when Supabase was never configured do we use local storage.
   return storageLoadAll();
@@ -3360,7 +3401,7 @@ function renderAdminDashboard(rawPlans){
     h+='<button style="'+tabStyle(selYear==="all")+'" onclick="sessionStorage.setItem(&quot;adminYear&quot;,&quot;all&quot;);loadAdminPlansInto()">All years ('+allPlans.length+')</button>';
     for(const yr of years){
       const cnt=allPlans.filter(p=>(p.profile&&p.profile.aoYear?p.profile.aoYear:'Unknown')===yr).length;
-      h+='<button style="'+tabStyle(selYear===yr)+'" data-y="'+esc(yr)+'" onclick="sessionStorage.setItem(&quot;adminYear&quot;,this.dataset.y);loadAdminPlansInto()">'+esc(yr)+' ('+cnt+')</button>';
+      h+='<button style="'+tabStyle(selYear===yr)+'" onclick="sessionStorage.setItem(&quot;adminYear&quot;,&quot;'+yr+'&quot;);loadAdminPlansInto()">'+esc(yr)+' ('+cnt+')</button>';
     }
     h+='</div></div>';
   }
@@ -3564,12 +3605,16 @@ function renderAdminDashboard(rawPlans){
 // admin-hero, admin-section, .metg/.met, .insight-card/.insight-row/.insight-bar,
 // .admin-table — so it reads as the same dashboard, just a different dataset) ──
 async function loadAdminForecasts(){
-  if(sb){
-    const{data,error}=await adminRpc('admin_list_forecasts');
+  const client=ensureAdminClient();
+  if(client){
+    const{data,error}=await client.from('forecasts')
+      .select('data,updated_at')
+      .order('updated_at',{ascending:false})
+      .limit(300);
     if(error){
       throw new Error('CLOUD_LOAD_FAILED: '+error.message);
     }
-    return (data||[]).map(row=>sanitizeIds(row.data)).filter(Boolean);
+    return (data||[]).map(row=>row.data).filter(Boolean);
   }
   return fcStorageLoadAll();
 }
@@ -3631,7 +3676,7 @@ function renderAdminFcDashboard(rawForecasts){
     h+='<button style="'+tabStyle(selYear==="all")+'" onclick="sessionStorage.setItem(&quot;adminFcYear&quot;,&quot;all&quot;);loadAdminForecastsInto()">All years ('+allFc.length+')</button>';
     for(const yr of years){
       const cnt=allFc.filter(f=>(f.profile&&f.profile.eventYear?f.profile.eventYear:'Unknown')===yr).length;
-      h+='<button style="'+tabStyle(selYear===yr)+'" data-y="'+esc(yr)+'" onclick="sessionStorage.setItem(&quot;adminFcYear&quot;,this.dataset.y);loadAdminForecastsInto()">'+esc(yr)+' ('+cnt+')</button>';
+      h+='<button style="'+tabStyle(selYear===yr)+'" onclick="sessionStorage.setItem(&quot;adminFcYear&quot;,&quot;'+yr+'&quot;);loadAdminForecastsInto()">'+esc(yr)+' ('+cnt+')</button>';
     }
     h+='</div></div>';
   }
@@ -3810,12 +3855,15 @@ function exportAdminFcCSV(){
 
 function adminSignOut(){
   sessionStorage.removeItem(ADMIN_KEY_SS);
-  sessionStorage.removeItem(ADMIN_SEEN_SS);
+  sbAdmin=null;
   renderAdmin();
 }
 
-// Validate the typed dashboard password with admin_check (server-side hash check with
-// lockout after repeated failures). No password is stored in this file.
+// Validate the typed dashboard password by attempting a gated read against
+// Supabase. The dashboard_authed() RLS policy returns rows only when the
+// x-dashboard-key header matches the hashed password stored server-side, so a
+// successful query (no error) proves the password is correct. No password is
+// stored in this file.
 async function checkAdminPin(){
   const val=document.getElementById('admin-pin');
   const msg=document.getElementById('admin-login-msg');
@@ -3834,16 +3882,19 @@ async function checkAdminPin(){
   if(btn){btn.disabled=true;btn.textContent='Checking...';}
   if(msg){msg.style.color='#888';msg.textContent='Checking password...';}
 
+  const probe=buildAdminClient(key);
   try{
-    const{data,error}=await sb.rpc('admin_check',{p_key:key});
+    // HEAD count request: returns a count when the gate passes, 0 rows / no
+    // error is also a pass (valid empty table). A wrong password trips the RLS
+    // policy and Supabase returns an error, which we treat as "denied".
+    const{error}=await probe.from('plans').select('id',{count:'exact',head:true});
     if(error) throw error;
-    if(data!==true) throw new Error('denied');
+    // Password accepted — persist for the session and promote the admin client.
     sessionStorage.setItem(ADMIN_KEY_SS, key);
-    sessionStorage.setItem(ADMIN_SEEN_SS, String(Date.now()));
+    sbAdmin=probe;
     renderAdmin();
   }catch(err){
-    const locked=/locked/i.test(String(err&&err.message));
-    if(msg){msg.style.color='#A32D2D';msg.textContent=locked?'Too many attempts — try again in 15 minutes.':'Incorrect password.';}
+    if(msg){msg.style.color='#A32D2D';msg.textContent='Incorrect password.';}
     if(val){val.style.borderColor='#dc2626';val.value='';val.focus();}
     if(btn){btn.disabled=false;btn.textContent='Access dashboard';}
   }
@@ -3896,7 +3947,7 @@ function renderFAQ(){
     },
     {
       q:'How do I start with Circular Design?',
-      a:'There are two parts to the recommended materials and methods. The first covers recommended materials and suppliers with preferred pricing. The second covers responsible practices that reduce waste and increase reuse - such as modular design and design for disassembly (DfD).\n\nReview the <a href="'+MATERIALS_METHODS_URL+'" target="_blank" style="color:#0091D2">AO Target Materials &amp; Responsible Methods</a> and start with the top 3 waste categories: Wood/Timber, Cladding &amp; Facades, and Flooring.',
+      a:'There are two parts to the recommended materials and methods. The first covers recommended materials and suppliers with preferred pricing. The second covers responsible practices that reduce waste and increase reuse - such as modular design and design for disassembly (DfD).\n\nReview the <a href="https://megtei.github.io/Materials_Methods_Plan/" target="_blank" style="color:#0091D2">AO Target Materials &amp; Responsible Methods</a> and start with the top 3 waste categories: Wood/Timber, Cladding &amp; Facades, and Flooring.',
       tip:null
     },
     {
@@ -3963,7 +4014,7 @@ function renderFAQ(){
   }
   h+='</div>';
   h+='<div style="padding:0 0 1.5rem"><div style="background:#E6F1FB;border-radius:12px;padding:13px 15px;font-size:12.5px;color:#0091D2;line-height:1.7;margin-bottom:1rem">';
-  h+='Have a question not covered here? Contact your TA project lead or visit the <a href="'+MATERIALS_METHODS_URL+'" target="_blank" style="font-weight:600;color:#0091D2">AO Target Materials &amp; Responsible Methods &#8599;</a>';
+  h+='Have a question not covered here? Contact your TA project lead or visit the <a href="https://megtei.github.io/Materials_Methods_Plan/" target="_blank" style="font-weight:600;color:#0091D2">AO Target Materials &amp; Responsible Methods &#8599;</a>';
   h+='</div></div>';
   document.getElementById('main').innerHTML=h;
 }
@@ -4165,10 +4216,16 @@ function abqShow(q){
   const bk=abqEl('abq-back');if(bk)bk.style.visibility=(q>0&&!S._abAll)?'visible':'hidden';
   if(S._abAll&&f)f.style.width='100%';
 }
-function abqLenient(){
-  const roleVal=abqVal('p-role');
-  return TA_ROLES.includes(roleVal)||S.plan.roleType==='TA'||S.plan.imported||S.plan._example;
-}
+// Every field labelled * is mandatory for every plan — TA, external and imported alike.
+// Only the example/demo plan (which can never be saved) is exempt.
+function planLenient(){return !!(S.plan&&S.plan._example);}
+function abqLenient(){return planLenient();}
+// Business name is a hidden field (no *) on TA-type plans — the department stands in for it.
+function planNeedsBiz(){return !(S.plan&&S.plan.roleType==='TA');}
+// Unit carries a * on every plan except TA-type plans.
+function planNeedsUnit(){return !(S.plan&&S.plan.roleType==='TA');}
+// Red border on an empty required plan field, once a Next has failed on this plan.
+function planMiss(v){return (S._planShowErr&&S.plan&&S._planShowErr===S.plan.id&&!String(v||'').trim())?' style="border-color:#dc2626"':'';}
 // Per-question check mirrors saveAbout()'s required list and email rule, scoped to the
 // fields on the current panel. saveAbout() still runs in full on the last question.
 const ABQ_REQ={
@@ -4180,6 +4237,7 @@ function abqCheck(q){
   const box=abqEl('about-errors');
   let req=(ABQ_REQ[q]||[]).slice();
   if(q===0&&TA_ROLES.includes(abqVal('p-role')))req.push({id:'p-dept',label:'Department'});
+  if(q===1&&!planNeedsBiz())req=req.filter(f=>f.id!=='p-biz');
   if(abqLenient())req=[];
   const missing=[];
   req.forEach(f=>{const el=abqEl(f.id);if(el)el.style.borderColor='';if(!abqVal(f.id)){missing.push(f.label);if(el)el.style.borderColor='#dc2626';}});
@@ -4262,11 +4320,11 @@ function saveAbout(){
   const g=id=>{const e=document.getElementById(id);return e?e.value.trim():''};
 
   const roleVal=document.getElementById('p-role')?document.getElementById('p-role').value:'';
-  // Mandatory fields OFF for TA branch and example/demo plans; Agency/Builder/Partner stay required.
-  const lenient=TA_ROLES.includes(roleVal)||S.plan.roleType==='TA'||S.plan.imported||S.plan._example;
+  // Every * field is mandatory (TA, external and imported); only the example/demo plan is exempt.
+  const lenient=planLenient();
   const fields=lenient?[]:[
     {id:'p-date',   label:'Date'},
-    {id:'p-biz',    label:'Business name'},
+    ...(planNeedsBiz()?[{id:'p-biz',label:'Business name'}]:[]),
     {id:'p-own',    label:'Plan owner / Contact'},
     {id:'p-email',  label:'Contact email'},
     {id:'p-role',   label:'Role in AO design & build'},
@@ -5128,8 +5186,8 @@ function imgSlotBlock(a,slot,label){
   const url=a[F.url],ref=a[F.ref];
   const hasImg=!!url;
   const thumb=hasImg
-    ? '<a href="'+esc(safeUrl(url))+'" target="_blank" rel="noopener" style="flex-shrink:0;display:block">'
-      +'<img src="'+esc(safeUrl(url))+'" alt="'+esc(ref||label)+'" '
+    ? '<a href="'+esc(url)+'" target="_blank" rel="noopener" style="flex-shrink:0;display:block">'
+      +'<img src="'+esc(url)+'" alt="'+esc(ref||label)+'" '
       +'style="width:74px;height:74px;object-fit:cover;border-radius:8px;border:1px solid #dde2e8;display:block"></a>'
     : '<div style="width:74px;height:74px;border-radius:8px;border:1.5px dashed #d0cdc7;background:#faf9f7;display:flex;align-items:center;justify-content:center;color:#c4c0b8;font-size:22px;flex-shrink:0">&#9634;</div>';
   const btnStyle='font-size:11.5px;font-weight:600;padding:6px 12px;border-radius:7px;cursor:pointer;border:1px solid #d0cdc7;background:#fff;color:#555;font-family:inherit;width:auto';
@@ -5186,7 +5244,7 @@ function assetCard(a,i){
   const _appCustom=_appVal&&!_appList.some(o=>o.toLowerCase()===_appVal.toLowerCase());
   const f4=_m0?`<div class="fg">
         <label><span class="qn">4</span>Precinct application <span class="req">*</span></label>
-        <select data-aid="${a.id}" data-mid="${_m0.id}" data-f="app" onchange="upAssetMat(this)"><option value="">Select application...</option>${_appCustom?`<option value="${esc(_appVal)}" selected>${esc(_appVal)}</option>`:''}${mkOpts(_appList,(_appList.find(o=>o.toLowerCase()===_appVal.toLowerCase())||_appVal))}</select>
+        <select data-aid="${a.id}" data-mid="${_m0.id}" data-f="app"${planMiss(_appVal)} onchange="upAssetMat(this)"><option value="">Select application...</option>${_appCustom?`<option value="${esc(_appVal)}" selected>${esc(_appVal)}</option>`:''}${mkOpts(_appList,(_appList.find(o=>o.toLowerCase()===_appVal.toLowerCase())||_appVal))}</select>
       </div>`:'';
   const f5=`<div class="fg">
         <label><span class="qn">5</span>Year built</label>
@@ -5200,11 +5258,11 @@ function assetCard(a,i){
       <div class="g2" style="margin-bottom:0">
         <div class="fg">
           <label><span class="qn">1</span>AO Location / Precinct <span class="req">*</span></label>
-          <input type="text" list="prec-list" autocomplete="off" data-aid="${a.id}" data-f="prec" value="${esc(a.prec)}" placeholder="e.g. New Balance/ GSO" onblur="upAsset(this)">
+          <input type="text" list="prec-list" autocomplete="off" data-aid="${a.id}" data-f="prec"${planMiss(a.prec)} value="${esc(a.prec)}" placeholder="e.g. New Balance/ GSO" onblur="upAsset(this)">
         </div>
         <div class="fg">
           <label><span class="qn">2</span>Asset / item name <span class="req">*</span></label>
-          <input type="text" data-aid="${a.id}" data-f="assetName" value="${esc(a.assetName)}" placeholder="Activation facades/ photo wall" onblur="upAsset(this)">
+          <input type="text" data-aid="${a.id}" data-f="assetName"${planMiss(a.assetName)} value="${esc(a.assetName)}" placeholder="Activation facades/ photo wall" onblur="upAsset(this)">
         </div>
       </div>
 
@@ -5262,8 +5320,8 @@ function matRowHtml(aid,m,idx){
     <div class="mt-ed${_open?' on':''}" id="mte-${m.id}">
 
     <div class="fg">
-      <label><span class="qn">6</span>Material details <span class="req">*</span><span class="name-sub-label">Select from AO Target Materials List (<a href="${MATERIALS_METHODS_URL}" target="_blank" style="color:#0091D2;font-weight:700">view full list &#8599;</a>) or tell us at 6a</span></label>
-      <select data-aid="${aid}" data-mid="${m.id}" data-f="tmlRef" onchange="pickAssetMatTML(this)">
+      <label><span class="qn">6</span>Material details <span class="req">*</span><span class="name-sub-label">Select from AO Target Materials List (<a href="https://megtei.github.io/Materials_Methods_Plan/" target="_blank" style="color:#0091D2;font-weight:700">view full list &#8599;</a>) or tell us at 6a</span></label>
+      <select data-aid="${aid}" data-mid="${m.id}" data-f="tmlRef"${planMiss(m.tmlRef)} onchange="pickAssetMatTML(this)">
         <option value="">- Select material -</option>
         <option value="OTHER"${m.tmlRef==='OTHER'?' selected':''}>Not AO target material \u2013 go to 6a</option>
         <option value="" disabled style="color:#ccc">\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500</option>
@@ -5273,15 +5331,15 @@ function matRowHtml(aid,m,idx){
     </div>
     <div class="fg" id="f7-${m.id}"${showF7?'':' style="display:none"'}>
       <label><span class="qn sm">6a</span>If not on the AO target materials list, provide material name here <span class="req">*</span></label>
-      <input type="text" data-aid="${aid}" data-mid="${m.id}" data-f="name" value="${esc(m.name)}" placeholder="Describe the material" onblur="upAssetMat(this)">
+      <input type="text" data-aid="${aid}" data-mid="${m.id}" data-f="name"${m.tmlRef==='OTHER'?planMiss(m.name):''} value="${esc(m.name)}" placeholder="Describe the material" onblur="upAssetMat(this)">
     </div>
     <div style="display:flex;gap:8px;align-items:flex-end">
-      <div class="fg" style="flex:1;margin-bottom:0"><label><span class="qn">7</span>Volume (estimate) <span class="req">*</span></label><input type="text" data-aid="${aid}" data-mid="${m.id}" data-f="vol" value="${esc(m.vol)}" onblur="upAssetMat(this)"></div>
-      <div class="fg unit-fg" style="width:130px;margin-bottom:0"><label>Unit${S.plan.roleType==='TA'?'':' <span class="req">*</span>'}</label><div class="unit-combo"><select class="unit-sel" tabindex="-1" aria-label="Choose unit" data-aid="${aid}" data-mid="${m.id}" onchange="pickUnit(this)"><option value=""${vunitVal?'':' selected'}></option>${VOLS.map(v=>`<option${!unitIsOther&&v===vunitVal?' selected':''}>${esc(v)}</option>`).join('')}<option value="Other"${unitIsOther?' selected':''}>Other</option></select><input type="text" class="unit-txt" id="unit-txt-${m.id}" data-aid="${aid}" data-mid="${m.id}" data-f="vunit" value="${esc(vunitVal)}" autocomplete="off" onblur="typeUnit(this)"></div></div>
+      <div class="fg" style="flex:1;margin-bottom:0"><label><span class="qn">7</span>Volume (estimate) <span class="req">*</span></label><input type="text" data-aid="${aid}" data-mid="${m.id}" data-f="vol"${planMiss(m.vol)} value="${esc(m.vol)}" onblur="upAssetMat(this)"></div>
+      <div class="fg unit-fg" style="width:130px;margin-bottom:0"><label>Unit${S.plan.roleType==='TA'?'':' <span class="req">*</span>'}</label><div class="unit-combo"><select class="unit-sel" tabindex="-1" aria-label="Choose unit" data-aid="${aid}" data-mid="${m.id}" onchange="pickUnit(this)"><option value=""${vunitVal?'':' selected'}></option>${VOLS.map(v=>`<option${!unitIsOther&&v===vunitVal?' selected':''}>${esc(v)}</option>`).join('')}<option value="Other"${unitIsOther?' selected':''}>Other</option></select><input type="text" class="unit-txt" id="unit-txt-${m.id}" data-aid="${aid}" data-mid="${m.id}" data-f="vunit"${planNeedsUnit()?planMiss(vunitVal):''} value="${esc(vunitVal)}" autocomplete="off" onblur="typeUnit(this)"></div></div>
     </div>
     <div class="fg" style="margin-top:8px">
       <label><span class="qn">8</span>Expected material status at end of event <span class="req">*</span></label>
-      <select class="stat-sel" data-tone="${statTone(m.stat)}" data-aid="${aid}" data-mid="${m.id}" data-f="stat" onchange="upAssetMat(this);this.dataset.tone=statTone(this.value)">${mkOpts(STATS,m.stat,'Select status...')}</select>
+      <select class="stat-sel" data-tone="${statTone(m.stat)}" data-aid="${aid}" data-mid="${m.id}" data-f="stat"${planMiss(m.stat)} onchange="upAssetMat(this);this.dataset.tone=statTone(this.value)">${mkOpts(STATS,m.stat,'Select status...')}</select>
     </div>
     <div class="fg f7-box">
       <label><span class="qn gy">9</span>Actual outcome<span class="f7-tag">complete post-event</span></label>
@@ -5308,7 +5366,7 @@ function stepSummary(plan){
   const tmlMats=allMats.filter(m=>m.tmlRef&&m.tmlRef!=='OTHER');
   const customMats=allMats.filter(m=>!m.tmlRef||m.tmlRef==='OTHER');
   const flaggedAssets=assets.filter(a=>a.materials.some(m=>{if(!m.tmlRef||m.tmlRef==='OTHER')return false;const t=TML.find(x=>x.ref===m.tmlRef);return t&&t.status==='no';}));
-  const flaggedBlock=flaggedAssets.length?'<div class="card"><div class="sechd" style="margin-top:0;color:#854F0B">Limit use if possible or seek alternatives ('+flaggedAssets.length+')</div><div style="background:#FAEEDA;border-radius:8px;padding:10px 12px;font-size:13px;color:#854F0B;margin-bottom:12px">Review these assets. Consider switching to AO recommended alternatives where possible. <a href="'+MATERIALS_METHODS_URL+'" target="_blank" style="color:#854F0B;font-weight:700;text-decoration:underline">View AO Target Materials List &#8599;</a></div>'+flaggedAssets.map(a=>{const flagMats=a.materials.filter(m=>{if(!m.tmlRef||m.tmlRef==='OTHER')return false;const t=TML.find(x=>x.ref===m.tmlRef);return t&&t.status==='no';});return'<div class="srow"><span class="bdg am">'+esc(a.assetName||'Asset')+'</span><span style="flex:1;margin:0 8px;color:#555;font-size:12px">'+flagMats.map(m=>esc(m.name||m.tmlRef)).join(', ')+'</span></div>';}).join('')+'</div>':'';
+  const flaggedBlock=flaggedAssets.length?'<div class="card"><div class="sechd" style="margin-top:0;color:#854F0B">Limit use if possible or seek alternatives ('+flaggedAssets.length+')</div><div style="background:#FAEEDA;border-radius:8px;padding:10px 12px;font-size:13px;color:#854F0B;margin-bottom:12px">Review these assets. Consider switching to AO recommended alternatives where possible. <a href="https://megtei.github.io/Materials_Methods_Plan/" target="_blank" style="color:#854F0B;font-weight:700;text-decoration:underline">View AO Target Materials List &#8599;</a></div>'+flaggedAssets.map(a=>{const flagMats=a.materials.filter(m=>{if(!m.tmlRef||m.tmlRef==='OTHER')return false;const t=TML.find(x=>x.ref===m.tmlRef);return t&&t.status==='no';});return'<div class="srow"><span class="bdg am">'+esc(a.assetName||'Asset')+'</span><span style="flex:1;margin:0 8px;color:#555;font-size:12px">'+flagMats.map(m=>esc(m.name||m.tmlRef)).join(', ')+'</span></div>';}).join('')+'</div>':'';
   const assetRows=groupAssetsByApp(assets,assets.map((a,idx2)=>{
     const precLabel=a.prec||'';
     const matList=a.materials.map(m=>{
@@ -5354,7 +5412,7 @@ function stepSummary(plan){
   h+='<div class="card">';
   h+='<div class="sechd" style="margin-top:0">Plan details</div>';
   h+='<div class="g2"><div><div style="font-size:12px;color:#888">Business</div><div style="font-size:14px;font-weight:600;margin-top:2px">'+(esc(p.businessName)||'-')+'</div></div><div><div style="font-size:12px;color:#888">Plan owner</div><div style="font-size:14px;margin-top:2px">'+(esc(p.ownerName)||'-')+'</div></div></div>';
-  h+='<div class="g2" style="margin-top:10px"><div><div style="font-size:12px;color:#888">Role</div><div style="font-size:14px;margin-top:2px">'+(esc(p.role)||'-')+'</div></div><div><div style="font-size:12px;color:#888">Date</div><div style="font-size:14px;margin-top:2px">'+esc(fmtAUDate(p.date))+'</div></div></div>';
+  h+='<div class="g2" style="margin-top:10px"><div><div style="font-size:12px;color:#888">Role</div><div style="font-size:14px;margin-top:2px">'+(esc(p.role)||'-')+'</div></div><div><div style="font-size:12px;color:#888">Date</div><div style="font-size:14px;margin-top:2px">'+fmtAUDate(p.date)+'</div></div></div>';
   const sumCode=planCode(S.plan.id);
   h+='<div class="plan-id-badge">'
     +'<div><div class="plan-id-lbl">Plan ID</div><div class="plan-id-code">'+sumCode+'</div></div>'
@@ -5686,7 +5744,7 @@ function importPlanXLS(input){
           // way a routine spreadsheet update can never silently disconnect a photo.
           const p1=String(photo1Path||'').trim()||(prior&&prior.imagePath)||'';
           const p2=String(photo2Path||'').trim()||(prior&&prior.image2Path)||'';
-          assetMap[key]={id:(prior&&prior.id)||(SAFE_ID_RE.test(String(linkKey||'').trim())?String(linkKey).trim():'')||uid(),expanded:(prior&&prior.expanded)||false,_srcRow:r,serialNumber:clamp(serialNumber,1000),serialNumberNew:clamp(serialNew,1000),assetId:clamp(assetNumRaw,100),
+          assetMap[key]={id:(prior&&prior.id)||String(linkKey||'').trim()||uid(),expanded:(prior&&prior.expanded)||false,_srcRow:r,serialNumber:clamp(serialNumber,1000),serialNumberNew:clamp(serialNew,1000),assetId:clamp(assetNumRaw,100),
             prec:clamp(prec,100),precCustom:(prior&&prior.precCustom)||'',assetName:clamp(assetName,200),desc:clamp(desc,500),
             noOfItems:clamp(noOfItems,30),yearBuilt:clamp(yearBuilt,20),
             builderSupplier:clamp(builder,200),comments:clamp(comments,500),
@@ -5857,7 +5915,7 @@ function importPlanXLS(input){
                   if(k>=0)S.plans[k]=JSON.parse(JSON.stringify(plan));
                   S._unsaved=!(saveRes&&saveRes.ok&&saveRes.source==='cloud');
                   render();
-                  showToast(summary+((saveRes&&saveRes.source==='cloud')?' \u2014 saved to cloud':' \u2014 '+cloudSaveNote(saveRes,'plan')));
+                  showToast(summary+((saveRes&&saveRes.source==='cloud')?' \u2014 saved to cloud':' \u2014 saved locally'));
                 });
               }else{
                 showToast(summary+' \u2014 see console');
@@ -6365,34 +6423,45 @@ if(!window._navDirtyBound){
   },true);
 }
 function confirmLeaveIfUnsaved(proceedFn){
-  // Show inline warning banner on summary page instead of browser dialog
+  // Centred pop-up (same look as the other modals) instead of a bar along the bottom.
+  // Keeps id "unsaved-warn" — savePlan() and the Save now button remove it by that id.
   const existing=document.getElementById('unsaved-warn');
   if(existing){existing.remove();}
-  const warn=document.createElement('div');
-  warn.id='unsaved-warn';
-  warn.style.cssText='position:fixed;bottom:0;left:0;right:0;z-index:998;background:#FAEEDA;border-top:2px solid #EF9F27;padding:12px 1rem;display:flex;align-items:center;gap:10px;justify-content:space-between;box-shadow:0 -4px 16px rgba(0,0,0,.1)';
   const _isFc=fcFormOpen()||!!(S.tab==='forecast'&&S.fc&&S.fc.mode==='summary'&&S.fc.pending);
   const _draft=_isFc?!!(S.fc&&(S.fc.pending||(S.fc.mode==='new'&&!S.fc.isUpdate&&!fcIsReport()))):(S.screen==='form'&&planIsDraftNew());
-  if(_draft){
-    warn.innerHTML='<div style="font-size:13px;color:#854F0B;font-weight:600">⚠ Your '+(_isFc?'forecast':'plan')+' hasn&rsquo;t been submitted yet. Leaving now will discard it.</div>'
-      +'<div style="display:flex;gap:8px;flex-shrink:0">'
-      +'<button id="unsaved-leave-btn" style="font-size:12px;padding:7px 14px;border:1px solid #c9a87a;background:#fff;color:#854F0B;border-radius:7px;cursor:pointer">Leave without saving</button>'
-      +'<button onclick="document.getElementById(\'unsaved-warn\').remove();" style="font-size:12px;padding:7px 14px;background:#0091D2;color:#fff;border:none;border-radius:7px;cursor:pointer;font-weight:700">Stay</button>'
-      +'</div>';
-    document.body.appendChild(warn);
-    document.getElementById('unsaved-leave-btn').onclick=function(){warn.remove();proceedFn();};
-    return;
-  }
-  warn.innerHTML='<div style="font-size:13px;color:#854F0B;font-weight:600">⚠ You have unsaved changes. Save your '+(_isFc?'forecast':'plan')+' before leaving so you can return to it.</div>'
-    +'<div style="display:flex;gap:8px;flex-shrink:0">'
-    +'<button id="unsaved-leave-btn" style="font-size:12px;padding:7px 14px;border:1px solid #c9a87a;background:#fff;color:#854F0B;border-radius:7px;cursor:pointer">Leave without saving</button>'
-    +'<button onclick="'+(_isFc?'fcSaveForecast()':(S.plan&&S.plan.step===2?'savePlan()':'saveProgress()'))+';document.getElementById(\'unsaved-warn\').remove();" style="font-size:12px;padding:7px 14px;background:#0091D2;color:#fff;border:none;border-radius:7px;cursor:pointer;font-weight:700">Save now</button>'
-    +'</div>';
+  const what=_isFc?'forecast':'plan';
+  const title=_draft?'Your '+what+' hasn&rsquo;t been submitted':'You have unsaved changes';
+  const body=_draft
+    ?'Leaving now will discard this '+what+'. Stay to finish and submit it from the Review page.'
+    :'Save your '+what+' before leaving so you can return to it with its ID. If you leave now, changes since your last save will be lost.';
+  const saveFn=_isFc?fcSaveForecast:(S.plan&&S.plan.step===2?savePlan:saveProgress);
+  const warn=document.createElement('div');
+  warn.id='unsaved-warn';
+  warn.setAttribute('role','dialog');warn.setAttribute('aria-modal','true');warn.setAttribute('aria-labelledby','unsaved-warn-title');
+  warn.style.cssText='position:fixed;inset:0;background:rgba(0,40,70,.55);z-index:9999;display:flex;align-items:center;justify-content:center;padding:16px';
+  const btnBase='font-family:inherit;font-size:13px;font-weight:700;padding:10px 18px;border-radius:8px;cursor:pointer';
+  warn.innerHTML='<div style="background:#fff;border-radius:14px;max-width:460px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,.3);padding:24px 26px 20px">'
+    +'<div style="display:flex;align-items:flex-start;gap:12px;margin-bottom:10px">'
+    +'<div style="flex-shrink:0;width:36px;height:36px;border-radius:50%;background:#FAEEDA;color:#B4660C;display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:800">!</div>'
+    +'<div id="unsaved-warn-title" style="font-size:19px;font-weight:800;color:#003A5D;line-height:1.3;padding-top:5px">'+title+'</div></div>'
+    +'<div style="font-size:14px;color:#555;line-height:1.6;margin:0 0 20px 48px">'+body+'</div>'
+    +'<div style="display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap">'
+    +'<button type="button" id="unsaved-leave-btn" style="'+btnBase+';border:1px solid #d9dde2;background:#fff;color:#A32D2D">Leave without saving</button>'
+    +(_draft
+      ?'<button type="button" id="unsaved-stay-btn" style="'+btnBase+';border:none;background:#0091D2;color:#fff">Stay</button>'
+      :'<button type="button" id="unsaved-stay-btn" style="'+btnBase+';border:1px solid #d9dde2;background:#fff;color:#555">Stay</button>'
+       +'<button type="button" id="unsaved-save-btn" style="'+btnBase+';border:none;background:#0091D2;color:#fff">Save now</button>')
+    +'</div></div>';
   document.body.appendChild(warn);
-  document.getElementById('unsaved-leave-btn').onclick=function(){
-    warn.remove();
-    proceedFn();
-  };
+  const close=()=>{warn.remove();document.removeEventListener('keydown',onKey);};
+  const onKey=e=>{if(e.key==='Escape')close();};
+  document.addEventListener('keydown',onKey);
+  warn.addEventListener('click',e=>{if(e.target===warn)close();});
+  document.getElementById('unsaved-stay-btn').onclick=close;
+  const sv=document.getElementById('unsaved-save-btn');
+  if(sv)sv.onclick=function(){close();saveFn();};
+  document.getElementById('unsaved-leave-btn').onclick=function(){close();proceedFn();};
+  const focusBtn=sv||document.getElementById('unsaved-stay-btn');if(focusBtn)focusBtn.focus();
 }
 
 function goHome(){
@@ -6471,10 +6540,9 @@ function goNext(){
     const assets=S.plan.assets||[];
     if(!assets.length){showToast('Add at least one asset before continuing.');return;}
     const errors=[];
-    // Mandatory fields are OFF for: TA branch (upload/internal), imported plans, and the example/demo plan.
-    // Agency / Builder / Partner NEW plans remain fully validated.
-    const isTArole=TA_ROLES.includes((S.plan.profile.role)||'')||S.plan.roleType==='TA';
-    const lenient=isTArole||S.plan.imported||S.plan._example;
+    // Every * field is mandatory (TA, external and imported); only the example/demo plan is exempt.
+    const lenient=planLenient();
+    const needUnit=planNeedsUnit();
     assets.forEach((a,i)=>{
       const label='Asset '+(i+1)+(a.assetName?' ('+a.assetName+')':'');
       if(!a.prec&&!lenient)errors.push(label+': Precinct is required');
@@ -6482,19 +6550,22 @@ function goNext(){
       a.materials.forEach((m,j)=>{
         const ml=label+', Material '+(j+1);
         if(j===0&&!a.materials[0].app&&!lenient)errors.push(label+': Precinct application (field 4) is required');
-        if(!m.tmlRef&&!lenient)errors.push(ml+': Select a material from the AO Target Materials List or choose "Not AO target material" (field 5)');
-        if(m.tmlRef==='OTHER'&&!m.name&&!lenient)errors.push(ml+': Material name required at 6a');
-        if(!m.stat&&!lenient)errors.push(ml+': Expected status (field 7) is required');
-        if(!String(m.vol||'').trim()&&!S.plan.imported&&!S.plan._example)errors.push(ml+': Volume (estimate) is required');
+        if(!m.tmlRef&&!lenient)errors.push(ml+': Select a material from the AO Target Materials List or choose "Not AO target material" (field 6)');
+        if(m.tmlRef==='OTHER'&&!String(m.name||'').trim()&&!lenient)errors.push(ml+': Material name required at 6a');
+        if(!String(m.vol||'').trim()&&!lenient)errors.push(ml+': Volume (estimate) (field 7) is required');
+        if(needUnit&&!String(m.vunit||'').trim()&&!lenient)errors.push(ml+': Unit (field 7) is required');
+        if(!m.stat&&!lenient)errors.push(ml+': Expected material status (field 8) is required');
       });
     });
     if(errors.length){
+      S._planShowErr=S.plan.id;
       mtOpenIncomplete(lenient);
-      showToast(errors.length+' required field'+(errors.length>1?'s':'')+' missing — check assets');
+      showToast(errors.length+' required field'+(errors.length>1?'s':'')+' missing — '+errors[0]);
       console.warn('Asset validation errors:',errors);
       return;
     }
   }
+  S._planShowErr=null;
   if(S.plan.step<2){S.plan.step++;if(S.plan.step>=1)S._unsaved=true;render();}
 }
 function goPrev(){
@@ -6573,10 +6644,6 @@ function savePlan(){
     const i=S.plans.findIndex(p=>p.id===S.plan.id);
     if(i>=0)S.plans[i]=JSON.parse(JSON.stringify(S.plan));
     else S.plans.unshift(JSON.parse(JSON.stringify(S.plan)));
-    if(res.ok&&res.source!=='cloud'&&SUPABASE_READY){
-      showToast(cloudSaveNote(res,'plan'));
-      return;
-    }
     if(res.ok){
       S._planDraftFor=null; // submitted — no longer a create-mode draft
       S._unsaved=false; // clear dirty flag
@@ -6587,7 +6654,7 @@ function savePlan(){
       // "Save & exit": send the confirmation right here, at the moment the save
       // actually happens — not deferred to some later "leave" action, since a user
       // who saves and then just leaves the tab open would otherwise never trigger it.
-      if(res.source==='cloud')sendPlanEmail(S.plan, isNew);
+      sendPlanEmail(S.plan, isNew);
       const code=planCode(S.plan.id);
       if(S._reportMode){showReportThanksModal();return;}
       // Land on the home screen underneath the confirmation modal, so closing the
@@ -6623,8 +6690,7 @@ function saveProgress(){
       S._unsaved=false;
       const badge=document.getElementById('unsaved-badge');
       if(badge)badge.remove();
-      if(res.source!=='cloud'&&SUPABASE_READY){S._unsaved=true;showToast(cloudSaveNote(res,'plan'));}
-      else showToast(res.source==='cloud'?'Progress saved':'Progress saved on this device (cloud storage not configured)');
+      showToast(res.source==='cloud'?'Progress saved':'Progress saved locally'+(SUPABASE_READY?'':' (Supabase not configured)'));
     } else {
       showToast('Save failed - please try again');
     }
@@ -6799,7 +6865,7 @@ function rpRowHtml(a,m,j){
   // Verify photo lives on the asset (its bump-out photo), so it is offered once per asset, on its first material.
   if(j===0&&(a.materials||[]).some(x=>x.outcome&&!/mixed construction waste/i.test(x.outcome))){
     h+='<div class="rp-verify"><input type="file" accept="image/*" id="img-file2-'+A+'" style="display:none" onchange="uploadAssetImage(this,\''+A+'\',2)">';
-    if(a.image2Url)h+='<a href="'+esc(safeUrl(a.image2Url))+'" target="_blank" rel="noopener"><img src="'+esc(safeUrl(a.image2Url))+'" alt=""></a>';
+    if(a.image2Url)h+='<a href="'+esc(a.image2Url)+'" target="_blank" rel="noopener"><img src="'+esc(a.image2Url)+'" alt=""></a>';
     h+='<button type="button" class="rp-link sky" onclick="document.getElementById(\'img-file2-'+A+'\').click()"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3z"/><circle cx="12" cy="13" r="3"/></svg>Verify &ndash; add a photo (optional)</button>';
     h+='<span class="rp-imgstat" id="img-stat2-'+A+'"></span></div>';
   }
@@ -6901,9 +6967,15 @@ function mtRender(aid){
 // After a failed Next, open every asset and material that still has a required field missing.
 function mtOpenIncomplete(lenient){
   (S.plan.assets||[]).forEach(a=>{
-    let hit=!lenient&&(!a.prec||!a.assetName||(a.materials[0]&&!a.materials[0].app));
+    const red=(sel,bad)=>{const el=document.querySelector(sel);if(el)el.style.borderColor=bad?'#dc2626':'';};
+    const aMiss={prec:!String(a.prec||'').trim(),assetName:!String(a.assetName||'').trim(),app:!!(a.materials[0]&&!a.materials[0].app)};
+    let hit=!lenient&&(aMiss.prec||aMiss.assetName||aMiss.app);
+    if(!lenient){red('#abd-'+a.id+' [data-f="prec"]',aMiss.prec);red('#abd-'+a.id+' [data-f="assetName"]',aMiss.assetName);red('#abd-'+a.id+' select[data-f="app"]',aMiss.app);}
     (a.materials||[]).forEach(m=>{
-      const miss=(!lenient&&(!m.tmlRef||(m.tmlRef==='OTHER'&&!m.name)||!m.stat))||(!String(m.vol||'').trim()&&!S.plan.imported&&!S.plan._example);
+      if(lenient)return;
+      const mm={tmlRef:!m.tmlRef,name:m.tmlRef==='OTHER'&&!String(m.name||'').trim(),vol:!String(m.vol||'').trim(),vunit:planNeedsUnit()&&!String(m.vunit||'').trim(),stat:!m.stat};
+      const miss=Object.values(mm).some(Boolean);
+      Object.keys(mm).forEach(k=>red('#mte-'+m.id+' [data-f="'+k+'"]',mm[k]));
       if(miss){hit=true;if(!S._mtOpen)S._mtOpen={};S._mtOpen[m.id]=true;const ed=document.getElementById('mte-'+m.id);if(ed)ed.classList.add('on');mtSumRefresh(a.id,m.id);}
     });
     if(hit&&!a.expanded)toggleAsset(a.id);
