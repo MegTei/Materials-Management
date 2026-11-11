@@ -2505,7 +2505,7 @@ function renderFcForm(){
   h+='<div class="card">';
   h+='<div class="sechd sechd-first">Anything else?</div>';
   h+=fcHazardBlockHtml();
-  h+='<div class="fg"><label>Are you a circular hero and want to profile your story? *</label><select data-f="circularHero" onchange="fcUpNotes(this)"><option value="">Select...</option>'+mkOpts(['Yes','No'],fc.notes.circularHero)+'</select></div>';
+  h+='<div class="fg"><label>Are you a circular hero and want to profile your story? *</label><select data-f="circularHero"'+fcMiss(fc.notes.circularHero)+' onchange="fcUpNotes(this)"><option value="">Select...</option>'+mkOpts(['Yes','No'],fc.notes.circularHero)+'</select></div>';
   h+='<div class="fg"><label>We value feedback and continuously seek to improve &ndash; any thoughts, feelings, ideas &ndash; let us know</label><textarea rows="2" data-f="feedback" onblur="fcUpNotes(this)">'+esc(fc.notes.feedback)+'</textarea></div>';
   h+='</div>';
   h+='<div class="acts"><button type="button" class="abq-link" style="margin-right:auto'+(rpt?';visibility:hidden':'')+'" onclick="fcToDetails()">&larr; Back</button><button type="button" class="abq-link" onclick="fcBackToLanding()">Cancel</button><button id="fc-save-forecast-btn" onclick="fcSaveForecast()" style="background:linear-gradient(135deg,#0091D2,#0072A8);color:#fff;border-color:#0072A8;font-weight:700;padding:9px 20px;box-shadow:0 2px 8px rgba(0,145,210,.3)">'+(isUpdate?'Save &#10003;':'Next: Review &rarr;')+'</button></div>';
@@ -2522,11 +2522,11 @@ function fcPickRole(btn){
 // runs in full on Save.
 function fcQCheck(q){
   const fc=fcActive(),p=fc.profile,t=fc.targets;let msg='';
-  if(q===0&&!p.role){msg=(fcIsTA(p)?'Please complete department, project, role, contact name and email.':'Please complete organisation, website, project, role, contact name and email.');const g=document.getElementById('fc-roles');if(g)g.classList.add('err');}
+  if(q===0&&!p.role){msg=(fcIsTA(p)?'Please complete department, project, role, event year, contact name and email.':'Please complete organisation, website, project, role, event year, contact name and email.');const g=document.getElementById('fc-roles');if(g)g.classList.add('err');const rs=document.querySelector('.ux-fc select[data-f="role"]');if(rs)rs.style.borderColor='#dc2626';}
   if(q===1){
-    if(!p.org||(!p.website&&!fcIsTA(p))||!p.project||!p.contactName||!p.contactEmail)msg=(fcIsTA(p)?'Please complete department, project, role, contact name and email.':'Please complete organisation, website, project, role, contact name and email.');
+    if(!p.org||(!p.website&&!fcIsTA(p))||!p.project||!p.eventYear||!p.contactName||!p.contactEmail)msg=(fcIsTA(p)?'Please complete department, project, role, event year, contact name and email.':'Please complete organisation, website, project, role, event year, contact name and email.');
     else if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(p.contactEmail))msg='Please enter a valid contact email.';
-    const map={org:p.org,website:p.website||fcIsTA(p),project:p.project,contactName:p.contactName,contactEmail:p.contactEmail&&/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(p.contactEmail)};
+    const map={org:p.org,website:p.website||fcIsTA(p),project:p.project,eventYear:p.eventYear,contactName:p.contactName,contactEmail:p.contactEmail&&/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(p.contactEmail)};
     Object.keys(map).forEach(k=>{const el=document.querySelector('.ux-fc [data-f="'+k+'"]');if(el)el.style.borderColor=map[k]?'':'#dc2626';});
   }
   if(q===2){
@@ -2547,7 +2547,7 @@ function fcQNext(){
   window.scrollTo({top:0,behavior:'smooth'});
 }
 // Clear a field's red "missing" border as soon as it's filled in (About you + Forecast details).
-if(!window._abqClearBound){window._abqClearBound=true;['input','change'].forEach(t=>document.addEventListener(t,e=>{const el=e.target;if(el&&el.closest&&el.closest('.abq')&&el.style&&el.style.borderColor&&String(el.value||'').trim())el.style.borderColor='';}));}
+if(!window._abqClearBound){window._abqClearBound=true;['input','change'].forEach(t=>document.addEventListener(t,e=>{let el=e.target;if(!el||!el.closest||!el.closest('.abq,.acard,.ux-fc'))return;if(el.classList&&el.classList.contains('unit-sel')){const w=el.closest('.unit-combo');el=w&&w.querySelector('.unit-txt');if(!el)return;}if(el.style&&el.style.borderColor&&String(el.value||'').trim())el.style.borderColor='';}));}
 function fcQPrev(){if(S._fcFromHub&&(S._fcQ||0)<=(S._fcDoor==='TA'?1:0)){fcBackToLanding();return;}S._fcQ=Math.max(0,(S._fcQ||0)-1);renderFcForm();window.scrollTo({top:0,behavior:'smooth'});}
 function fcToDetails(){S.fc.stage='details';S._fcQ=2;renderFcForm();window.scrollTo({top:0,behavior:'smooth'});}
 
@@ -2565,6 +2565,10 @@ function fcToggleMatCollapse(mid){
   const row=document.getElementById('fcmr-'+mid);
   if(row)row.outerHTML=fcMatRowHtml(m,idx);
 }
+// Forecast material fields 1-5 (all labelled *).
+function fcMatMissing(m){return !String(m.precinctLocation||'').trim()||!String(m.yearBuilt||'').trim()||!String(m.assetName||'').trim()||!m.detail||!String(m.vol||'').trim()||!m.stat||(m.detail==='Other'&&!String(m.detailOther||'').trim());}
+// Red border on an empty required forecast field, once a Save has failed on this forecast.
+function fcMiss(v){return (S._fcShowErr&&S.fc&&S.fc.draft&&S._fcShowErr===S.fc.draft.id&&!String(v||'').trim())?' style="border-color:#dc2626"':'';}
 function fcMatRowHtml(m,idx){
   if(document.getElementById('frp-view'))return fcRpRowHtml(m,idx);
   const showOther=m.detail==='Other';
@@ -2585,18 +2589,18 @@ function fcMatRowHtml(m,idx){
   const fcUnitOther=!!fcUnit&&!VOLS.includes(fcUnit);
   const summaryLine=[m.precinctLocation,m.assetName,m.detail==='Other'?m.detailOther:m.detail,m.vol?(m.vol+(m.vunit?' '+m.vunit:'')):'',m.stat].filter(Boolean).map(esc).join(' &middot; ')||'No details yet';
   const detailFields=expanded
-    ?('<div class="fg"><label><span class="qn">1</span>Precinct location <span class="req">*</span></label><input type="text" data-mid="'+m.id+'" data-f="precinctLocation" value="'+esc(m.precinctLocation)+'" placeholder="e.g. New Balance/ GSO" onblur="fcUpMat(this)"></div>'
+    ?('<div class="fg"><label><span class="qn">1</span>Precinct location <span class="req">*</span></label><input type="text" data-mid="'+m.id+'" data-f="precinctLocation"'+fcMiss(m.precinctLocation)+' value="'+esc(m.precinctLocation)+'" placeholder="e.g. New Balance/ GSO" onblur="fcUpMat(this)"></div>'
       +'<div style="display:flex;gap:8px;align-items:flex-end">'
-      +'<div class="fg" style="flex:1;margin-bottom:0"><label><span class="qn">2</span>Description of asset/ materials <span class="req">*</span></label><input type="text" data-mid="'+m.id+'" data-f="assetName" value="'+esc(m.assetName)+'" placeholder="Activation facades/ photo wall" onblur="fcUpMat(this)"></div>'
-      +'<div class="fg" style="width:180px;margin-bottom:0"><label>Which event year did you build this asset <span class="req">*</span></label><input type="text" data-mid="'+m.id+'" data-f="yearBuilt" value="'+esc(m.yearBuilt)+'" placeholder="e.g. 2023" onblur="fcUpMat(this)"></div>'
+      +'<div class="fg" style="flex:1;margin-bottom:0"><label><span class="qn">2</span>Description of asset/ materials <span class="req">*</span></label><input type="text" data-mid="'+m.id+'" data-f="assetName"'+fcMiss(m.assetName)+' value="'+esc(m.assetName)+'" placeholder="Activation facades/ photo wall" onblur="fcUpMat(this)"></div>'
+      +'<div class="fg" style="width:180px;margin-bottom:0"><label>Which event year did you build this asset <span class="req">*</span></label><input type="text" data-mid="'+m.id+'" data-f="yearBuilt"'+fcMiss(m.yearBuilt)+' value="'+esc(m.yearBuilt)+'" placeholder="e.g. 2023" onblur="fcUpMat(this)"></div>'
       +'</div>'
-      +'<div class="fg"><label><span class="qn">3</span>Material details <span class="req">*</span></label><select data-mid="'+m.id+'" data-f="detail" onchange="fcUpMat(this)">'+fcMatOptsHtml(m.detail)+'</select></div>'
-      +(showOther?'<div class="fg"><label>If other, list below <span class="req">*</span></label><input type="text" data-mid="'+m.id+'" data-f="detailOther" value="'+esc(m.detailOther)+'" placeholder="Describe the material" onblur="fcUpMat(this)"></div>':'')
+      +'<div class="fg"><label><span class="qn">3</span>Material details <span class="req">*</span></label><select data-mid="'+m.id+'" data-f="detail"'+fcMiss(m.detail)+' onchange="fcUpMat(this)">'+fcMatOptsHtml(m.detail)+'</select></div>'
+      +(showOther?'<div class="fg"><label>If other, list below <span class="req">*</span></label><input type="text" data-mid="'+m.id+'" data-f="detailOther"'+fcMiss(m.detailOther)+' value="'+esc(m.detailOther)+'" placeholder="Describe the material" onblur="fcUpMat(this)"></div>':'')
       +'<div style="display:flex;gap:8px;align-items:flex-end">'
-      +'<div class="fg" style="flex:1;margin-bottom:0"><label><span class="qn">4</span>Expected volume <span class="req">*</span></label><input type="text" data-mid="'+m.id+'" data-f="vol" value="'+esc(m.vol)+'" placeholder="10/ 20/ 100" onblur="fcUpMat(this)"></div>'
+      +'<div class="fg" style="flex:1;margin-bottom:0"><label><span class="qn">4</span>Expected volume <span class="req">*</span></label><input type="text" data-mid="'+m.id+'" data-f="vol"'+fcMiss(m.vol)+' value="'+esc(m.vol)+'" placeholder="10/ 20/ 100" onblur="fcUpMat(this)"></div>'
       +'<div class="fg unit-fg" style="width:200px;margin-bottom:0"><label>Unit</label><div class="unit-combo"><select class="unit-sel" tabindex="-1" aria-label="Choose unit" data-mid="'+m.id+'" onchange="fcPickUnit(this)"><option value=""'+(fcUnit?'':' selected')+'></option>'+VOLS.map(v=>'<option'+(!fcUnitOther&&v===fcUnit?' selected':'')+'>'+esc(v)+'</option>').join('')+'<option value="Other"'+(fcUnitOther?' selected':'')+'>Other</option></select><input type="text" class="unit-txt" id="fc-unit-txt-'+m.id+'" data-mid="'+m.id+'" data-f="vunit" value="'+esc(fcUnit)+'" autocomplete="off" onblur="fcTypeUnit(this)"></div></div>'
       +'</div>'
-      +'<div class="fg" style="margin-top:8px"><label><span class="qn">5</span>Expected status <span class="req">*</span></label><select class="stat-sel" data-tone="'+statTone(m.stat)+'" data-mid="'+m.id+'" data-f="stat" onchange="fcUpMat(this)">'+mkOpts(STATS,m.stat,'Select status...')+'</select></div>'
+      +'<div class="fg" style="margin-top:8px"><label><span class="qn">5</span>Expected status <span class="req">*</span></label><select class="stat-sel" data-tone="'+statTone(m.stat)+'" data-mid="'+m.id+'" data-f="stat"'+fcMiss(m.stat)+' onchange="fcUpMat(this)">'+mkOpts(STATS,m.stat,'Select status...')+'</select></div>'
       +((isUpdate||fcMatIsSaved(m))?'<div class="fc-del-row">'+(fcMatIsSaved(m)?'<button type="button" class="asset-del" onclick="fcConfirmDelMaterial(&#39;'+m.id+'&#39;)">Delete material</button>':'')+(isUpdate?'<button type="button" onclick="fcToggleMatCollapse(&#39;'+m.id+'&#39;)" style="margin-left:auto;background:none;border:none;color:#0091D2;font-size:12px;font-weight:700;cursor:pointer;text-decoration:underline">Collapse forecast details</button>':'')+'</div>':''))
     :('<div class="fg" style="margin-bottom:10px"><div style="display:flex;align-items:center;gap:8px;background:#F7F6F2;border-radius:8px;padding:9px 12px;font-size:12px;color:#555"><span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">1&ndash;5. '+summaryLine+'</span>'+(m.stat?fcStatTag(m.stat):'')+'<button type="button" onclick="fcToggleMatCollapse(&#39;'+m.id+'&#39;)" style="background:none;border:none;color:#0091D2;font-weight:700;cursor:pointer;font-size:12px;flex-shrink:0">Edit</button></div></div>');
   return'<div class="mat-row" id="fcmr-'+m.id+'">'
@@ -2634,8 +2638,8 @@ function fcHazardBlockHtml(){
   const showDetail=val==='Yes'||val==='Unsure yet';
   let h='<div class="fg" id="fc-hazard-block">';
   h+='<label>Will you have large structures or hazardous materials that will go in onsite bins on bump out? *</label>';
-  h+='<select data-f="largeStructures" onchange="fcHazardChange(this)"><option value="">Select...</option>'+mkOpts(['Yes','No','Unsure yet'],val)+'</select>';
-  if(showDetail)h+='<textarea rows="2" style="margin-top:8px" data-f="hazardousDetail" onblur="fcUpNotes(this)" placeholder="Please provide details">'+esc(fc.notes.hazardousDetail)+'</textarea>';
+  h+='<select data-f="largeStructures"'+fcMiss(val)+' onchange="fcHazardChange(this)"><option value="">Select...</option>'+mkOpts(['Yes','No','Unsure yet'],val)+'</select>';
+  if(showDetail)h+='<textarea rows="2" style="margin-top:8px'+(fcMiss(fc.notes.hazardousDetail)?';border-color:#dc2626':'')+'" data-f="hazardousDetail" onblur="fcUpNotes(this)" placeholder="Please provide details *">'+esc(fc.notes.hazardousDetail)+'</textarea>';
   h+='</div>';
   return h;
 }
@@ -2705,15 +2709,30 @@ function fcDelMaterial(mid){
 async function fcSaveForecast(){
   const fc=S.fc.draft;
   const p=fc.profile;
-  if(!p.org||(!p.website&&!fcIsTA(p))||!p.project||!p.role||!p.contactName||!p.contactEmail){showToast((fcIsTA(p)?'Please complete department, project, role, contact name and email.':'Please complete organisation, website, project, role, contact name and email.'));return;}
+  if(!p.org||(!p.website&&!fcIsTA(p))||!p.project||!p.role||!p.eventYear||!p.contactName||!p.contactEmail){showToast((fcIsTA(p)?'Please complete department, project, role, event year, contact name and email.':'Please complete organisation, website, project, role, event year, contact name and email.'));return;}
   if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(p.contactEmail)){showToast('Please enter a valid contact email.');return;}
   const t=fc.targets;
   if(!t.reuseTarget||!t.wasteTarget||!t.disposedPct||!t.circPractices){showToast('Please complete all 4 questions in Targets & practices.');return;}
-  const missingMat=fc.materials.find(m=>!m.precinctLocation||!m.yearBuilt||!m.assetName||!m.detail||!m.vol||!m.stat||(m.detail==='Other'&&!m.detailOther));
-  if(missingMat){showToast('Please complete precinct location, event year built, description of asset/ materials, material details, expected volume and expected status for every material.');return;}
+  const missingMats=fc.materials.filter(fcMatMissing);
+  const hzNeedDetail=fc.notes.largeStructures==='Yes'||fc.notes.largeStructures==='Unsure yet';
+  const notesBad=!fc.notes.largeStructures||(hzNeedDetail&&!String(fc.notes.hazardousDetail||'').trim())||!fc.notes.circularHero;
+  if(missingMats.length||notesBad){
+    // Flag every empty * field in red, and open any collapsed material that has one.
+    S._fcShowErr=fc.id;
+    if(!S._fcExpanded)S._fcExpanded={};
+    missingMats.forEach(m=>{S._fcExpanded[m.id]=true;});
+    const wrap=document.getElementById('fc-mats');
+    if(wrap){let h='';fc.materials.forEach((m,i)=>{h+=fcMatRowHtml(m,i);});wrap.innerHTML=h;}
+    const hb=document.getElementById('fc-hazard-block');if(hb)hb.outerHTML=fcHazardBlockHtml();
+    const ch=document.querySelector('.ux-fc select[data-f="circularHero"]');if(ch)ch.style.borderColor=fc.notes.circularHero?'':'#dc2626';
+    const first=document.querySelector('.ux-fc [style*="border-color:#dc2626"],.ux-fc [style*="border-color: rgb(220, 38, 38)"]');
+    if(first&&first.scrollIntoView)first.scrollIntoView({behavior:'smooth',block:'center'});
+  }
+  if(missingMats.length){showToast('Please complete precinct location, event year built, description of asset/ materials, material details, expected volume and expected status for every material.');return;}
   if(!fc.notes.largeStructures){showToast('Please answer whether you will have large structures or hazardous materials in onsite bins.');return;}
-  if((fc.notes.largeStructures==='Yes'||fc.notes.largeStructures==='Unsure yet')&&!fc.notes.hazardousDetail){showToast('Please provide details on the large structures or hazardous materials.');return;}
+  if(hzNeedDetail&&!String(fc.notes.hazardousDetail||'').trim()){showToast('Please provide details on the large structures or hazardous materials.');return;}
   if(!fc.notes.circularHero){showToast('Please let us know if you\'d like to profile your circular hero story.');return;}
+  S._fcShowErr=null;
   const btn=document.getElementById('fc-save-forecast-btn');
   if(btn){btn.disabled=true;btn.textContent='Saving...';}
   // "Actuals logged" (and the Event report framing on the summary page) is only
@@ -4165,10 +4184,16 @@ function abqShow(q){
   const bk=abqEl('abq-back');if(bk)bk.style.visibility=(q>0&&!S._abAll)?'visible':'hidden';
   if(S._abAll&&f)f.style.width='100%';
 }
-function abqLenient(){
-  const roleVal=abqVal('p-role');
-  return TA_ROLES.includes(roleVal)||S.plan.roleType==='TA'||S.plan.imported||S.plan._example;
-}
+// Every field labelled * is mandatory for every plan — TA, external and imported alike.
+// Only the example/demo plan (which can never be saved) is exempt.
+function planLenient(){return !!(S.plan&&S.plan._example);}
+function abqLenient(){return planLenient();}
+// Business name is a hidden field (no *) on TA-type plans — the department stands in for it.
+function planNeedsBiz(){return !(S.plan&&S.plan.roleType==='TA');}
+// Unit carries a * on every plan except TA-type plans.
+function planNeedsUnit(){return !(S.plan&&S.plan.roleType==='TA');}
+// Red border on an empty required plan field, once a Next has failed on this plan.
+function planMiss(v){return (S._planShowErr&&S.plan&&S._planShowErr===S.plan.id&&!String(v||'').trim())?' style="border-color:#dc2626"':'';}
 // Per-question check mirrors saveAbout()'s required list and email rule, scoped to the
 // fields on the current panel. saveAbout() still runs in full on the last question.
 const ABQ_REQ={
@@ -4180,6 +4205,7 @@ function abqCheck(q){
   const box=abqEl('about-errors');
   let req=(ABQ_REQ[q]||[]).slice();
   if(q===0&&TA_ROLES.includes(abqVal('p-role')))req.push({id:'p-dept',label:'Department'});
+  if(q===1&&!planNeedsBiz())req=req.filter(f=>f.id!=='p-biz');
   if(abqLenient())req=[];
   const missing=[];
   req.forEach(f=>{const el=abqEl(f.id);if(el)el.style.borderColor='';if(!abqVal(f.id)){missing.push(f.label);if(el)el.style.borderColor='#dc2626';}});
@@ -4262,11 +4288,11 @@ function saveAbout(){
   const g=id=>{const e=document.getElementById(id);return e?e.value.trim():''};
 
   const roleVal=document.getElementById('p-role')?document.getElementById('p-role').value:'';
-  // Mandatory fields OFF for TA branch and example/demo plans; Agency/Builder/Partner stay required.
-  const lenient=TA_ROLES.includes(roleVal)||S.plan.roleType==='TA'||S.plan.imported||S.plan._example;
+  // Every * field is mandatory (TA, external and imported); only the example/demo plan is exempt.
+  const lenient=planLenient();
   const fields=lenient?[]:[
     {id:'p-date',   label:'Date'},
-    {id:'p-biz',    label:'Business name'},
+    ...(planNeedsBiz()?[{id:'p-biz',label:'Business name'}]:[]),
     {id:'p-own',    label:'Plan owner / Contact'},
     {id:'p-email',  label:'Contact email'},
     {id:'p-role',   label:'Role in AO design & build'},
@@ -5186,7 +5212,7 @@ function assetCard(a,i){
   const _appCustom=_appVal&&!_appList.some(o=>o.toLowerCase()===_appVal.toLowerCase());
   const f4=_m0?`<div class="fg">
         <label><span class="qn">4</span>Precinct application <span class="req">*</span></label>
-        <select data-aid="${a.id}" data-mid="${_m0.id}" data-f="app" onchange="upAssetMat(this)"><option value="">Select application...</option>${_appCustom?`<option value="${esc(_appVal)}" selected>${esc(_appVal)}</option>`:''}${mkOpts(_appList,(_appList.find(o=>o.toLowerCase()===_appVal.toLowerCase())||_appVal))}</select>
+        <select data-aid="${a.id}" data-mid="${_m0.id}" data-f="app"${planMiss(_appVal)} onchange="upAssetMat(this)"><option value="">Select application...</option>${_appCustom?`<option value="${esc(_appVal)}" selected>${esc(_appVal)}</option>`:''}${mkOpts(_appList,(_appList.find(o=>o.toLowerCase()===_appVal.toLowerCase())||_appVal))}</select>
       </div>`:'';
   const f5=`<div class="fg">
         <label><span class="qn">5</span>Year built</label>
@@ -5200,11 +5226,11 @@ function assetCard(a,i){
       <div class="g2" style="margin-bottom:0">
         <div class="fg">
           <label><span class="qn">1</span>AO Location / Precinct <span class="req">*</span></label>
-          <input type="text" list="prec-list" autocomplete="off" data-aid="${a.id}" data-f="prec" value="${esc(a.prec)}" placeholder="e.g. New Balance/ GSO" onblur="upAsset(this)">
+          <input type="text" list="prec-list" autocomplete="off" data-aid="${a.id}" data-f="prec"${planMiss(a.prec)} value="${esc(a.prec)}" placeholder="e.g. New Balance/ GSO" onblur="upAsset(this)">
         </div>
         <div class="fg">
           <label><span class="qn">2</span>Asset / item name <span class="req">*</span></label>
-          <input type="text" data-aid="${a.id}" data-f="assetName" value="${esc(a.assetName)}" placeholder="Activation facades/ photo wall" onblur="upAsset(this)">
+          <input type="text" data-aid="${a.id}" data-f="assetName"${planMiss(a.assetName)} value="${esc(a.assetName)}" placeholder="Activation facades/ photo wall" onblur="upAsset(this)">
         </div>
       </div>
 
@@ -5263,7 +5289,7 @@ function matRowHtml(aid,m,idx){
 
     <div class="fg">
       <label><span class="qn">6</span>Material details <span class="req">*</span><span class="name-sub-label">Select from AO Target Materials List (<a href="${MATERIALS_METHODS_URL}" target="_blank" style="color:#0091D2;font-weight:700">view full list &#8599;</a>) or tell us at 6a</span></label>
-      <select data-aid="${aid}" data-mid="${m.id}" data-f="tmlRef" onchange="pickAssetMatTML(this)">
+      <select data-aid="${aid}" data-mid="${m.id}" data-f="tmlRef"${planMiss(m.tmlRef)} onchange="pickAssetMatTML(this)">
         <option value="">- Select material -</option>
         <option value="OTHER"${m.tmlRef==='OTHER'?' selected':''}>Not AO target material \u2013 go to 6a</option>
         <option value="" disabled style="color:#ccc">\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500</option>
@@ -5273,15 +5299,15 @@ function matRowHtml(aid,m,idx){
     </div>
     <div class="fg" id="f7-${m.id}"${showF7?'':' style="display:none"'}>
       <label><span class="qn sm">6a</span>If not on the AO target materials list, provide material name here <span class="req">*</span></label>
-      <input type="text" data-aid="${aid}" data-mid="${m.id}" data-f="name" value="${esc(m.name)}" placeholder="Describe the material" onblur="upAssetMat(this)">
+      <input type="text" data-aid="${aid}" data-mid="${m.id}" data-f="name"${m.tmlRef==='OTHER'?planMiss(m.name):''} value="${esc(m.name)}" placeholder="Describe the material" onblur="upAssetMat(this)">
     </div>
     <div style="display:flex;gap:8px;align-items:flex-end">
-      <div class="fg" style="flex:1;margin-bottom:0"><label><span class="qn">7</span>Volume (estimate) <span class="req">*</span></label><input type="text" data-aid="${aid}" data-mid="${m.id}" data-f="vol" value="${esc(m.vol)}" onblur="upAssetMat(this)"></div>
-      <div class="fg unit-fg" style="width:130px;margin-bottom:0"><label>Unit${S.plan.roleType==='TA'?'':' <span class="req">*</span>'}</label><div class="unit-combo"><select class="unit-sel" tabindex="-1" aria-label="Choose unit" data-aid="${aid}" data-mid="${m.id}" onchange="pickUnit(this)"><option value=""${vunitVal?'':' selected'}></option>${VOLS.map(v=>`<option${!unitIsOther&&v===vunitVal?' selected':''}>${esc(v)}</option>`).join('')}<option value="Other"${unitIsOther?' selected':''}>Other</option></select><input type="text" class="unit-txt" id="unit-txt-${m.id}" data-aid="${aid}" data-mid="${m.id}" data-f="vunit" value="${esc(vunitVal)}" autocomplete="off" onblur="typeUnit(this)"></div></div>
+      <div class="fg" style="flex:1;margin-bottom:0"><label><span class="qn">7</span>Volume (estimate) <span class="req">*</span></label><input type="text" data-aid="${aid}" data-mid="${m.id}" data-f="vol"${planMiss(m.vol)} value="${esc(m.vol)}" onblur="upAssetMat(this)"></div>
+      <div class="fg unit-fg" style="width:130px;margin-bottom:0"><label>Unit${S.plan.roleType==='TA'?'':' <span class="req">*</span>'}</label><div class="unit-combo"><select class="unit-sel" tabindex="-1" aria-label="Choose unit" data-aid="${aid}" data-mid="${m.id}" onchange="pickUnit(this)"><option value=""${vunitVal?'':' selected'}></option>${VOLS.map(v=>`<option${!unitIsOther&&v===vunitVal?' selected':''}>${esc(v)}</option>`).join('')}<option value="Other"${unitIsOther?' selected':''}>Other</option></select><input type="text" class="unit-txt" id="unit-txt-${m.id}" data-aid="${aid}" data-mid="${m.id}" data-f="vunit"${planNeedsUnit()?planMiss(vunitVal):''} value="${esc(vunitVal)}" autocomplete="off" onblur="typeUnit(this)"></div></div>
     </div>
     <div class="fg" style="margin-top:8px">
       <label><span class="qn">8</span>Expected material status at end of event <span class="req">*</span></label>
-      <select class="stat-sel" data-tone="${statTone(m.stat)}" data-aid="${aid}" data-mid="${m.id}" data-f="stat" onchange="upAssetMat(this);this.dataset.tone=statTone(this.value)">${mkOpts(STATS,m.stat,'Select status...')}</select>
+      <select class="stat-sel" data-tone="${statTone(m.stat)}" data-aid="${aid}" data-mid="${m.id}" data-f="stat"${planMiss(m.stat)} onchange="upAssetMat(this);this.dataset.tone=statTone(this.value)">${mkOpts(STATS,m.stat,'Select status...')}</select>
     </div>
     <div class="fg f7-box">
       <label><span class="qn gy">9</span>Actual outcome<span class="f7-tag">complete post-event</span></label>
@@ -6365,34 +6391,45 @@ if(!window._navDirtyBound){
   },true);
 }
 function confirmLeaveIfUnsaved(proceedFn){
-  // Show inline warning banner on summary page instead of browser dialog
+  // Centred pop-up (same look as the other modals) instead of a bar along the bottom.
+  // Keeps id "unsaved-warn" — savePlan() and the Save now button remove it by that id.
   const existing=document.getElementById('unsaved-warn');
   if(existing){existing.remove();}
-  const warn=document.createElement('div');
-  warn.id='unsaved-warn';
-  warn.style.cssText='position:fixed;bottom:0;left:0;right:0;z-index:998;background:#FAEEDA;border-top:2px solid #EF9F27;padding:12px 1rem;display:flex;align-items:center;gap:10px;justify-content:space-between;box-shadow:0 -4px 16px rgba(0,0,0,.1)';
   const _isFc=fcFormOpen()||!!(S.tab==='forecast'&&S.fc&&S.fc.mode==='summary'&&S.fc.pending);
   const _draft=_isFc?!!(S.fc&&(S.fc.pending||(S.fc.mode==='new'&&!S.fc.isUpdate&&!fcIsReport()))):(S.screen==='form'&&planIsDraftNew());
-  if(_draft){
-    warn.innerHTML='<div style="font-size:13px;color:#854F0B;font-weight:600">⚠ Your '+(_isFc?'forecast':'plan')+' hasn&rsquo;t been submitted yet. Leaving now will discard it.</div>'
-      +'<div style="display:flex;gap:8px;flex-shrink:0">'
-      +'<button id="unsaved-leave-btn" style="font-size:12px;padding:7px 14px;border:1px solid #c9a87a;background:#fff;color:#854F0B;border-radius:7px;cursor:pointer">Leave without saving</button>'
-      +'<button onclick="document.getElementById(\'unsaved-warn\').remove();" style="font-size:12px;padding:7px 14px;background:#0091D2;color:#fff;border:none;border-radius:7px;cursor:pointer;font-weight:700">Stay</button>'
-      +'</div>';
-    document.body.appendChild(warn);
-    document.getElementById('unsaved-leave-btn').onclick=function(){warn.remove();proceedFn();};
-    return;
-  }
-  warn.innerHTML='<div style="font-size:13px;color:#854F0B;font-weight:600">⚠ You have unsaved changes. Save your '+(_isFc?'forecast':'plan')+' before leaving so you can return to it.</div>'
-    +'<div style="display:flex;gap:8px;flex-shrink:0">'
-    +'<button id="unsaved-leave-btn" style="font-size:12px;padding:7px 14px;border:1px solid #c9a87a;background:#fff;color:#854F0B;border-radius:7px;cursor:pointer">Leave without saving</button>'
-    +'<button onclick="'+(_isFc?'fcSaveForecast()':(S.plan&&S.plan.step===2?'savePlan()':'saveProgress()'))+';document.getElementById(\'unsaved-warn\').remove();" style="font-size:12px;padding:7px 14px;background:#0091D2;color:#fff;border:none;border-radius:7px;cursor:pointer;font-weight:700">Save now</button>'
-    +'</div>';
+  const what=_isFc?'forecast':'plan';
+  const title=_draft?'Your '+what+' hasn&rsquo;t been submitted':'You have unsaved changes';
+  const body=_draft
+    ?'Leaving now will discard this '+what+'. Stay to finish and submit it from the Review page.'
+    :'Save your '+what+' before leaving so you can return to it with its ID. If you leave now, changes since your last save will be lost.';
+  const saveFn=_isFc?fcSaveForecast:(S.plan&&S.plan.step===2?savePlan:saveProgress);
+  const warn=document.createElement('div');
+  warn.id='unsaved-warn';
+  warn.setAttribute('role','dialog');warn.setAttribute('aria-modal','true');warn.setAttribute('aria-labelledby','unsaved-warn-title');
+  warn.style.cssText='position:fixed;inset:0;background:rgba(0,40,70,.55);z-index:9999;display:flex;align-items:center;justify-content:center;padding:16px';
+  const btnBase='font-family:inherit;font-size:13px;font-weight:700;padding:10px 18px;border-radius:8px;cursor:pointer';
+  warn.innerHTML='<div style="background:#fff;border-radius:14px;max-width:460px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,.3);padding:24px 26px 20px">'
+    +'<div style="display:flex;align-items:flex-start;gap:12px;margin-bottom:10px">'
+    +'<div style="flex-shrink:0;width:36px;height:36px;border-radius:50%;background:#FAEEDA;color:#B4660C;display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:800">!</div>'
+    +'<div id="unsaved-warn-title" style="font-size:19px;font-weight:800;color:#003A5D;line-height:1.3;padding-top:5px">'+title+'</div></div>'
+    +'<div style="font-size:14px;color:#555;line-height:1.6;margin:0 0 20px 48px">'+body+'</div>'
+    +'<div style="display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap">'
+    +'<button type="button" id="unsaved-leave-btn" style="'+btnBase+';border:1px solid #d9dde2;background:#fff;color:#A32D2D">Leave without saving</button>'
+    +(_draft
+      ?'<button type="button" id="unsaved-stay-btn" style="'+btnBase+';border:none;background:#0091D2;color:#fff">Stay</button>'
+      :'<button type="button" id="unsaved-stay-btn" style="'+btnBase+';border:1px solid #d9dde2;background:#fff;color:#555">Stay</button>'
+       +'<button type="button" id="unsaved-save-btn" style="'+btnBase+';border:none;background:#0091D2;color:#fff">Save now</button>')
+    +'</div></div>';
   document.body.appendChild(warn);
-  document.getElementById('unsaved-leave-btn').onclick=function(){
-    warn.remove();
-    proceedFn();
-  };
+  const close=()=>{warn.remove();document.removeEventListener('keydown',onKey);};
+  const onKey=e=>{if(e.key==='Escape')close();};
+  document.addEventListener('keydown',onKey);
+  warn.addEventListener('click',e=>{if(e.target===warn)close();});
+  document.getElementById('unsaved-stay-btn').onclick=close;
+  const sv=document.getElementById('unsaved-save-btn');
+  if(sv)sv.onclick=function(){close();saveFn();};
+  document.getElementById('unsaved-leave-btn').onclick=function(){close();proceedFn();};
+  const focusBtn=sv||document.getElementById('unsaved-stay-btn');if(focusBtn)focusBtn.focus();
 }
 
 function goHome(){
@@ -6471,10 +6508,9 @@ function goNext(){
     const assets=S.plan.assets||[];
     if(!assets.length){showToast('Add at least one asset before continuing.');return;}
     const errors=[];
-    // Mandatory fields are OFF for: TA branch (upload/internal), imported plans, and the example/demo plan.
-    // Agency / Builder / Partner NEW plans remain fully validated.
-    const isTArole=TA_ROLES.includes((S.plan.profile.role)||'')||S.plan.roleType==='TA';
-    const lenient=isTArole||S.plan.imported||S.plan._example;
+    // Every * field is mandatory (TA, external and imported); only the example/demo plan is exempt.
+    const lenient=planLenient();
+    const needUnit=planNeedsUnit();
     assets.forEach((a,i)=>{
       const label='Asset '+(i+1)+(a.assetName?' ('+a.assetName+')':'');
       if(!a.prec&&!lenient)errors.push(label+': Precinct is required');
@@ -6482,19 +6518,22 @@ function goNext(){
       a.materials.forEach((m,j)=>{
         const ml=label+', Material '+(j+1);
         if(j===0&&!a.materials[0].app&&!lenient)errors.push(label+': Precinct application (field 4) is required');
-        if(!m.tmlRef&&!lenient)errors.push(ml+': Select a material from the AO Target Materials List or choose "Not AO target material" (field 5)');
-        if(m.tmlRef==='OTHER'&&!m.name&&!lenient)errors.push(ml+': Material name required at 6a');
-        if(!m.stat&&!lenient)errors.push(ml+': Expected status (field 7) is required');
-        if(!String(m.vol||'').trim()&&!S.plan.imported&&!S.plan._example)errors.push(ml+': Volume (estimate) is required');
+        if(!m.tmlRef&&!lenient)errors.push(ml+': Select a material from the AO Target Materials List or choose "Not AO target material" (field 6)');
+        if(m.tmlRef==='OTHER'&&!String(m.name||'').trim()&&!lenient)errors.push(ml+': Material name required at 6a');
+        if(!String(m.vol||'').trim()&&!lenient)errors.push(ml+': Volume (estimate) (field 7) is required');
+        if(needUnit&&!String(m.vunit||'').trim()&&!lenient)errors.push(ml+': Unit (field 7) is required');
+        if(!m.stat&&!lenient)errors.push(ml+': Expected material status (field 8) is required');
       });
     });
     if(errors.length){
+      S._planShowErr=S.plan.id;
       mtOpenIncomplete(lenient);
-      showToast(errors.length+' required field'+(errors.length>1?'s':'')+' missing — check assets');
+      showToast(errors.length+' required field'+(errors.length>1?'s':'')+' missing — '+errors[0]);
       console.warn('Asset validation errors:',errors);
       return;
     }
   }
+  S._planShowErr=null;
   if(S.plan.step<2){S.plan.step++;if(S.plan.step>=1)S._unsaved=true;render();}
 }
 function goPrev(){
@@ -6901,9 +6940,15 @@ function mtRender(aid){
 // After a failed Next, open every asset and material that still has a required field missing.
 function mtOpenIncomplete(lenient){
   (S.plan.assets||[]).forEach(a=>{
-    let hit=!lenient&&(!a.prec||!a.assetName||(a.materials[0]&&!a.materials[0].app));
+    const red=(sel,bad)=>{const el=document.querySelector(sel);if(el)el.style.borderColor=bad?'#dc2626':'';};
+    const aMiss={prec:!String(a.prec||'').trim(),assetName:!String(a.assetName||'').trim(),app:!!(a.materials[0]&&!a.materials[0].app)};
+    let hit=!lenient&&(aMiss.prec||aMiss.assetName||aMiss.app);
+    if(!lenient){red('#abd-'+a.id+' [data-f="prec"]',aMiss.prec);red('#abd-'+a.id+' [data-f="assetName"]',aMiss.assetName);red('#abd-'+a.id+' select[data-f="app"]',aMiss.app);}
     (a.materials||[]).forEach(m=>{
-      const miss=(!lenient&&(!m.tmlRef||(m.tmlRef==='OTHER'&&!m.name)||!m.stat))||(!String(m.vol||'').trim()&&!S.plan.imported&&!S.plan._example);
+      if(lenient)return;
+      const mm={tmlRef:!m.tmlRef,name:m.tmlRef==='OTHER'&&!String(m.name||'').trim(),vol:!String(m.vol||'').trim(),vunit:planNeedsUnit()&&!String(m.vunit||'').trim(),stat:!m.stat};
+      const miss=Object.values(mm).some(Boolean);
+      Object.keys(mm).forEach(k=>red('#mte-'+m.id+' [data-f="'+k+'"]',mm[k]));
       if(miss){hit=true;if(!S._mtOpen)S._mtOpen={};S._mtOpen[m.id]=true;const ed=document.getElementById('mte-'+m.id);if(ed)ed.classList.add('on');mtSumRefresh(a.id,m.id);}
     });
     if(hit&&!a.expanded)toggleAsset(a.id);
