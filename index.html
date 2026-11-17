@@ -3571,7 +3571,8 @@ function renderAdminDashboard(rawPlans){
   h+='</div></div>'; // end insights grid + section
 
   // Ops view (same as the forecast dashboard): volumes by pathway + material volumes report
-  h+=adminVolumesHtml(planLines(filtered),{title:'Top material categories',rows:topCats,total:catTot});
+  const planVolHtml=adminVolumesHtml(planLines(filtered),{title:'Top material categories',rows:topCats,total:catTot});
+  h+=planVolHtml.cards;
 
   // ── Plans table ───────────────────────────────────────────────────────────
   h+='<div class="admin-section">';
@@ -3605,6 +3606,8 @@ function renderAdminDashboard(rawPlans){
   h+='</tbody></table></div>';
 
   h+='</div>'; // close plans admin-section
+
+  h+=planVolHtml.report; // material volumes report sits under the submitted plans table
 
   // ── Actions ───────────────────────────────────────────────────────────────
   h+='<div class="admin-section" style="display:flex;gap:8px;flex-wrap:wrap">';
@@ -3690,6 +3693,8 @@ function fcUnitNorm(u){
   if(/^(t|tonnes?)$/.test(l))return{unit:'kg',f:1000};
   if(/^(units?|each|ea|pcs|pieces?|items?)$/.test(l))return{unit:'units',f:1};
   if(/^sheets?$/.test(l))return{unit:'sheets',f:1};
+  // sheet dimensions typed into the unit box, e.g. "1200 mm wide 2400 mm", "2400 x 1200mm"
+  if(/^\d[\d,]*\s*(mm|cm|m)?\s*(wide|w|x|\u00d7|by)?\s*(x|\u00d7|by)?\s*\d[\d,]*\s*(mm|cm|m)?(\s*(sheets?|panels?|boards?))?$/.test(l)&&/\d\D+\d/.test(l))return{unit:'sheets',f:1};
   if(/^(m3|m³|cbm|cubic (metres?|meters?))$/.test(l))return{unit:'m³',f:1};
   if(/^(l|lt|ltr|litres?|liters?)$/.test(l))return{unit:'L',f:1};
   return{unit:raw,f:1};
@@ -3847,7 +3852,8 @@ function adminFcVolumesHtml(filtered){
 }
 // The two Ops sections shared by every admin dashboard: Bump out forecast cards
 // (top = the blue "Top materials" card: {title, rows:[[label,count]], total}) + the
-// filterable material volumes report.
+// filterable material volumes report. Returns {cards, report} so a dashboard can
+// place its submitted plans/forecasts table between the two.
 function adminVolumesHtml(lines,top){
   const rep=volReport(lines);
   const merged=S.adminView==='merged';
@@ -3863,7 +3869,6 @@ function adminVolumesHtml(lines,top){
     x+='<div style="font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.07em;color:'+c.col+'">'+title+'</div>';
     x+='<div style="font-size:11px;color:#5B6B7B;margin:2px 0 10px">'+sub+'</div>';
     if(!st.lines){x+='<div style="color:#aaa;font-size:12px;padding:6px 0 8px">Nothing forecast for this stream yet.</div></div>';return x;}
-    x+='<div style="font-size:11px;color:#5B6B7B;margin-bottom:10px">'+st.lines+' material line'+(st.lines===1?'':'s')+' from '+st.orgs.size+' organisation'+(st.orgs.size===1?'':'s')+'</div>';
     const mats=Object.values(st.mats).sort((a,b)=>rep.units.indexOf(a.unit)-rep.units.indexOf(b.unit)||b.vol-a.vol);
     x+='<div style="font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:#8A97A2;margin-bottom:2px">Biggest materials</div>';
     mats.slice(0,5).forEach(mt=>{x+='<div class="insight-row"><span style="flex:1;color:#333;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="'+esc(mt.name)+'">'+esc(mt.name)+'</span><span style="font-weight:700;color:#0C1B47;white-space:nowrap">'+fcFmtVol(mt.vol)+' <span style="font-weight:500;color:#5B6B7B">'+esc(mt.unit)+'</span></span></div>';});
@@ -3881,7 +3886,7 @@ function adminVolumesHtml(lines,top){
     const topMats=(top&&top.rows)||[],matTot=(top&&top.total)||0;
     let x='<div style="border:1px solid #E1E7ED;border-top:4px solid #0091D2;border-radius:12px;padding:16px 16px 12px;background:#fff">';
     x+='<div style="font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.07em;color:#0072A8">'+esc((top&&top.title)||'Top materials')+'</div>';
-    x+='<div style="font-size:11px;color:#5B6B7B;margin:2px 0 10px">Share of all material lines</div>';
+    x+='<div style="font-size:11px;color:#5B6B7B;margin:2px 0 10px">Percentage of total volumes</div>';
     if(topMats.length){topMats.forEach((t,i)=>{
       const pp=matTot?Math.round(t[1]/matTot*100):0;
       x+='<div class="insight-row"><span style="color:#aaa;font-size:10px;width:14px;flex-shrink:0">'+(i+1)+'</span><span style="flex:1;color:#333;font-weight:'+(i===0?700:400)+';overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="'+esc(t[0])+'">'+esc(t[0])+'</span><span style="color:#888;font-size:11px;margin-right:6px">'+pp+'%</span><div class="insight-bar-wrap" style="width:44px"><div class="insight-bar" style="background:#0091D2;width:'+pp+'%"></div></div></div>';
@@ -3889,11 +3894,12 @@ function adminVolumesHtml(lines,top){
     else x+='<div style="color:#aaa;font-size:12px;padding:6px 0 8px">No data yet.</div>';
     x+='</div>';h+=x;
   }
-  h+=card('takeback','AO take-back program','Recycle on site with AO Take-back program');
+  h+=card('takeback','AO take-back program','Managed by AO');
   h+=card('waste','Mixed construction waste','AO onsite bins');
   h+=card('unsure','Unsure yet','No pathway chosen &mdash; could land in either stream');
   h+='</div>';
-  h+='</div></div>';
+  h+='</div>';
+  const cardsHtml=h;h='';
 
   // ── Section 2: material volumes report (filter by pathway) ──
   const flt=fcVolFilter();
@@ -3907,11 +3913,11 @@ function adminVolumesHtml(lines,top){
   h+='</div>';
   if(!groups.length){
     h+='<div style="color:#aaa;font-size:12px;padding:8px 0">'+(flt==='all'?'No material volumes to report yet.':'No materials forecast for this pathway yet.')+'</div></div>';
-    return h;
+    return{cards:cardsHtml,report:h};
   }
   h+='<div style="overflow-x:auto"><table class="admin-table" style="min-width:620px">';
   h+='<thead><tr><th style="width:28px">#</th><th>Material type</th><th>Volume</th><th>Reuse</th><th style="white-space:nowrap">Take-back</th><th>Waste</th><th>Unsure</th></tr></thead><tbody>';
-  const cell=(r,k)=>{const c=S_(k);return'<td style="text-align:left;white-space:nowrap;'+(r[k]>0?'font-weight:700;color:'+(k==='offsite'?'#3E4F60':c.col):'color:#c5ccd3')+'">'+(r[k]>0?fcFmtVol(r[k])+' <span style="font-weight:500;font-size:11px">'+esc(r.unit)+'</span>':'&ndash;')+'</td>';};
+  const cell=(r,k)=>{const c=S_(k);return'<td style="text-align:left;white-space:nowrap;'+(r[k]>0?'font-weight:700;color:'+(k==='offsite'?'#1F8A4C':c.col):'color:#c5ccd3')+'">'+(r[k]>0?fcFmtVol(r[k])+' <span style="font-weight:500;font-size:11px">'+esc(r.unit)+'</span>':'&ndash;')+'</td>';};
   const volTd=r=>'<td style="text-align:left;white-space:nowrap"><strong style="font-size:13px;color:#0C1B47">'+fcFmtVol(r.total)+'</strong> <span style="color:#5B6B7B;font-size:11px">'+esc(r.unit)+'</span></td>';
   if(!S._fcVolOpen)S._fcVolOpen={};
   groups.forEach((g,i)=>{
@@ -3926,9 +3932,9 @@ function adminVolumesHtml(lines,top){
     });
   });
   h+='</tbody></table></div>';
-  h+='<p style="font-size:11px;color:#8A97A2;margin-top:10px;line-height:1.5">Biggest volume first. Each material shows the sizing type most of its lines use; &#9660; opens any other sizing types. Reuse covers reuse, refurb, repurpose, donate and recycling taken off site by the Agency/Builder. Based on expected status.'+(merged?' Plans are grouped by material category and forecasts by material details, so the same material can sit under two names. An organisation with both a plan and a forecast for the same build is counted in both.':'')+'</p>';
+  if(merged)h+='<p style="font-size:11px;color:#8A97A2;margin-top:10px;line-height:1.5">Plans are grouped by material category and forecasts by material details, so the same material can sit under two names. An organisation with both a plan and a forecast for the same build is counted in both.</p>';
   h+='</div>';
-  return h;
+  return{cards:cardsHtml,report:h};
 }
 
 function renderAdminFcDashboard(rawForecasts){
@@ -4013,7 +4019,8 @@ function renderAdminFcDashboard(rawForecasts){
   h+='</div></div>';
 
   // Ops view: volumes by stream + ranked material volumes report
-  h+=adminFcVolumesHtml(filtered);
+  const fcVolHtml=adminFcVolumesHtml(filtered);
+  h+=fcVolHtml.cards;
 
   // Expected status breakdown (across all materials in the filtered forecasts)
   const allMats=filtered.flatMap(f=>f.materials||[]);
@@ -4098,6 +4105,8 @@ function renderAdminFcDashboard(rawForecasts){
   h+='</tbody></table></div>';
   h+='</div>'; // close forecasts admin-section
 
+  h+=fcVolHtml.report; // material volumes report sits under the submitted forecasts table
+
   // ── Actions ───────────────────────────────────────────────────────────────
   h+='<div class="admin-section" style="display:flex;gap:8px;flex-wrap:wrap">';
   h+='<button onclick="exportAdminFcCSV()" style="font-size:12px;padding:8px 16px;border:1px solid #0091D2;color:#0091D2;background:#EEF5FF;border-radius:7px;cursor:pointer">Export all forecasts as CSV</button>';
@@ -4161,7 +4170,8 @@ function renderAdminMerged(){
   h+='<div class="met"><div class="mval">'+lines.length+'</div><div class="mlbl">Material lines ('+pl.length+' plan + '+fl.length+' forecast)</div></div>';
   h+='</div></div>';
   const cts={};for(const l of lines)cts[l.name]=(cts[l.name]||0)+1;
-  h+=adminVolumesHtml(lines,{title:'Top materials',rows:Object.entries(cts).sort((a,b)=>b[1]-a[1]).slice(0,5),total:lines.length});
+  const mVolHtml=adminVolumesHtml(lines,{title:'Top materials',rows:Object.entries(cts).sort((a,b)=>b[1]-a[1]).slice(0,5),total:lines.length});
+  h+=mVolHtml.cards+mVolHtml.report;
   h+='<div class="admin-section" style="display:flex;gap:8px;flex-wrap:wrap">';
   if(SUPABASE_READY)h+='<button onclick="loadAdminMergedInto()" style="font-size:12px;padding:8px 16px;border:1px solid #ddd;color:#555;background:#fff;border-radius:7px;cursor:pointer">Refresh</button>';
   h+='</div>';
