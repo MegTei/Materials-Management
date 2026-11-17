@@ -932,6 +932,10 @@ select.stat-sel[data-tone=""]{padding-left:10px!important}
 /* field numbers: outlined, one style; 1–4 asset fields in blue, 5–7 material fields in grey */
 #main .ux-assets .qn{background:#fff!important;border:1.5px solid var(--ux-sky);color:#0072A8!important;width:19px;height:19px;font-size:10.5px}
 #main .ux-assets .mt-ed .qn{border-color:#6B7785;color:#4A5561!important}
+/* Admin dashboards (plans, forecasts, combined): wider canvas (only while one is on screen) + responsive card grids */
+.app:has(.fc-dash){max-width:1200px}
+body:has(.fc-dash) .ao-hdr-wrap .ao-hdr,body:has(.fc-dash) .tab-nav .tab-nav-inner{max-width:1200px}
+.fc-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px}
 @media (max-width:640px){#main .mt-r{grid-template-columns:minmax(0,1fr) auto}#main .mt-vol,#main .mt-th span:nth-child(2),#main .mt-th span:nth-child(3){display:none}#main .mt-st{grid-column:1/-1;order:3}#main .ac-prec{display:none}}
 </style>
 </head>
@@ -3091,6 +3095,15 @@ function renderAdmin(){
 
   // Authenticated — route to the selected admin sub-view (dashboard | upload | forecasts)
   if(S.adminView==='upload'){renderAdminUpload();return;}
+  if(S.adminView==='merged'){
+    document.getElementById('main').innerHTML=
+      '<div style="text-align:center;padding:3rem 1rem;color:#888">'
+      +'<div style="font-size:13px;margin-bottom:.5rem">'+(SUPABASE_READY?'Loading plans and forecasts from cloud...':'Loading local plans and forecasts...')+'</div>'
+      +'<div style="width:32px;height:32px;border:3px solid #e0ddd6;border-top-color:#0091D2;border-radius:50%;animation:spin .8s linear infinite;margin:0 auto"></div>'
+      +'</div>';
+    loadAdminMergedInto();
+    return;
+  }
   if(S.adminView==='forecasts'){
     document.getElementById('main').innerHTML=
       '<div style="text-align:center;padding:3rem 1rem;color:#888">'
@@ -3114,13 +3127,15 @@ function renderAdmin(){
 
 // Admin sub-tab bar — shared across dashboard, upload & forecasts views (reuses the same login)
 function adminSubTabBar(active,withSignOut){
+  // Forecasts uses the homepage "Provide a waste forecast" green so it reads as a different dataset.
   const tab=(id,label)=>{
-    const on=active===id;
-    return '<button onclick="adminSwitchView(&#39;'+id+'&#39;)" style="font-size:13px;font-weight:700;height:40px;padding:0 16px;border-radius:8px;cursor:pointer;border:1.5px solid '+(on?'#0072A8':'#D5DDE5')+';background:'+(on?'#0072A8':'#fff')+';color:'+(on?'#fff':'#253545')+';font-family:inherit">'+label+'</button>';
+    const on=active===id,fc=id==='forecasts';
+    const bd=fc?'#009999':(on?'#0072A8':'#D5DDE5'),bg=on?(fc?'#009999':'#0072A8'):(fc?'#D9F2F2':'#fff'),tx=on?'#fff':(fc?'#007A7A':'#253545');
+    return '<button onclick="adminSwitchView(&#39;'+id+'&#39;)" style="font-size:13px;font-weight:700;height:40px;padding:0 16px;border-radius:8px;cursor:pointer;border:1.5px solid '+bd+';background:'+bg+';color:'+tx+';font-family:inherit">'+label+'</button>';
   };
   const signOut=withSignOut?'<button onclick="adminSignOut()" style="margin-left:auto;font-size:13px;font-weight:600;height:40px;padding:0 14px;color:#5B6B7B;border:none;border-radius:8px;cursor:pointer;background:none">Sign out</button>':'';
-  return '<div class="admin-section" style="display:flex;gap:8px;padding-top:1rem;padding-bottom:1rem">'
-    +tab('dashboard','Materials plans')+tab('forecasts','Forecasts')+tab('upload','Upload /maintain material plans')+signOut
+  return '<div class="admin-section" style="display:flex;gap:8px;flex-wrap:wrap;padding-top:1rem;padding-bottom:1rem">'
+    +tab('dashboard','Materials plans')+tab('forecasts','Forecasts')+tab('merged','Combined report')+tab('upload','Upload /maintain material plans')+signOut
     +'</div>';
 }
 function adminSwitchView(v){S.adminView=v;renderAdmin();}
@@ -3388,6 +3403,7 @@ function renderAdminDashboard(rawPlans){
   h+='</div></div>';
   h+='<button onclick="adminSignOut()" style="font-size:11px;padding:6px 14px;color:rgba(255,255,255,.7);border:1px solid rgba(255,255,255,.25);border-radius:7px;cursor:pointer;background:rgba(255,255,255,.1);flex-shrink:0;margin-top:2px">Sign out</button>';
   h+='</div></div>';
+  h+='<span class="fc-dash" hidden></span>';
   h+=adminSubTabBar('dashboard',false);
 
   // ── Year filter ───────────────────────────────────────────────────────────
@@ -3493,7 +3509,9 @@ function renderAdminDashboard(rawPlans){
   // Insights grid ─────────────────────────────────────────────────────────────
   h+='<div class="admin-section alt">';
   h+='<div class="sechd sechd-first">Insights</div>';
-  h+='<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px">';
+  h+='<div class="fc-grid">';
+
+  h+='<div style="display:flex;flex-direction:column;gap:14px;min-width:0">'; // column: AO Target List + Top 10
 
   // Insight A: TML adoption — AO Target List vs Other
   h+='<div class="insight-card">';
@@ -3522,17 +3540,17 @@ function renderAdminDashboard(rawPlans){
   }
   h+='</div>';
 
-  // Insight B: Top material categories
+  // Insight E: Top 10 circular businesses — stacked under the AO Target List tile
+  // (same column) so the status and actuals cards get the remaining width.
   h+='<div class="insight-card">';
-  h+=iconBox(svgBar);
-  h+='<div class="insight-label" style="color:#003A5D">Top material categories</div>';
-  if(topCats.length){for(let i=0;i<topCats.length;i++){
-    const[cat,cnt]=topCats[i];
-    const pp=catTot?Math.round(cnt/catTot*100):0;
-    h+='<div class="insight-row"><span style="color:#aaa;font-size:10px;width:14px;flex-shrink:0">'+(i+1)+'</span><span style="flex:1;color:#333;font-weight:'+(i===0?700:400)+';overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+esc(cat)+'</span><span style="color:#888;font-size:11px;margin-right:8px">'+pp+'%</span><div class="insight-bar-wrap"><div class="insight-bar" style="background:#0091D2;width:'+pp+'%"></div></div></div>';
-  }}
-  else h+='<div style="color:#aaa;font-size:12px;padding-top:4px">No data yet.</div>';
+  h+=iconBox(svgAward);
+  h+='<div class="insight-label" style="color:#003A5D">Top 10 circular businesses</div>';
+  if(planCirc.length){for(let i=0;i<Math.min(planCirc.length,10);i++){const p2=planCirc[i];const col=fillClr(p2.pct);h+='<div class="insight-row"><span style="color:#aaa;font-size:10px;width:14px;flex-shrink:0">'+(i+1)+'</span><span style="flex:1;color:#333;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+esc(p2.name)+'</span><span style="color:'+col+';font-weight:700;font-size:12px;margin-right:8px">'+p2.pct+'%</span><div class="insight-bar-wrap"><div class="insight-bar" style="background:'+col+';width:'+p2.pct+'%"></div></div></div>';}}
+  else h+='<div style="color:#aaa;font-size:12px;padding-top:4px">No circularity data yet.</div>';
   h+='</div>';
+  h+='</div>'; // end column
+
+  // (Top material categories now sits in the Bump out forecast row below.)
 
   // Insight C: Materials by planned status
   h+='<div class="insight-card">';
@@ -3550,23 +3568,20 @@ function renderAdminDashboard(rawPlans){
   else h+='<div style="color:#aaa;font-size:12px;padding-top:4px;text-align:center">Post-event actuals will appear here once bump-out data is recorded.</div>';
   h+='</div>';
 
-  // Insight E: Circularity leaders
-  h+='<div class="insight-card">';
-  h+=iconBox(svgAward);
-  h+='<div class="insight-label" style="color:#003A5D">Circularity by business</div>';
-  if(planCirc.length){for(let i=0;i<Math.min(planCirc.length,5);i++){const p2=planCirc[i];const col=fillClr(p2.pct);h+='<div class="insight-row"><span style="color:#aaa;font-size:10px;width:14px;flex-shrink:0">'+(i+1)+'</span><span style="flex:1;color:#333;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+esc(p2.name)+'</span><span style="color:'+col+';font-weight:700;font-size:12px;margin-right:8px">'+p2.pct+'%</span><div class="insight-bar-wrap"><div class="insight-bar" style="background:'+col+';width:'+p2.pct+'%"></div></div></div>';}}
-  else h+='<div style="color:#aaa;font-size:12px;padding-top:4px">No circularity data yet.</div>';
-  h+='</div>';
-
   h+='</div></div>'; // end insights grid + section
+
+  // Ops view (same as the forecast dashboard): volumes by pathway + material volumes report
+  h+=adminVolumesHtml(planLines(filtered),{title:'Top material categories',rows:topCats,total:catTot});
 
   // ── Plans table ───────────────────────────────────────────────────────────
   h+='<div class="admin-section">';
   h+='<div class="sechd sechd-first">Submitted plans ('+filtered.length+')</div>';
   h+='<div style="overflow-x:auto;margin-bottom:1.5rem"><table class="admin-table">';
-  h+='<thead><tr><th>Business</th><th>Contact</th><th>Year</th><th>Plan ID</th><th>Assets</th><th>Circularity</th><th>Last saved</th></tr></thead>';
+  h+='<thead><tr><th>Business</th><th>Contact</th><th>Year</th><th>Plan ID</th><th>Assets</th><th>Take-back</th><th>Waste</th><th>Circularity</th><th>Last saved</th></tr></thead>';
   h+='<tbody>';
   for(const p of filtered){
+    const prep=volReport(planLines([p]));
+    const pvol=k=>{const t=fcUnitTotalsText(prep.streams[k].byUnit,prep.units);return t.length?t.map(esc).join('<br>'):'<span style="color:#c5ccd3">&ndash;</span>';};
     const assets=p.assets||[];
     const mats=assets.flatMap(a=>a.materials||[]);
     const sc=calcScore(assets);
@@ -3581,6 +3596,8 @@ function renderAdminDashboard(rawPlans){
     h+='<td><span style="font-size:12px;font-weight:700;color:#0091D2">'+esc(yr)+'</span></td>';
     h+='<td><span style="font-family:monospace;font-size:11px;color:#0091D2;font-weight:700">'+code+'</span></td>';
     h+='<td>'+assets.length+' assets<br><span style="color:#aaa;font-size:10px">'+mats.length+' mats</span></td>';
+    h+='<td style="white-space:nowrap;font-size:11px;font-weight:700;color:#1F8A4C">'+pvol('takeback')+'</td>';
+    h+='<td style="white-space:nowrap;font-size:11px;font-weight:700;color:#A32E2E">'+pvol('waste')+'</td>';
     h+='<td><span class="admin-stat" style="background:'+statBg+';color:'+statCol+'">'+(_noSc?'-':pctText(sc.pctExact))+'</span></td>';
     h+='<td style="white-space:nowrap;font-size:11px">'+fmtDate(p.lastEditedAt||p.savedAt)+'<br><span style="color:#aaa">'+esc(p.lastEditedBy||'')+'</span></td>';
     h+='</tr>';
@@ -3635,6 +3652,285 @@ function renderAdminFcError(err){
   main.innerHTML=h;
 }
 
+// ── Forecast volumes for Ops ─────────────────────────────────────────────────
+// The Ops team plans bump-out around two streams it handles itself: the AO
+// take-back program and the AO onsite mixed-construction-waste bins. Everything
+// here aggregates VOLUME (field 4 + unit), not a count of material lines.
+// Volumes in different units are never added together — every total is per unit.
+const FC_WASTE_STAT='Mixed construction waste - AO onsite bins';
+const FC_STREAMS=[
+  {k:'takeback',label:'AO take-back',col:'#1F8A4C',bg:'#EEF9F4'},
+  {k:'waste',label:'Mixed waste (AO bins)',col:'#A32E2E',bg:'#FCEBEB'},
+  {k:'unsure',label:'Unsure yet',col:'#B26A00',bg:'#FFF4E0'},
+  {k:'offsite',label:'Reuse',col:'#8A97A2',bg:'#F1F4F7'}
+];
+// Which stream a status puts a material in (tolerates older status spellings).
+function fcStream(s){
+  if(!s)return'';
+  const l=String(s).toLowerCase();
+  if(/take-?\s?back/.test(l))return'takeback';
+  if(/mixed construction waste|landfill/.test(l))return'waste';
+  if(/unsure|not sure|^tbc/.test(l))return'unsure';
+  return'offsite';
+}
+// Field 4 is free text — only a plain positive number can be totalled.
+function fcVolNum(v){
+  const t=String(v==null?'':v).replace(/,/g,'').trim();
+  if(!/^\d*\.?\d+$/.test(t))return null;
+  const n=parseFloat(t);return isFinite(n)&&n>0?n:null;
+}
+// Fold common spellings of the same unit together (m2 = sqm, tonnes -> kg x1000).
+// Anything unrecognised is kept as typed and totalled on its own.
+function fcUnitNorm(u){
+  const raw=String(u||'').trim();const l=raw.toLowerCase().replace(/\./g,'').replace(/\s+/g,' ');
+  if(!l)return{unit:'',f:1};
+  if(/^(sqm|m2|m²|sq m|sqms|square (metres?|meters?))$/.test(l))return{unit:'sqm',f:1};
+  if(/^(lm|lin m|lineal (metres?|meters?)|linear (metres?|meters?))$/.test(l))return{unit:'lm',f:1};
+  if(/^(kg|kgs|kilograms?|kilos?)$/.test(l))return{unit:'kg',f:1};
+  if(/^(t|tonnes?)$/.test(l))return{unit:'kg',f:1000};
+  if(/^(units?|each|ea|pcs|pieces?|items?)$/.test(l))return{unit:'units',f:1};
+  if(/^sheets?$/.test(l))return{unit:'sheets',f:1};
+  if(/^(m3|m³|cbm|cubic (metres?|meters?))$/.test(l))return{unit:'m³',f:1};
+  if(/^(l|lt|ltr|litres?|liters?)$/.test(l))return{unit:'L',f:1};
+  return{unit:raw,f:1};
+}
+function fcFmtVol(n){return (Math.round(n*10)/10).toLocaleString('en-AU',{maximumFractionDigits:1});}
+function fcMatClass(name){
+  for(const g of FC_MAT_GROUPS){if(g.items.includes(name))return /^waste/i.test(g.grp)?'Waste-stream material':/^composite/i.test(g.grp)?'Composite – recyclable if separated':'Recyclable material';}
+  return'Other';
+}
+// The volume report runs on a flat list of "lines" so the same engine serves the
+// forecast dashboard, the materials plan dashboard and the combined report:
+//   {org, name, cls, vol, vunit, stat, statTakeBack, src}
+// Forecast lines: one per forecast material, named by its Material details (field 3).
+function fcLines(forecasts){
+  const out=[];
+  for(const f of (forecasts||[])){
+    const org=(f&&f.profile&&f.profile.org)||'Unnamed';
+    for(const m of ((f&&f.materials)||[])){
+      const name=m.detail==='Other'?(String(m.detailOther||'').trim()||'Other'):m.detail;
+      if(!name)continue;
+      out.push({org:org,name:name,cls:fcMatClass(name),vol:m.vol,vunit:m.vunit,stat:m.stat,statTakeBack:m.statTakeBack,src:'Forecasts'});
+    }
+  }
+  return out;
+}
+// Materials plan lines: one per asset material, grouped by its material category
+// (the plan's own category, else the AO Target List category, else the material name).
+function planLines(plans){
+  const out=[];
+  for(const p of (plans||[])){
+    const org=(p&&p.profile&&p.profile.businessName)||'Unnamed';
+    for(const a of ((p&&p.assets)||[])){
+      for(const m of ((a&&a.materials)||[])){
+        const t=m.tmlRef&&m.tmlRef!=='OTHER'?TML.find(x=>x.ref===m.tmlRef):null;
+        const name=String(m.cat||(t&&t.cat)||m.name||(t&&t.name)||'').trim();
+        if(!name)continue;
+        out.push({org:org,name:name,cls:'',vol:m.vol,vunit:m.vunit,stat:m.stat,statTakeBack:m.statTakeBack,src:'Plans'});
+      }
+    }
+  }
+  return out;
+}
+// Build the volume report from lines. Stream is taken from the expected/planned status.
+//   rows      one per material type + unit, with a volume per stream
+//   units     units in use, most-used first
+//   streams   per stream: lines, orgs, totals per unit, materials, take-back programs
+//   skipped   lines that could not be totalled (no numeric volume / no unit / no status)
+function volReport(lines){
+  const rowMap={},unitLines={},skipped=[];
+  const streams={};FC_STREAMS.forEach(st=>{streams[st.k]={lines:0,orgs:new Set(),byUnit:{},mats:{},programs:{}};});
+  for(const m of (lines||[])){
+    const org=m.org,name=m.name;
+    const sk=fcStream(m.stat),n=fcVolNum(m.vol),un=fcUnitNorm(m.vunit);
+    if(!sk||n==null||!un.unit){skipped.push({org:org,name:name,vol:m.vol||'',vunit:m.vunit||'',stat:m.stat||'',why:!sk?'no expected status':n==null?'volume is not a plain number':'no unit'});continue;}
+    const v=n*un.f,u=un.unit,key=name.toLowerCase()+'|'+u;
+    const r=rowMap[key]||(rowMap[key]={name:name,cls:m.cls||'',unit:u,total:0,takeback:0,waste:0,unsure:0,offsite:0,lines:0,orgs:new Set(),srcs:new Set()});
+    r.total+=v;r[sk]+=v;r.lines++;r.orgs.add(org);r.srcs.add(m.src||'');
+    unitLines[u]=(unitLines[u]||0)+1;
+    const st=streams[sk];st.lines++;st.orgs.add(org);st.byUnit[u]=(st.byUnit[u]||0)+v;
+    (st.mats[key]||(st.mats[key]={name:name,unit:u,vol:0})).vol+=v;
+    if(sk==='takeback'){
+      const pn=String(m.statTakeBack||'').trim()||'Program not named';const pk=pn.toLowerCase();
+      const pr=st.programs[pk]||(st.programs[pk]={name:pn,lines:0,byUnit:{}});pr.lines++;pr.byUnit[u]=(pr.byUnit[u]||0)+v;
+    }
+  }
+  const units=Object.keys(unitLines).sort((a,b)=>unitLines[b]-unitLines[a]||a.localeCompare(b));
+  return{rows:Object.values(rowMap),units:units,unitLines:unitLines,streams:streams,skipped:skipped};
+}
+function fcVolumeReport(forecasts){return volReport(fcLines(forecasts));}
+// One entry per material type for the report. vols[] holds each sizing type (unit)
+// the material was forecast in: vols[0] is the majority sizing (most lines; ties go
+// to the bigger figure), the rest sit behind the row's expand arrow. Different units
+// are never added together. With a pathway filter on, only sizings that have volume
+// on that pathway are kept and the list is ordered by that pathway's volume.
+function fcRankRows(rep,filter){
+  const k=['offsite','takeback','waste','unsure'].includes(filter)?filter:'total';
+  const by={};
+  for(const r of rep.rows){if(!(r[k]>0))continue;const key=r.name.toLowerCase();const g=by[key]||(by[key]={name:r.name,cls:r.cls,lines:0,vols:[],srcs:new Set()});g.vols.push(r);g.lines+=r.lines;r.srcs.forEach(x=>g.srcs.add(x));}
+  return Object.values(by).map(g=>{g.vols.sort((a,b)=>b.lines-a.lines||b[k]-a[k]||a.unit.localeCompare(b.unit));return g;}).sort((a,b)=>b.vols[0][k]-a.vols[0][k]||a.name.localeCompare(b.name));
+}
+function fcUnitTotalsText(byUnit,units){
+  const us=(units||Object.keys(byUnit)).filter(u=>byUnit[u]>0);
+  return us.map(u=>fcFmtVol(byUnit[u])+' '+u);
+}
+function adminFcYearFilter(all){
+  const sel=sessionStorage.getItem('adminFcYear')||'all';
+  if(sel==='all')return all;
+  const out=all.filter(f=>(f.profile&&f.profile.eventYear?f.profile.eventYear:'Unknown')===sel);
+  return out.length?out:all;
+}
+function fcVolFilter(){const f=sessionStorage.getItem('adminFcFilter');return['offsite','takeback','waste','unsure'].includes(f)?f:'all';}
+function adminPlanYearFilter(all){
+  const sel=sessionStorage.getItem('adminYear')||'all';
+  if(sel==='all')return all;
+  const out=all.filter(p=>(p.profile&&p.profile.aoYear?p.profile.aoYear:'Unknown')===sel);
+  return out.length?out:all;
+}
+// Combined report: every materials plan line + every forecast line for the selected year.
+function mergedYears(){
+  const ys=new Set();
+  (S._adminPlans||[]).filter(p=>!isExamplePlan(p)).forEach(p=>ys.add(p.profile&&p.profile.aoYear?p.profile.aoYear:'Unknown'));
+  (S._adminForecasts||[]).forEach(f=>ys.add(f.profile&&f.profile.eventYear?f.profile.eventYear:'Unknown'));
+  return [...ys].sort();
+}
+function mergedSets(){
+  let sel=sessionStorage.getItem('adminMergedYear')||'all';
+  if(sel!=='all'&&!mergedYears().includes(sel))sel='all';
+  const plans=(S._adminPlans||[]).filter(p=>!isExamplePlan(p)).filter(p=>sel==='all'||(p.profile&&p.profile.aoYear?p.profile.aoYear:'Unknown')===sel);
+  const fcs=(S._adminForecasts||[]).filter(f=>sel==='all'||(f.profile&&f.profile.eventYear?f.profile.eventYear:'Unknown')===sel);
+  return{sel:sel,plans:plans,fcs:fcs};
+}
+// Report lines for whichever admin view is on screen (respecting its year filter).
+function adminVolLines(){
+  if(S.adminView==='forecasts')return fcLines(adminFcYearFilter(S._adminForecasts||[]));
+  if(S.adminView==='merged'){const m=mergedSets();return planLines(m.plans).concat(fcLines(m.fcs));}
+  return planLines(adminPlanYearFilter((S._adminPlans||[]).filter(p=>!isExamplePlan(p))));
+}
+function adminVolRerender(){
+  if(S.adminView==='forecasts')renderAdminFcDashboard(S._adminForecasts||[]);
+  else if(S.adminView==='merged')renderAdminMerged();
+  else renderAdminDashboard(S._adminPlans||[]);
+}
+function adminFcSetFilter(k){sessionStorage.setItem('adminFcFilter',k);adminVolRerender();}
+// Open/close a material's other sizing types in place (state kept so a re-render doesn't snap it shut).
+function adminFcToggleVol(tr){
+  const key=tr.dataset.vk;if(!S._fcVolOpen)S._fcVolOpen={};
+  const open=S._fcVolOpen[key]=!S._fcVolOpen[key];
+  let n=tr.nextElementSibling;while(n&&n.dataset.vkp===key){n.style.display=open?'':'none';n=n.nextElementSibling;}
+  const c=tr.querySelector('.fcvol-chev');if(c)c.innerHTML=open?'&#9650;':'&#9660;';
+}
+// Material volumes report as CSV — same rows and ranking as the on-screen report,
+// for whichever year and pathway filter are selected on the dashboard.
+function exportAdminFcVolumesCSV(){
+  const rep=volReport(adminVolLines());
+  const flt=fcVolFilter();
+  const groups=fcRankRows(rep,flt);
+  if(!groups.length){showToast('No volumes to export yet');return;}
+  const num=v=>v>0?fcFmtVol(v).replace(/,/g,''):'';
+  const rows=[['Rank','Material type','Material class','Source','Sizing','Volume','Unit','Reuse','AO take-back program','Mixed construction waste (AO onsite bins)','Unsure yet','Material lines']];
+  groups.forEach((g,i)=>g.vols.forEach((r,j)=>rows.push([i+1,g.name,g.cls,[...r.srcs].filter(Boolean).sort().join(' + '),j?'Other sizing':'Main sizing',num(r.total),r.unit,num(r.offsite),num(r.takeback),num(r.waste),num(r.unsure),r.lines])));
+  const csv=rows.map(r=>r.map(v=>'"'+String(v).replace(/"/g,'""')+'"').join(',')).join('\r\n');
+  const blob=new Blob(['﻿'+csv],{type:'text/csv;charset=utf-8;'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  const view=S.adminView==='forecasts'?'forecast':S.adminView==='merged'?'combined':'plans';
+  const yr=sessionStorage.getItem(view==='forecast'?'adminFcYear':view==='combined'?'adminMergedYear':'adminYear')||'all';
+  a.href=url;a.download='ao-'+view+'-material-volumes-'+(yr==='all'?'all-years':yr.toLowerCase())+'.csv';a.click();
+  URL.revokeObjectURL(url);
+}
+// Forecast dashboard wrapper: forecast lines + "Top materials" (share of material lines).
+function adminFcVolumesHtml(filtered){
+  const lines=fcLines(filtered),cts={};
+  for(const l of lines)cts[l.name]=(cts[l.name]||0)+1;
+  return adminVolumesHtml(lines,{title:'Top materials',rows:Object.entries(cts).sort((a,b)=>b[1]-a[1]).slice(0,5),total:lines.length});
+}
+// The two Ops sections shared by every admin dashboard: Bump out forecast cards
+// (top = the blue "Top materials" card: {title, rows:[[label,count]], total}) + the
+// filterable material volumes report.
+function adminVolumesHtml(lines,top){
+  const rep=volReport(lines);
+  const merged=S.adminView==='merged';
+  const S_=k=>FC_STREAMS.find(x=>x.k===k);
+  let h='';
+  // ── Section 1: what Ops has to handle ──
+  h+='<div class="admin-section">';
+  h+='<div class="sechd sechd-first">Bump out forecast</div>';
+  h+='<div class="fc-grid">';
+  const card=(k,title,sub)=>{
+    const st=rep.streams[k],c=S_(k);
+    let x='<div style="border:1px solid #E1E7ED;border-top:4px solid '+c.col+';border-radius:12px;padding:16px 16px 12px;background:#fff">';
+    x+='<div style="font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.07em;color:'+c.col+'">'+title+'</div>';
+    x+='<div style="font-size:11px;color:#5B6B7B;margin:2px 0 10px">'+sub+'</div>';
+    if(!st.lines){x+='<div style="color:#aaa;font-size:12px;padding:6px 0 8px">Nothing forecast for this stream yet.</div></div>';return x;}
+    x+='<div style="font-size:11px;color:#5B6B7B;margin-bottom:10px">'+st.lines+' material line'+(st.lines===1?'':'s')+' from '+st.orgs.size+' organisation'+(st.orgs.size===1?'':'s')+'</div>';
+    const mats=Object.values(st.mats).sort((a,b)=>rep.units.indexOf(a.unit)-rep.units.indexOf(b.unit)||b.vol-a.vol);
+    x+='<div style="font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:#8A97A2;margin-bottom:2px">Biggest materials</div>';
+    mats.slice(0,5).forEach(mt=>{x+='<div class="insight-row"><span style="flex:1;color:#333;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="'+esc(mt.name)+'">'+esc(mt.name)+'</span><span style="font-weight:700;color:#0C1B47;white-space:nowrap">'+fcFmtVol(mt.vol)+' <span style="font-weight:500;color:#5B6B7B">'+esc(mt.unit)+'</span></span></div>';});
+    if(mats.length>5)x+='<div style="font-size:11px;color:#8A97A2;padding-top:6px">+ '+(mats.length-5)+' more in the report below</div>';
+    if(k==='takeback'){
+      const progs=Object.values(st.programs).sort((a,b)=>b.lines-a.lines);
+      x+='<div style="font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:#8A97A2;margin:12px 0 2px">By take-back program named</div>';
+      progs.slice(0,6).forEach(pr=>{x+='<div class="insight-row"><span style="flex:1;color:#333;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="'+esc(pr.name)+'">'+esc(pr.name)+'</span><span style="color:#5B6B7B;white-space:nowrap;font-size:11px">'+esc(fcUnitTotalsText(pr.byUnit,rep.units).join(' · '))+'</span></div>';});
+      if(progs.length>6)x+='<div style="font-size:11px;color:#8A97A2;padding-top:6px">+ '+(progs.length-6)+' more programs</div>';
+    }
+    x+='</div>';return x;
+  };
+  // Top materials / categories (share of material lines)
+  {
+    const topMats=(top&&top.rows)||[],matTot=(top&&top.total)||0;
+    let x='<div style="border:1px solid #E1E7ED;border-top:4px solid #0091D2;border-radius:12px;padding:16px 16px 12px;background:#fff">';
+    x+='<div style="font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.07em;color:#0072A8">'+esc((top&&top.title)||'Top materials')+'</div>';
+    x+='<div style="font-size:11px;color:#5B6B7B;margin:2px 0 10px">Share of all material lines</div>';
+    if(topMats.length){topMats.forEach((t,i)=>{
+      const pp=matTot?Math.round(t[1]/matTot*100):0;
+      x+='<div class="insight-row"><span style="color:#aaa;font-size:10px;width:14px;flex-shrink:0">'+(i+1)+'</span><span style="flex:1;color:#333;font-weight:'+(i===0?700:400)+';overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="'+esc(t[0])+'">'+esc(t[0])+'</span><span style="color:#888;font-size:11px;margin-right:6px">'+pp+'%</span><div class="insight-bar-wrap" style="width:44px"><div class="insight-bar" style="background:#0091D2;width:'+pp+'%"></div></div></div>';
+    });}
+    else x+='<div style="color:#aaa;font-size:12px;padding:6px 0 8px">No data yet.</div>';
+    x+='</div>';h+=x;
+  }
+  h+=card('takeback','AO take-back program','Recycle on site with AO Take-back program');
+  h+=card('waste','Mixed construction waste','AO onsite bins');
+  h+=card('unsure','Unsure yet','No pathway chosen &mdash; could land in either stream');
+  h+='</div>';
+  h+='</div></div>';
+
+  // ── Section 2: material volumes report (filter by pathway) ──
+  const flt=fcVolFilter();
+  const groups=fcRankRows(rep,flt);
+  h+='<div class="admin-section">';
+  h+='<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:12px">';
+  h+='<div class="sechd sechd-first" style="margin:0;flex:1;min-width:180px">Material volumes report</div>';
+  const chip=(k,l)=>'<button onclick="adminFcSetFilter(&#39;'+k+'&#39;)" style="font-size:12px;font-weight:700;padding:5px 12px;border-radius:20px;cursor:pointer;border:1.5px solid '+(flt===k?'#0091D2':'#d0cdc7')+';background:'+(flt===k?'#0091D2':'#fff')+';color:'+(flt===k?'#fff':'#555')+'">'+l+'</button>';
+  h+='<span style="font-size:11px;font-weight:700;color:#888;text-transform:uppercase;letter-spacing:.06em">Filter</span>'+chip('all','All')+chip('offsite','Reuse')+chip('takeback','Take-back')+chip('waste','Waste')+chip('unsure','Unsure');
+  h+='<button onclick="exportAdminFcVolumesCSV()" style="font-size:12px;font-weight:700;padding:6px 14px;border:1px solid #0091D2;color:#0091D2;background:#EEF5FF;border-radius:7px;cursor:pointer">Export report (CSV)</button>';
+  h+='</div>';
+  if(!groups.length){
+    h+='<div style="color:#aaa;font-size:12px;padding:8px 0">'+(flt==='all'?'No material volumes to report yet.':'No materials forecast for this pathway yet.')+'</div></div>';
+    return h;
+  }
+  h+='<div style="overflow-x:auto"><table class="admin-table" style="min-width:620px">';
+  h+='<thead><tr><th style="width:28px">#</th><th>Material type</th><th>Volume</th><th>Reuse</th><th style="white-space:nowrap">Take-back</th><th>Waste</th><th>Unsure</th></tr></thead><tbody>';
+  const cell=(r,k)=>{const c=S_(k);return'<td style="text-align:left;white-space:nowrap;'+(r[k]>0?'font-weight:700;color:'+(k==='offsite'?'#3E4F60':c.col):'color:#c5ccd3')+'">'+(r[k]>0?fcFmtVol(r[k])+' <span style="font-weight:500;font-size:11px">'+esc(r.unit)+'</span>':'&ndash;')+'</td>';};
+  const volTd=r=>'<td style="text-align:left;white-space:nowrap"><strong style="font-size:13px;color:#0C1B47">'+fcFmtVol(r.total)+'</strong> <span style="color:#5B6B7B;font-size:11px">'+esc(r.unit)+'</span></td>';
+  if(!S._fcVolOpen)S._fcVolOpen={};
+  groups.forEach((g,i)=>{
+    const r=g.vols[0],multi=g.vols.length>1,key=g.name.toLowerCase(),open=multi&&!!S._fcVolOpen[key];
+    h+='<tr'+(multi?' data-vk="'+esc(key)+'" onclick="adminFcToggleVol(this)" style="cursor:pointer" title="Show the other sizing types"':'')+'><td style="color:#8A97A2">'+(i+1)+'</td>';
+    h+='<td><strong style="color:#0C1B47">'+esc(g.name)+'</strong>';
+    if(merged)h+=' <span style="display:inline-block;font-size:10px;font-weight:700;padding:1px 7px;border-radius:99px;vertical-align:middle;'+(g.srcs.size>1?'background:#EDE9FB;color:#5B3FB8':g.srcs.has('Forecasts')?'background:#D9F2F2;color:#007A7A':'background:#E8F4FC;color:#005F8C')+'">'+esc([...g.srcs].filter(Boolean).sort().join(' + '))+'</span>';
+    if(multi)h+='<br><span class="fcvol-chev" style="display:inline-block;width:16px;color:#0091D2;font-size:12px;line-height:1">'+(open?'&#9650;':'&#9660;')+'</span><span style="color:#8A97A2;font-size:10px">'+(g.cls?esc(g.cls)+' &middot; ':'')+g.lines+' line'+(g.lines===1?'':'s')+' &middot; '+g.vols.length+' sizing types ('+esc(g.vols.map(v=>v.unit).join(', '))+')</span>';
+    h+='</td>'+volTd(r)+cell(r,'offsite')+cell(r,'takeback')+cell(r,'waste')+cell(r,'unsure')+'</tr>';
+    g.vols.slice(1).forEach(q=>{
+      h+='<tr data-vkp="'+esc(key)+'" style="background:#FAFBFC'+(open?'':';display:none')+'"><td></td><td style="padding-left:26px;color:#5B6B7B;font-size:11px">Also sized in '+esc(q.unit)+' &middot; '+q.lines+' line'+(q.lines===1?'':'s')+'</td>'+volTd(q)+cell(q,'offsite')+cell(q,'takeback')+cell(q,'waste')+cell(q,'unsure')+'</tr>';
+    });
+  });
+  h+='</tbody></table></div>';
+  h+='<p style="font-size:11px;color:#8A97A2;margin-top:10px;line-height:1.5">Biggest volume first. Each material shows the sizing type most of its lines use; &#9660; opens any other sizing types. Reuse covers reuse, refurb, repurpose, donate and recycling taken off site by the Agency/Builder. Based on expected status.'+(merged?' Plans are grouped by material category and forecasts by material details, so the same material can sit under two names. An organisation with both a plan and a forecast for the same build is counted in both.':'')+'</p>';
+  h+='</div>';
+  return h;
+}
+
 function renderAdminFcDashboard(rawForecasts){
   const allFc=rawForecasts||[];
 
@@ -3659,6 +3955,7 @@ function renderAdminFcDashboard(rawForecasts){
   h+='</div></div>';
   h+='<button onclick="adminSignOut()" style="font-size:11px;padding:6px 14px;color:rgba(255,255,255,.7);border:1px solid rgba(255,255,255,.25);border-radius:7px;cursor:pointer;background:rgba(255,255,255,.1);flex-shrink:0;margin-top:2px">Sign out</button>';
   h+='</div></div>';
+  h+='<span class="fc-dash" hidden></span>';
   h+=adminSubTabBar('forecasts',false);
 
   // ── Year filter ───────────────────────────────────────────────────────────
@@ -3715,6 +4012,9 @@ function renderAdminFcDashboard(rawForecasts){
   h+='<div class="met"><div class="mval" style="color:'+(actualPct==null?'#9ca3af':fillClr(actualPct))+'">'+pctText(actualPct)+'</div><div class="mlbl">Actual circularity</div></div>';
   h+='</div></div>';
 
+  // Ops view: volumes by stream + ranked material volumes report
+  h+=adminFcVolumesHtml(filtered);
+
   // Expected status breakdown (across all materials in the filtered forecasts)
   const allMats=filtered.flatMap(f=>f.materials||[]);
   const withStat=allMats.filter(m=>m.stat);
@@ -3731,14 +4031,6 @@ function renderAdminFcDashboard(rawForecasts){
     return{name:f.profile&&f.profile.org?f.profile.org:'Unknown',pct:pp};
   }).filter(x=>x.pct!==null).sort((a,b)=>b.pct-a.pct);
 
-  // Top materials (by "Material details") — mirrors the plan dashboard's "Top
-  // material categories" card, using the forecast's own material-identity field
-  // since forecasts have no TML category to group by.
-  const matCts={};
-  for(const m of allMats){const d=m.detail==='Other'?(m.detailOther||'Other'):m.detail;if(d)matCts[d]=(matCts[d]||0)+1;}
-  const topMats=Object.entries(matCts).sort((a,b)=>b[1]-a[1]).slice(0,5);
-  const matTot=allMats.filter(m=>m.detail).length;
-
   const svgBar='<svg viewBox="0 0 24 24" style="width:18px;height:18px;stroke:#0091D2;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/><line x1="2" y1="20" x2="22" y2="20"/></svg>';
   const svgList='<svg viewBox="0 0 24 24" style="width:18px;height:18px;stroke:#0091D2;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>';
   const svgCheck='<svg viewBox="0 0 24 24" style="width:18px;height:18px;stroke:#0091D2;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>';
@@ -3747,19 +4039,7 @@ function renderAdminFcDashboard(rawForecasts){
 
   h+='<div class="admin-section alt">';
   h+='<div class="sechd sechd-first">Insights</div>';
-  h+='<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px">';
-
-  // Insight A: Top materials (mirrors the plan dashboard's "Top material categories")
-  h+='<div class="insight-card">';
-  h+=iconBox(svgBar);
-  h+='<div class="insight-label" style="color:#003A5D">Top materials</div>';
-  if(topMats.length){for(let i=0;i<topMats.length;i++){
-    const[mat,cnt]=topMats[i];
-    const pp=matTot?Math.round(cnt/matTot*100):0;
-    h+='<div class="insight-row"><span style="color:#aaa;font-size:10px;width:14px;flex-shrink:0">'+(i+1)+'</span><span style="flex:1;color:#333;font-weight:'+(i===0?700:400)+';overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+esc(mat)+'</span><span style="color:#888;font-size:11px;margin-right:8px">'+pp+'%</span><div class="insight-bar-wrap"><div class="insight-bar" style="background:#0091D2;width:'+pp+'%"></div></div></div>';
-  }}
-  else h+='<div style="color:#aaa;font-size:12px;padding-top:4px">No data yet.</div>';
-  h+='</div>';
+  h+='<div class="fc-grid">';
 
   // Insight B: Materials by expected status
   h+='<div class="insight-card">';
@@ -3791,9 +4071,11 @@ function renderAdminFcDashboard(rawForecasts){
   h+='<div class="admin-section">';
   h+='<div class="sechd sechd-first">Submitted forecasts ('+filtered.length+')</div>';
   h+='<div style="overflow-x:auto;margin-bottom:1.5rem"><table class="admin-table">';
-  h+='<thead><tr><th>Business</th><th>Contact</th><th>Year</th><th>TA-ID</th><th>Materials</th><th>Circularity</th><th>Last saved</th></tr></thead>';
+  h+='<thead><tr><th>Business</th><th>Contact</th><th>Year</th><th>TA-ID</th><th>Materials</th><th>Take-back</th><th>Waste</th><th>Circularity</th><th>Last saved</th></tr></thead>';
   h+='<tbody>';
   for(const f of filtered){
+    const frep=fcVolumeReport([f]);
+    const fvol=k=>{const t=fcUnitTotalsText(frep.streams[k].byUnit,frep.units);return t.length?t.map(esc).join('<br>'):'<span style="color:#c5ccd3">&ndash;</span>';};
     const mats=(f.materials||[]).map(m=>({stat:m.stat}));
     const sc=circStats(mats,'stat');
     const _noSc=sc.total===0;
@@ -3805,8 +4087,10 @@ function renderAdminFcDashboard(rawForecasts){
     h+='<td><strong>'+esc(f.profile&&f.profile.org?f.profile.org:'Unnamed')+'</strong><br><span style="color:#aaa;font-size:10px">'+esc(f.profile&&f.profile.role?f.profile.role:'')+'</span></td>';
     h+='<td><div>'+esc(f.profile&&f.profile.contactName?f.profile.contactName:'-')+'</div><div style="color:#888;font-size:10px">'+esc(f.profile&&f.profile.contactEmail?f.profile.contactEmail:'')+'</div></td>';
     h+='<td><span style="font-size:12px;font-weight:700;color:#0091D2">'+esc(yr)+'</span></td>';
-    h+='<td><span style="font-family:monospace;font-size:11px;color:#0091D2;font-weight:700">'+code+'</span></td>';
+    h+='<td><span style="font-family:monospace;font-size:11px;white-space:nowrap;color:#0091D2;font-weight:700">'+code+'</span></td>';
     h+='<td>'+(f.materials||[]).length+' materials</td>';
+    h+='<td style="white-space:nowrap;font-size:11px;font-weight:700;color:#1F8A4C">'+fvol('takeback')+'</td>';
+    h+='<td style="white-space:nowrap;font-size:11px;font-weight:700;color:#A32E2E">'+fvol('waste')+'</td>';
     h+='<td><span class="admin-stat" style="background:'+statBg+';color:'+statCol+'">'+(_noSc?'-':pctText(sc.pctExact))+'</span></td>';
     h+='<td style="white-space:nowrap;font-size:11px">'+fmtDate(f.savedAt||f.createdAt)+'<br><span style="color:#aaa">'+(f.actualsLoggedAt?'✓ Actuals logged':'Actuals pending')+'</span></td>';
     h+='</tr>';
@@ -3820,6 +4104,67 @@ function renderAdminFcDashboard(rawForecasts){
   if(SUPABASE_READY)h+='<button onclick="loadAdminForecastsInto()" style="font-size:12px;padding:8px 16px;border:1px solid #ddd;color:#555;background:#fff;border-radius:7px;cursor:pointer">Refresh</button>';
   h+='</div>';
 
+  document.getElementById('main').innerHTML=h;
+}
+
+// ── Combined report: materials plans + forecasts in one material volumes report ──
+// Loads both datasets (same password-checked reads as the two dashboards) and runs
+// them through the same Bump out forecast cards + material volumes report.
+function loadAdminMergedInto(){
+  Promise.all([loadAdminPlans(),loadAdminForecasts()])
+    .then(function(r){S._adminPlans=r[0];S._adminForecasts=r[1];if(S.adminView==='merged')renderAdminMerged();})
+    .catch(function(err){
+      const main=document.getElementById('main');if(!main)return;
+      let h='<div class="admin-hero"><h2 style="font-size:20px;font-weight:800;color:#fff;margin-bottom:.4rem">Combined report</h2>';
+      h+='<p style="font-size:12px;opacity:.85">Could not load plans and forecasts from the cloud.</p></div>';
+      h+=adminSubTabBar('merged',true);
+      h+='<div class="admin-section"><div class="hbox" style="background:#FCEBEB;border-color:#f5c6c6;color:#A32D2D">Nothing is shown rather than risk displaying out-of-date local copies. Check your connection and try again.<br><span style="font-size:11px;opacity:.8">Details: '+esc((err&&err.message)||'Unknown error')+'</span></div>';
+      h+='<button onclick="loadAdminMergedInto()" class="btn-primary" style="padding:9px 18px">Retry</button></div>';
+      main.innerHTML=h;
+    });
+}
+function renderAdminMerged(){
+  const m=mergedSets(),years=mergedYears();
+  const nP=(S._adminPlans||[]).filter(p=>!isExamplePlan(p)).length,nF=(S._adminForecasts||[]).length;
+  const sourceBadge=SUPABASE_READY
+    ?'<span style="background:#E1F5EE;color:#0F6E56;border:1px solid #b2e8d2;font-size:11px;font-weight:700;padding:3px 9px;border-radius:20px">&#9679; Live cloud</span>'
+    :'<span style="background:#FAEEDA;color:#854F0B;border:1px solid #f5ddb7;font-size:11px;font-weight:700;padding:3px 9px;border-radius:20px">&#9679; Local only</span>';
+  let h='<div class="admin-hero"><div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px"><div>';
+  h+='<div style="font-size:10px;font-weight:800;letter-spacing:.12em;color:rgba(255,255,255,.55);text-transform:uppercase;margin-bottom:4px">Australian Open</div>';
+  h+='<h2 style="font-size:20px;font-weight:800;color:#fff;margin-bottom:.4rem;letter-spacing:-.02em">Combined report</h2>';
+  h+='<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">'+sourceBadge;
+  h+='<span style="font-size:12px;color:rgba(255,255,255,.65)">'+nP+' materials plan'+(nP===1?'':'s')+' + '+nF+' forecast'+(nF===1?'':'s')+'</span>';
+  h+='</div></div>';
+  h+='<button onclick="adminSignOut()" style="font-size:11px;padding:6px 14px;color:rgba(255,255,255,.7);border:1px solid rgba(255,255,255,.25);border-radius:7px;cursor:pointer;background:rgba(255,255,255,.1);flex-shrink:0;margin-top:2px">Sign out</button>';
+  h+='</div></div>';
+  h+='<span class="fc-dash" hidden></span>';
+  h+=adminSubTabBar('merged',false);
+  if(years.length){
+    h+='<div class="admin-section" style="padding-top:1rem;padding-bottom:1rem"><div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">';
+    h+='<span style="font-size:11px;font-weight:700;color:#888;text-transform:uppercase;letter-spacing:.06em;margin-right:4px">Year</span>';
+    const tabStyle=(on)=>'font-size:12px;font-weight:700;padding:5px 14px;border-radius:20px;cursor:pointer;border:1.5px solid '+(on?'#0091D2':'#d0cdc7')+';background:'+(on?'#0091D2':'#fff')+';color:'+(on?'#fff':'#555');
+    h+='<button style="'+tabStyle(m.sel==='all')+'" onclick="sessionStorage.setItem(&quot;adminMergedYear&quot;,&quot;all&quot;);renderAdminMerged()">All years</button>';
+    for(const yr of years)h+='<button style="'+tabStyle(m.sel===yr)+'" data-y="'+esc(yr)+'" onclick="sessionStorage.setItem(&quot;adminMergedYear&quot;,this.dataset.y);renderAdminMerged()">'+esc(yr)+'</button>';
+    h+='</div></div>';
+  }
+  const pl=planLines(m.plans),fl=fcLines(m.fcs),lines=pl.concat(fl);
+  if(!lines.length){
+    h+='<div style="padding:1.25rem 1rem"><div style="background:#fff;border:1px solid #e8e5de;border-radius:10px;padding:2.5rem;text-align:center;color:#888;font-size:13px">No materials plan or forecast materials yet.</div></div>';
+    document.getElementById('main').innerHTML=h;return;
+  }
+  const orgs=new Set(lines.map(l=>l.org));
+  h+='<div class="admin-section"><div class="sechd sechd-first">Snapshot</div>';
+  h+='<div class="metg" style="grid-template-columns:repeat(4,1fr)">';
+  h+='<div class="met"><div class="mval">'+m.plans.length+'</div><div class="mlbl">Materials plans</div></div>';
+  h+='<div class="met"><div class="mval">'+m.fcs.length+'</div><div class="mlbl">Forecasts</div></div>';
+  h+='<div class="met"><div class="mval">'+orgs.size+'</div><div class="mlbl">Organisations</div></div>';
+  h+='<div class="met"><div class="mval">'+lines.length+'</div><div class="mlbl">Material lines ('+pl.length+' plan + '+fl.length+' forecast)</div></div>';
+  h+='</div></div>';
+  const cts={};for(const l of lines)cts[l.name]=(cts[l.name]||0)+1;
+  h+=adminVolumesHtml(lines,{title:'Top materials',rows:Object.entries(cts).sort((a,b)=>b[1]-a[1]).slice(0,5),total:lines.length});
+  h+='<div class="admin-section" style="display:flex;gap:8px;flex-wrap:wrap">';
+  if(SUPABASE_READY)h+='<button onclick="loadAdminMergedInto()" style="font-size:12px;padding:8px 16px;border:1px solid #ddd;color:#555;background:#fff;border-radius:7px;cursor:pointer">Refresh</button>';
+  h+='</div>';
   document.getElementById('main').innerHTML=h;
 }
 
@@ -4594,12 +4939,7 @@ function imgSlug(s,max){
 }
 // Storage keys must be URL-safe: no spaces, quotes, separators or traversal.
 function imgPathFor(planId,assetId,fileName){
-  // Timestamp + random suffix. The timestamp alone collided whenever several photos
-  // uploaded in the same millisecond under the same asset ID (every 'TBC' asset in a
-  // migration upload): upsert:false rejected all but one, the retries backed off in
-  // lockstep and collided again, and photos were dropped as "failed".
-  const rnd=Array.from(crypto.getRandomValues(new Uint8Array(4)),function(b){return (b%36).toString(36);}).join('');
-  const stamp=Date.now().toString(36)+rnd;
+  const stamp=Date.now().toString(36);
   const base=imgSlug(String(fileName||'').replace(/\.[^.]*$/,''),40)||'image';
   return 'plans/'+imgSlug(planId,40)+'/'+(imgSlug(assetId,20)||'asset')+'-'+stamp+'-'+base+'.'+imgSafeExt(fileName);
 }
@@ -4955,9 +5295,7 @@ async function attachImportedImages(plan,imgMap,opts){
     // Try once; if it does not fit, stop trying and rely on IndexedDB, which has no
     // practical size limit here and is what actually makes the batch resumable.
     if(!localFull&&!storageSave(plan))localFull=true;
-    // Local only. An upload is staged, not saved: the plan reaches the cloud only when
-    // the user clicks Save. A cloud write here created (or overwrote) a plan from a bare
-    // upload whenever the file carried photos.
+    try{ await planDB.save(plan); }catch(e){ /* best-effort; next checkpoint retries */ }
     checkpointInFlight=false;
   }
 
@@ -5688,12 +6026,8 @@ function importPlanXLS(input){
       // would split a multi-material asset into one asset per material row.
       let runSig='',runKey='',lastKey='';
       while(r<6000){
-        // A serial column filled down with a lookup formula (e.g. ='Customer Assets'!D5)
-        // reads back as 0 on every unused row, which made each one look like an asset.
-        // A bare 0 is never a real serial, so treat it as empty.
-        const zeroBlank=function(v){return /^0+$/.test(String(v==null?'':v).trim())?'':v;};
-        const serialNumber=zeroBlank(cv('serial',r));
-        const serialNew  =zeroBlank(cv('serialNew',r));
+        const serialNumber=cv('serial',r);
+        const serialNew  =cv('serialNew',r);
         const assetNumRaw =cv('assetNum',r);
         const precRaw     =cv('prec',r);
         const prec        =precRaw||lastPrec;
@@ -5877,6 +6211,7 @@ function importPlanXLS(input){
               storageSave(plan);
               const k=S.plans.findIndex(p=>p.id===plan.id);
               if(k>=0)S.plans[k]=JSON.parse(JSON.stringify(plan));
+              planDB.save(plan).catch(function(){});
               render();
             }
             if(!imgMap.size){
@@ -5912,15 +6247,16 @@ function importPlanXLS(input){
               if(res.cancelled)parts.push('cancelled \u2014 rerun the import to pick up where it left off');
               const summary=parts.length?parts.join(', '):'No images could be attached';
               if(res.ok||res.skipped){
-                // Photos are in Storage and linked on the staged plan. The plan itself is
-                // NOT written to the cloud here — that only happens when the user clicks
-                // Save, so an upload never creates or overwrites a cloud plan on its own.
-                storageSave(plan);
-                const k=S.plans.findIndex(p=>p.id===plan.id);
-                if(k>=0)S.plans[k]=JSON.parse(JSON.stringify(plan));
-                S._unsaved=true;
-                render();
-                showToast(summary+' \u2014 click Save to save the plan');
+                // Final sync: attachImportedImages already checkpoints along the way,
+                // but this refreshes S.plans/S._unsaved so the UI reflects the
+                // authoritative save state (cloud vs local-only) once the batch ends.
+                planDB.save(plan).then(function(saveRes){
+                  const k=S.plans.findIndex(p=>p.id===plan.id);
+                  if(k>=0)S.plans[k]=JSON.parse(JSON.stringify(plan));
+                  S._unsaved=!(saveRes&&saveRes.ok&&saveRes.source==='cloud');
+                  render();
+                  showToast(summary+((saveRes&&saveRes.source==='cloud')?' \u2014 saved to cloud':' \u2014 '+cloudSaveNote(saveRes,'plan')));
+                });
               }else{
                 showToast(summary+' \u2014 see console');
               }
