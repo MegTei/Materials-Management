@@ -2239,7 +2239,7 @@ function renderForecastTab(){
 function renderFcLanding(){
   const door=S._fcHubDoor||'', sel=S._fcHubSel||null;
   S._fcReportFor=null;
-  const idRow=(id,btnLabel,fn)=>'<div class="retrieve-row"><input type="text" id="'+id+'" autocomplete="off" autocapitalize="characters" autocorrect="off" spellcheck="false" placeholder="AO27-FC-XXXX" maxlength="12" oninput="this.value=this.value.toUpperCase().replace(/[^A-Z0-9-]/g,\'\');" onkeydown="if(event.keyCode===13)'+fn+'()">'+(btnLabel?'<button onclick="'+fn+'()">'+btnLabel+'</button>':'')+'</div>';
+  const idRow=(id,btnLabel,fn)=>'<div class="retrieve-row"><input type="text" id="'+id+'" autocomplete="off" autocapitalize="characters" autocorrect="off" spellcheck="false" placeholder="AO27-FC-XXXX-XXXX" maxlength="17" oninput="this.value=this.value.toUpperCase().replace(/[^A-Z0-9-]/g,\'\');" onkeydown="if(event.keyCode===13)'+fn+'()">'+(btnLabel?'<button onclick="'+fn+'()">'+btnLabel+'</button>':'')+'</div>';
   const doorTile=(k,icon,t)=>'<button type="button" class="tile big'+(door===k?' sel':'')+'" data-fcdoor="'+k+'" onclick="fcHubDoor(\''+k+'\')">'+(k==='TA'?taLogoImg():abqIcon(icon))+'<span class="tb-t">'+t+'</span></button>';
   const tile=(k,t)=>'<button type="button" class="tile'+(sel===k?' sel':'')+'" data-fchub="'+k+'" onclick="fcHubPick(\''+k+'\')">'+hubIcon(k)+t+'</button>';
   let h='<div style="padding:1.25rem 1rem 2rem">';
