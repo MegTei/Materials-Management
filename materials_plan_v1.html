@@ -4594,7 +4594,12 @@ function imgSlug(s,max){
 }
 // Storage keys must be URL-safe: no spaces, quotes, separators or traversal.
 function imgPathFor(planId,assetId,fileName){
-  const stamp=Date.now().toString(36);
+  // Timestamp + random suffix. The timestamp alone collided whenever several photos
+  // uploaded in the same millisecond under the same asset ID (every 'TBC' asset in a
+  // migration upload): upsert:false rejected all but one, the retries backed off in
+  // lockstep and collided again, and photos were dropped as "failed".
+  const rnd=Array.from(crypto.getRandomValues(new Uint8Array(4)),function(b){return (b%36).toString(36);}).join('');
+  const stamp=Date.now().toString(36)+rnd;
   const base=imgSlug(String(fileName||'').replace(/\.[^.]*$/,''),40)||'image';
   return 'plans/'+imgSlug(planId,40)+'/'+(imgSlug(assetId,20)||'asset')+'-'+stamp+'-'+base+'.'+imgSafeExt(fileName);
 }
@@ -4950,7 +4955,9 @@ async function attachImportedImages(plan,imgMap,opts){
     // Try once; if it does not fit, stop trying and rely on IndexedDB, which has no
     // practical size limit here and is what actually makes the batch resumable.
     if(!localFull&&!storageSave(plan))localFull=true;
-    try{ await planDB.save(plan); }catch(e){ /* best-effort; next checkpoint retries */ }
+    // Local only. An upload is staged, not saved: the plan reaches the cloud only when
+    // the user clicks Save. A cloud write here created (or overwrote) a plan from a bare
+    // upload whenever the file carried photos.
     checkpointInFlight=false;
   }
 
@@ -5681,8 +5688,12 @@ function importPlanXLS(input){
       // would split a multi-material asset into one asset per material row.
       let runSig='',runKey='',lastKey='';
       while(r<6000){
-        const serialNumber=cv('serial',r);
-        const serialNew  =cv('serialNew',r);
+        // A serial column filled down with a lookup formula (e.g. ='Customer Assets'!D5)
+        // reads back as 0 on every unused row, which made each one look like an asset.
+        // A bare 0 is never a real serial, so treat it as empty.
+        const zeroBlank=function(v){return /^0+$/.test(String(v==null?'':v).trim())?'':v;};
+        const serialNumber=zeroBlank(cv('serial',r));
+        const serialNew  =zeroBlank(cv('serialNew',r));
         const assetNumRaw =cv('assetNum',r);
         const precRaw     =cv('prec',r);
         const prec        =precRaw||lastPrec;
@@ -5866,7 +5877,6 @@ function importPlanXLS(input){
               storageSave(plan);
               const k=S.plans.findIndex(p=>p.id===plan.id);
               if(k>=0)S.plans[k]=JSON.parse(JSON.stringify(plan));
-              planDB.save(plan).catch(function(){});
               render();
             }
             if(!imgMap.size){
@@ -5902,16 +5912,15 @@ function importPlanXLS(input){
               if(res.cancelled)parts.push('cancelled \u2014 rerun the import to pick up where it left off');
               const summary=parts.length?parts.join(', '):'No images could be attached';
               if(res.ok||res.skipped){
-                // Final sync: attachImportedImages already checkpoints along the way,
-                // but this refreshes S.plans/S._unsaved so the UI reflects the
-                // authoritative save state (cloud vs local-only) once the batch ends.
-                planDB.save(plan).then(function(saveRes){
-                  const k=S.plans.findIndex(p=>p.id===plan.id);
-                  if(k>=0)S.plans[k]=JSON.parse(JSON.stringify(plan));
-                  S._unsaved=!(saveRes&&saveRes.ok&&saveRes.source==='cloud');
-                  render();
-                  showToast(summary+((saveRes&&saveRes.source==='cloud')?' \u2014 saved to cloud':' \u2014 '+cloudSaveNote(saveRes,'plan')));
-                });
+                // Photos are in Storage and linked on the staged plan. The plan itself is
+                // NOT written to the cloud here — that only happens when the user clicks
+                // Save, so an upload never creates or overwrites a cloud plan on its own.
+                storageSave(plan);
+                const k=S.plans.findIndex(p=>p.id===plan.id);
+                if(k>=0)S.plans[k]=JSON.parse(JSON.stringify(plan));
+                S._unsaved=true;
+                render();
+                showToast(summary+' \u2014 click Save to save the plan');
               }else{
                 showToast(summary+' \u2014 see console');
               }
