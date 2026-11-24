@@ -23,7 +23,7 @@
 //   EMAIL_ENABLED                       - "false" turns sending off without a deploy
 //   ALLOWED_ORIGINS                     - optional extra origins (comma-separated); the site URL is always allowed
 
-const DOC_TYPES = { plan: 'Materials Management Plan', forecast: 'Forecast' };
+const DOC_TYPES = { plan: 'Materials Management Plan', forecast: 'Waste & Reuse Forecast' };
 const CODE_FORMATS = {
   plan: /^AO27-[A-Z0-9]{4}-[A-Z0-9]{4}$/,
   forecast: /^AO27-FC-[A-Z0-9]{4}(-[A-Z0-9]{4})?$/
@@ -68,6 +68,28 @@ function buildEmail(type, code, action, name) {
   const greeting = plain(name) || 'there';                      // plain-text part
   const greetingHtml = escapeHtml(String(name == null ? '' : name).trim() || 'there');  // shown as typed, safely
   const subject = `AO27 ${docType} has been ${action}`;
+
+  if (type === 'forecast') {
+    // Forecast copy (Meg, Nov 2026). Greets by first name only.
+    const first = (s) => String(s == null ? '' : s).trim().split(/\s+/)[0] || '';
+    const firstText = plain(first(name)) || 'there';
+    const firstHtml = escapeHtml(first(name) || 'there');
+    const text = `Hi ${firstText},\n\n` +
+      `Your AO27 ${docType} has been ${action}.\n` +
+      `Keep this reference code TA-ID\n${code}\n` +
+      'Treat it like a password, anyone with the code can load and update this record.\n\n' +
+      `To view or update go to TA Materials Forecast: ${site}\n`;
+    const html = `<div style="font-family:Arial,Helvetica,sans-serif;font-size:14px;color:#1a2b3c;line-height:1.5">
+<p>Hi ${firstHtml},</p>
+<p>Your AO27 ${escapeHtml(docType)} has been ${escapeHtml(action)}.</p>
+<p style="font-size:13px;color:#555;margin-bottom:4px">Keep this reference code TA-ID</p>
+<p style="font-size:20px;font-weight:bold;letter-spacing:1px;margin-top:0;margin-bottom:4px">${escapeHtml(code)}</p>
+<p style="margin-top:0">Treat it like a password, anyone with the code can load and update this record.</p>
+<p>To view or update go to <a href="${escapeHtml(site)}">TA Materials Forecast</a></p>
+</div>`;
+    return { subject, text, html };
+  }
+
   const intro = `The AO27 ${docType} has been ${action}. Keep this reference code - treat it like a password, ` +
     'anyone with the code can load and update this record.';
   const text = `Hi ${greeting},\n\n${intro}\n\n${codeLabel}: ${code}\n\nView or update via TA Materials Plan: ${site}\n`;
