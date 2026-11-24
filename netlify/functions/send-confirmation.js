@@ -23,7 +23,7 @@
 //   EMAIL_ENABLED                       - "false" turns sending off without a deploy
 //   ALLOWED_ORIGINS                     - optional extra origins (comma-separated); the site URL is always allowed
 
-const DOC_TYPES = { plan: 'Materials Management Plan', forecast: 'Forecast' };
+const DOC_TYPES = { plan: 'Materials Management Plan', forecast: 'Waste & Reuse Forecast' };
 const CODE_FORMATS = {
   plan: /^AO27-[A-Z0-9]{4}-[A-Z0-9]{4}$/,
   forecast: /^AO27-FC-[A-Z0-9]{4}(-[A-Z0-9]{4})?$/
