@@ -1314,7 +1314,7 @@ async function retrievePlan(){
     if(plan){
       S.plan=JSON.parse(JSON.stringify(plan));
       S.formOrigin='update';S.screen='form';S.plan.step=0;S._unsaved=false;
-      showToast('Plan loaded');render();
+      showToast('Plan loaded');render();window.scrollTo({top:0});
     } else {
       if(msg){
         msg.textContent=SUPABASE_READY
@@ -2462,8 +2462,13 @@ function renderFcForm(){
     if(all){
       const yrs2=['AO27','AO28','AO29','AO30'].map(y=>'<option value="'+y+'"'+(fc.profile.eventYear===y?' selected':'')+'>'+y+'</option>').join('');
       const rl=FC_ROLES.slice();if(fc.profile.role&&!rl.includes(fc.profile.role))rl.push(fc.profile.role);
+      h+='<div class="abq-card"><div class="abq-bar"><div class="abq-fill" style="width:45%"></div></div><div class="abq-body" style="padding-bottom:22px">';
+      h+='<div class="abq-meta"><b>'+fcCode(fc.id)+'</b></div>';
+      h+='<h2 class="abq-h" style="margin-bottom:6px">About you</h2>';
+      h+='<p class="abq-sub" style="margin-bottom:0">And your AO project/ activation</p>';
+      h+='</div></div>';
       h+=fcGapBanner();
-      h+='<div class="abq-card abq abq-compact"><div class="abq-bar"><div class="abq-fill" style="width:100%"></div></div><div class="abq-body">';
+      h+='<div class="abq-card abq abq-compact"><div class="abq-body">';
       h+='<div class="abq-meta"><b>Your details</b><span>'+fcCode(fc.id)+'</span></div>';
       h+='<div class="fg"><label id="fc-org-lbl">'+(fcIsTA(fc.profile)?'Department':'Organisation')+' *</label><input type="text" data-f="org"'+fcMiss(fc.profile.org)+' value="'+esc(fc.profile.org)+'" placeholder="Business name or TA dept." onblur="fcUpProfile(this)"></div>';
       h+='<div class="fg" id="fc-web-wrap"'+(fcIsTA(fc.profile)?' style="display:none"':'')+'><label>Website *</label><input type="url" data-f="website"'+fcMiss(fc.profile.website)+' value="'+esc(fc.profile.website)+'" placeholder="https://www.example.com" onblur="fcUpProfile(this)"></div>';
@@ -2530,7 +2535,7 @@ function renderFcForm(){
   if(rpt){h+='<div class="rp" id="frp-view">'+fcRpInner(fc)+'</div></div>';document.getElementById('main').innerHTML=h;return;}
   h+='<div class="abq-card"><div class="abq-bar"><div class="abq-fill" style="width:90%"></div></div><div class="abq-body" style="padding-bottom:22px">';
   h+='<div class="abq-meta"><b>'+(isUpdate?fcCode(fc.id):'AO27')+'</b></div>';
-  h+='<h2 class="abq-h" style="margin-bottom:6px">'+(rpt?'End of event reporting':isUpdate?'Update your forecast':'Provide a waste &amp; reuse forecast')+'</h2>';
+  h+='<h2 class="abq-h" style="margin-bottom:6px">'+(rpt?'End of event reporting':isUpdate?'Forecast update':'Provide a waste &amp; reuse forecast')+'</h2>';
   h+='<p class="abq-sub" style="margin-bottom:0">'+(rpt
     ?'Return after bump-out to record actual outcomes and complete your circularity report.'
     :isUpdate
@@ -2649,13 +2654,17 @@ function fcGapBanner(){
   const fc=S.fc.draft,g=fcDetailGaps(fc),mats=fc.materials||[],nm=mats.filter(fcMatNeedsAction).length;
   if(!g.page&&!g.notes&&!nm)return '<div id="fc-gap-banner"></div>';
   const onDetails=S.fc.stage==='details',pl=(n,w)=>n+' '+w+(n===1?'':'s');
+  const here='on this page',dPage=onDetails?here:'on the details page',mPage=onDetails?'on the materials page':here;
   const bits=[];
-  if(g.page)bits.push('<b>'+pl(g.page,'detail')+'</b> to complete '+(onDetails?'on this page':'on the details page'));
-  if(nm)bits.push('<b>'+nm+' of '+pl(mats.length,'material')+'</b> need'+(nm===1?'s':'')+' action'+(onDetails?' on the next page':''));
-  if(g.notes)bits.push('<b>'+pl(g.notes,'question')+'</b> to answer under &ldquo;Anything else?&rdquo;'+(onDetails?' on the next page':' below the materials'));
+  if(g.page)bits.push('<b>'+pl(g.page,'detail')+'</b> '+dPage);
+  if(nm)bits.push('<b>'+nm+' of '+pl(mats.length,'material')+'</b> need'+(nm===1?'s':'')+' action '+mPage);
+  if(g.notes)bits.push('<b>'+pl(g.notes,'question')+'</b> to answer under &ldquo;Anything else?&rdquo; '+mPage);
   return '<div id="fc-gap-banner" class="hbox" style="background:#FFF8EC;border-color:#F3D9A4;color:#5C3D06;margin-bottom:12px;line-height:1.6">'
-    +'<strong>Set up for you by Tennis Australia</strong> &mdash; this forecast was created from your materials register. Complete the fields marked in <b style="color:#A32D2D">red</b> and confirm any expected status marked <b style="color:#854F0B">amber</b>, then Save.'
-    +'<div style="margin-top:4px">'+bits.join(' &middot; ')+'</div></div>';
+    +'<div style="font-size:15px;font-weight:800;color:#0C1B47;margin-bottom:4px">How to use this form</div>'
+    +'<div>This forecast was set up by Tennis Australia using your materials register to make it simpler and quicker to submit.</div>'
+    +'<div>Complete the fields marked in <b style="color:#A32D2D">red</b> and confirm the expected status marked <b style="color:#854F0B">amber</b>, then Save.</div>'
+    +'<div style="margin-top:6px;font-weight:700">To complete/ update:</div>'
+    +'<ul style="margin:2px 0 0;padding-left:20px">'+bits.map(x=>'<li>'+x+'</li>').join('')+'</ul></div>';
 }
 function fcGapRefresh(){const el=document.getElementById('fc-gap-banner');if(el)el.outerHTML=fcGapBanner();}
 // Clear a red/ amber outline as soon as the field is filled; keep the note's counts current.
@@ -2965,7 +2974,7 @@ async function fcRetrieve(){
       S._fcExpanded={};S._fcReportFor=null;S._fcDirty=false;
       S.fc={mode:'new',draft:fc,isUpdate:true};
       S.screen='home';
-      showToast('Forecast loaded');render();
+      showToast('Forecast loaded');render();window.scrollTo({top:0});  // start at the top, where the "Set up for you" note sits
     } else {
       if(msg){msg.textContent='TA-ID not found. Check the ID and try again.';msg.style.color='#A32D2D';}
     }
