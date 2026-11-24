@@ -82,9 +82,10 @@ function buildEmail(type, code, action, name, opts = {}) {
   const wrap = (inner) => `<div style="font-family:Arial,Helvetica,sans-serif;font-size:14px;color:#1a2b3c;line-height:1.5">${inner}</div>`;
   const link = `<a href="${escapeHtml(site)}">TA Materials Forecast</a>`;   // forecast emails
   const codeHtml = `<strong style="font-size:16px;letter-spacing:1px">${escapeHtml(code)}</strong>`;
-  const contactHtml = `<p ${P}>Any questions, contact TA <a href="mailto:${escapeHtml(contact)}">${escapeHtml(contact)}</a>.</p>`;
+  // "TA" itself is the mailto link; the address isn't shown in the copy.
+  const contactHtml = `<p ${P}>Any questions, contact <a href="mailto:${escapeHtml(contact)}">TA</a>.</p>`;
   const signHtml = '<p style="margin:0">Regards<br>Tennis Australia</p>';
-  const contactText = `Any questions, contact TA ${contact}.\n\nRegards\nTennis Australia\n`;
+  const contactText = 'Any questions, contact TA.\n\nRegards\nTennis Australia\n';
   const keep = 'Save and keep the reference code - treat it like a password, anyone with the code can load and update this record.';
   const ret = 'You will need to return to complete a post-event report - a quick single touch reporting function.';
 
