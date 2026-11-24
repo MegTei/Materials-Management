@@ -22,6 +22,13 @@
 //   EMAIL_FROM                          - default no-reply@materials.tennis.com.au
 //   EMAIL_ENABLED                       - "false" turns sending off without a deploy
 //   ALLOWED_ORIGINS                     - optional extra origins (comma-separated); the site URL is always allowed
+//   CONTACT_EMAIL                       - optional; the "contact TA" address in forecast emails
+//
+// Forecast "created" emails come in two versions, picked from the stored record:
+//   - admin-created (built by TA from a partner materials register; the record has importSource)
+//   - set up by the user step by step
+// Links go to <site>/#forecast/<TA-ID> or <site>/#plan/<Plan ID>, which open Update/ maintain
+// with the code filled in. The code sits after "#", so it is never sent to the server or logged.
 
 const DOC_TYPES = { plan: 'Materials Management Plan', forecast: 'Waste & Reuse Forecast' };
 const CODE_FORMATS = {
@@ -30,6 +37,7 @@ const CODE_FORMATS = {
 };
 const ACTIONS = ['created', 'updated'];
 const DEFAULT_FROM = 'no-reply@materials.tennis.com.au';
+const DEFAULT_CONTACT = 'meg@esgfuture.net';   // "Any questions, contact TA" (CONTACT_EMAIL overrides)
 
 const reply = (statusCode, body) => ({
   statusCode,
@@ -59,47 +67,74 @@ function log(fields) {
   console.log(JSON.stringify({ fn: 'send-confirmation', at: new Date().toISOString(), ...fields }));
 }
 
-function buildEmail(type, code, action, name) {
+function buildEmail(type, code, action, name, opts = {}) {
   const docType = DOC_TYPES[type];
-  const codeLabel = type === 'plan' ? 'Plan ID' : 'TA-ID';
-  // Forecast emails open the Forecast page directly (the site handles /#forecast);
-  // plan emails go to the home page.
-  const site = (process.env.SITE_URL || process.env.URL || '').replace(/\/$/, '') + '/' + (type === 'forecast' ? '#forecast' : '');
-  const greeting = plain(name) || 'there';                      // plain-text part
-  const greetingHtml = escapeHtml(String(name == null ? '' : name).trim() || 'there');  // shown as typed, safely
+  // Links open Update/ maintain with the code filled in (the site handles these hashes).
+  const base = (process.env.SITE_URL || process.env.URL || '').replace(/\/$/, '') + '/';
+  const site = type === 'forecast' ? `${base}#forecast/${code}` : `${base}#plan/${code}`;
   const subject = `AO27 ${docType} has been ${action}`;
 
+  const first = (v) => String(v == null ? '' : v).trim().split(/\s+/)[0] || '';
+  const firstText = plain(first(name)) || 'there';
+  const firstHtml = escapeHtml(first(name) || 'there');
+  const contact = process.env.CONTACT_EMAIL || DEFAULT_CONTACT;
+  const P = 'style="margin:0 0 12px"';
+  const wrap = (inner) => `<div style="font-family:Arial,Helvetica,sans-serif;font-size:14px;color:#1a2b3c;line-height:1.5">${inner}</div>`;
+  const link = `<a href="${escapeHtml(site)}">TA Materials Forecast</a>`;   // forecast emails
+  const codeHtml = `<strong style="font-size:16px;letter-spacing:1px">${escapeHtml(code)}</strong>`;
+  const contactHtml = `<p ${P}>Any questions, contact TA <a href="mailto:${escapeHtml(contact)}">${escapeHtml(contact)}</a>.</p>`;
+  const signHtml = '<p style="margin:0">Regards<br>Tennis Australia</p>';
+  const contactText = `Any questions, contact TA ${contact}.\n\nRegards\nTennis Australia\n`;
+  const keep = 'Save and keep the reference code - treat it like a password, anyone with the code can load and update this record.';
+  const ret = 'You will need to return to complete a post-event report - a quick single touch reporting function.';
+
   if (type === 'forecast') {
-    // Forecast copy (Meg, Nov 2026). Greets by first name only.
-    const first = (s) => String(s == null ? '' : s).trim().split(/\s+/)[0] || '';
-    const firstText = plain(first(name)) || 'there';
-    const firstHtml = escapeHtml(first(name) || 'there');
-    const text = `Hi ${firstText},\n\n` +
-      `Your AO27 ${docType} has been ${action}.\n` +
+    if (action === 'created' && opts.imported) {
+      // Admin-created: TA built it from the partner's materials register.
+      const intro = `Tennis Australia has created your AO27 ${docType} from your materials register.`;
+      const text = `Hi ${firstText},\n\n${intro}\n\nNext steps:\n` +
+        `1. Log on to TA Materials Forecast (${site}) using the forecast reference code: ${code}\n` +
+        '2. Complete the volumes, units and expected status for each material\n' +
+        `3. ${keep}\n4. ${ret}\n\n${contactText}`;
+      const html = wrap(`<p ${P}>Hi ${firstHtml},</p><p ${P}>${escapeHtml(intro)}</p><p style="margin:0 0 4px"><strong>Next steps:</strong></p>` +
+        `<ol style="margin:0 0 12px;padding-left:20px"><li style="margin-bottom:4px">Log on to ${link} using the forecast reference code: ${codeHtml}</li>` +
+        '<li style="margin-bottom:4px">Complete the volumes, units and expected status for each material</li>' +
+        `<li style="margin-bottom:4px">${escapeHtml(keep)}</li><li>${escapeHtml(ret)}</li></ol>${contactHtml}${signHtml}`);
+      return { subject, text, html };
+    }
+    if (action === 'created') {
+      // Set up by the user step by step.
+      const intro = `Thank you for setting up your AO27 ${docType}.`;
+      const text = `Hi ${firstText},\n\n${intro}\n\nNext steps:\n` +
+        `1. To make any changes, log on to TA Materials Forecast (${site}) using the forecast reference code: ${code}\n` +
+        `2. ${keep}\n3. ${ret}\n\n${contactText}`;
+      const html = wrap(`<p ${P}>Hi ${firstHtml},</p><p ${P}>${escapeHtml(intro)}</p><p style="margin:0 0 4px"><strong>Next steps:</strong></p>` +
+        `<ol style="margin:0 0 12px;padding-left:20px"><li style="margin-bottom:4px">To make any changes, log on to ${link} using the forecast reference code: ${codeHtml}</li>` +
+        `<li style="margin-bottom:4px">${escapeHtml(keep)}</li><li>${escapeHtml(ret)}</li></ol>${contactHtml}${signHtml}`);
+      return { subject, text, html };
+    }
+    // "updated" (any forecast)
+    const text = `Hi ${firstText},\n\nYour AO27 ${docType} has been ${action}.\n` +
       `Keep this reference code TA-ID\n${code}\n` +
       'Treat it like a password, anyone with the code can load and update this record.\n\n' +
-      `To view or update go to TA Materials Forecast: ${site}\n`;
-    const html = `<div style="font-family:Arial,Helvetica,sans-serif;font-size:14px;color:#1a2b3c;line-height:1.5">
-<p>Hi ${firstHtml},</p>
-<p>Your AO27 ${escapeHtml(docType)} has been ${escapeHtml(action)}.</p>
-<p style="font-size:13px;color:#555;margin-bottom:4px">Keep this reference code TA-ID</p>
-<p style="font-size:20px;font-weight:bold;letter-spacing:1px;margin-top:0;margin-bottom:4px">${escapeHtml(code)}</p>
-<p style="margin-top:0">Treat it like a password, anyone with the code can load and update this record.</p>
-<p>To view or update go to <a href="${escapeHtml(site)}">TA Materials Forecast</a></p>
-</div>`;
+      `To view or update go to TA Materials Forecast: ${site}\n\n${contactText}`;
+    const html = wrap(`<p ${P}>Hi ${firstHtml},</p><p ${P}>Your AO27 ${escapeHtml(docType)} has been ${escapeHtml(action)}.</p>` +
+      '<p style="font-size:13px;color:#555;margin:0 0 4px">Keep this reference code TA-ID</p>' +
+      `<p style="font-size:20px;font-weight:bold;letter-spacing:1px;margin:0 0 4px">${escapeHtml(code)}</p>` +
+      `<p ${P}>Treat it like a password, anyone with the code can load and update this record.</p>` +
+      `<p ${P}>To view or update go to ${link}</p>${contactHtml}${signHtml}`);
     return { subject, text, html };
   }
 
-  const intro = `The AO27 ${docType} has been ${action}. Keep this reference code - treat it like a password, ` +
-    'anyone with the code can load and update this record.';
-  const text = `Hi ${greeting},\n\n${intro}\n\n${codeLabel}: ${code}\n\nView or update via TA Materials Plan: ${site}\n`;
-  const html = `<div style="font-family:Arial,Helvetica,sans-serif;font-size:14px;color:#1a2b3c;line-height:1.5">
-<p>Hi ${greetingHtml},</p>
-<p>${escapeHtml(intro)}</p>
-<p style="font-size:13px;color:#555;margin-bottom:4px">${escapeHtml(codeLabel)}</p>
-<p style="font-size:20px;font-weight:bold;letter-spacing:1px;margin-top:0">${escapeHtml(code)}</p>
-<p>View or update via <a href="${escapeHtml(site)}">TA Materials Plan</a></p>
-</div>`;
+  // Materials Management Plan (created or updated).
+  const intro = `Your AO27 ${docType} has been ${action}.`;
+  const planLink = `<a href="${escapeHtml(site)}">TA Materials Plan</a>`;
+  const text = `Hi ${firstText},\n\n${intro}\n\nNext steps:\n` +
+    `1. To make any changes, log on to TA Materials Plan (${site}) using the plan reference code: ${code}\n` +
+    `2. ${keep}\n3. ${ret}\n\n${contactText}`;
+  const html = wrap(`<p ${P}>Hi ${firstHtml},</p><p ${P}>${escapeHtml(intro)}</p><p style="margin:0 0 4px"><strong>Next steps:</strong></p>` +
+    `<ol style="margin:0 0 12px;padding-left:20px"><li style="margin-bottom:4px">To make any changes, log on to ${planLink} using the plan reference code: ${codeHtml}</li>` +
+    `<li style="margin-bottom:4px">${escapeHtml(keep)}</li><li>${escapeHtml(ret)}</li></ol>${contactHtml}${signHtml}`);
   return { subject, text, html };
 }
 
@@ -142,8 +177,25 @@ exports.handler = async function (event) {
       return reply(200, { ok: true, sent: false });
     }
 
+    // Forecasts: read the stored record once — which email version, and the build partner.
+    let fc = null;
+    if (type === 'forecast') {
+      try {
+        const fr = await fetch(`${SUPABASE_URL.replace(/\/$/, '')}/rest/v1/rpc/get_forecast_by_code`, {
+          method: 'POST',
+          headers: { apikey: SUPABASE_SECRET_KEY, 'content-type': 'application/json' },
+          body: JSON.stringify({ p_code: code })
+        });
+        fc = fr.ok ? await fr.json() : null;
+        if (!fr.ok) log({ evt: 'forecast_lookup_failed', status: fr.status, type, code });
+      } catch (err) {
+        log({ evt: 'forecast_lookup_error', type, code, message: String(err && err.message).slice(0, 200) });
+      }
+    }
+    const opts = { imported: !!(fc && fc.importSource) };
+
     const sendTo = (email, name) => {
-      const mail = buildEmail(type, code, action, name);
+      const mail = buildEmail(type, code, action, name, opts);
       return fetch('https://api.sendgrid.com/v3/mail/send', {
         method: 'POST',
         headers: { Authorization: `Bearer ${SENDGRID_API_KEY}`, 'content-type': 'application/json' },
@@ -162,19 +214,13 @@ exports.handler = async function (event) {
       log({ evt: 'send_failed', status: send.status, type, code, action });
       return reply(502, { error: 'Email could not be sent' });
     }
-    log({ evt: 'sent', type, code, action });
+    log({ evt: 'sent', type, code, action, version: type === 'forecast' ? (opts.imported ? 'admin' : 'user') : 'plan' });
 
     // Build partner copy (forecasts only). Never fails the main send.
     let bpSent = false;
-    if (type === 'forecast') {
+    if (type === 'forecast' && fc) {
       try {
-        const fr = await fetch(`${SUPABASE_URL.replace(/\/$/, '')}/rest/v1/rpc/get_forecast_by_code`, {
-          method: 'POST',
-          headers: { apikey: SUPABASE_SECRET_KEY, 'content-type': 'application/json' },
-          body: JSON.stringify({ p_code: code })
-        });
-        const fc = fr.ok ? await fr.json() : null;
-        const p = (fc && fc.profile) || {};
+        const p = fc.profile || {};
         const bpEmail = String(p.bpContactEmail || '').trim();
         const okEmail = /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(bpEmail);
         if (okEmail && bpEmail.toLowerCase() !== String(target.email).trim().toLowerCase()) {
