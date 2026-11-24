@@ -2462,23 +2462,24 @@ function renderFcForm(){
     if(all){
       const yrs2=['AO27','AO28','AO29','AO30'].map(y=>'<option value="'+y+'"'+(fc.profile.eventYear===y?' selected':'')+'>'+y+'</option>').join('');
       const rl=FC_ROLES.slice();if(fc.profile.role&&!rl.includes(fc.profile.role))rl.push(fc.profile.role);
+      h+=fcGapBanner();
       h+='<div class="abq-card abq abq-compact"><div class="abq-bar"><div class="abq-fill" style="width:100%"></div></div><div class="abq-body">';
       h+='<div class="abq-meta"><b>Your details</b><span>'+fcCode(fc.id)+'</span></div>';
-      h+='<div class="fg"><label id="fc-org-lbl">'+(fcIsTA(fc.profile)?'Department':'Organisation')+' *</label><input type="text" data-f="org" value="'+esc(fc.profile.org)+'" placeholder="Business name or TA dept." onblur="fcUpProfile(this)"></div>';
-      h+='<div class="fg" id="fc-web-wrap"'+(fcIsTA(fc.profile)?' style="display:none"':'')+'><label>Website *</label><input type="url" data-f="website" value="'+esc(fc.profile.website)+'" placeholder="https://www.example.com" onblur="fcUpProfile(this)"></div>';
-      h+='<div class="fg"><label>Project *</label><input type="text" data-f="project" value="'+esc(fc.profile.project)+'" placeholder="Activation name/ precinct/ project" onblur="fcUpProfile(this)"></div>';
-      h+='<div style="display:flex;gap:8px"><div class="fg" style="flex:1"><label>Role *</label><select data-f="role" onchange="fcUpProfile(this)"><option value="">Select role...</option>'+mkOpts(rl,fc.profile.role)+'</select></div>';
+      h+='<div class="fg"><label id="fc-org-lbl">'+(fcIsTA(fc.profile)?'Department':'Organisation')+' *</label><input type="text" data-f="org"'+fcMiss(fc.profile.org)+' value="'+esc(fc.profile.org)+'" placeholder="Business name or TA dept." onblur="fcUpProfile(this)"></div>';
+      h+='<div class="fg" id="fc-web-wrap"'+(fcIsTA(fc.profile)?' style="display:none"':'')+'><label>Website *</label><input type="url" data-f="website"'+fcMiss(fc.profile.website)+' value="'+esc(fc.profile.website)+'" placeholder="https://www.example.com" onblur="fcUpProfile(this)"></div>';
+      h+='<div class="fg"><label>Project *</label><input type="text" data-f="project"'+fcMiss(fc.profile.project)+' value="'+esc(fc.profile.project)+'" placeholder="Activation name/ precinct/ project" onblur="fcUpProfile(this)"></div>';
+      h+='<div style="display:flex;gap:8px"><div class="fg" style="flex:1"><label>Role *</label><select data-f="role"'+fcMiss(fc.profile.role)+' onchange="fcUpProfile(this)"><option value="">Select role...</option>'+mkOpts(rl,fc.profile.role)+'</select></div>';
       h+='<div class="fg" style="width:180px"><label>Event year *</label><select data-f="eventYear" onchange="fcUpProfile(this)">'+yrs2+'</select></div></div>';
-      h+='<div class="g2"><div class="fg"><label>Contact name *</label><input type="text" data-f="contactName" value="'+esc(fc.profile.contactName)+'" placeholder="Full name" onblur="fcUpProfile(this)"></div>';
-      h+='<div class="fg"><label>Contact email *</label><input type="email" data-f="contactEmail" value="'+esc(fc.profile.contactEmail)+'" placeholder="email@company.com" onblur="fcUpProfile(this)"></div></div>';
+      h+='<div class="g2"><div class="fg"><label>Contact name *</label><input type="text" data-f="contactName"'+fcMiss(fc.profile.contactName)+' value="'+esc(fc.profile.contactName)+'" placeholder="Full name" onblur="fcUpProfile(this)"></div>';
+      h+='<div class="fg"><label>Contact email *</label><input type="email" data-f="contactEmail"'+fcMiss(fc.profile.contactEmail)+' value="'+esc(fc.profile.contactEmail)+'" placeholder="email@company.com" onblur="fcUpProfile(this)"></div></div>';
       h+=fcBpHtml(fc.profile);
       h+='</div></div>';
       h+='<div class="abq-card abq abq-compact"><div class="abq-body">';
       h+='<div class="abq-meta"><b>Targets &amp; practices</b></div>';
-      h+='<div class="fg"><label>What are your reuse targets this year (percentage)? *</label><input type="text" data-f="reuseTarget" value="'+esc(fc.targets.reuseTarget)+'" placeholder="%" onblur="fcUpTargets(this)"></div>';
-      h+='<div class="fg"><label>What are your waste reduction targets this year (percentage)? *</label><input type="text" data-f="wasteTarget" value="'+esc(fc.targets.wasteTarget)+'" placeholder="%" onblur="fcUpTargets(this)"></div>';
-      h+='<div class="fg"><label>Estimate the proportion of materials to be disposed on site in bins (percentage) *</label><input type="text" data-f="disposedPct" value="'+esc(fc.targets.disposedPct)+'" placeholder="%" onblur="fcUpTargets(this)"></div>';
-      h+='<div class="fg"><label>To what extent do you use circular practices (modular design, finishes and fixes that don&rsquo;t contaminate materials, methods to optimise reuse or recycling)? *</label><select data-f="circPractices" onchange="fcUpTargets(this)"><option value="">Select...</option>'+mkOpts(['Very little <10%','Somewhat 10-40%','As much as possible 41-70%','All the time >71%'],fc.targets.circPractices)+'</select></div>';
+      h+='<div class="fg"><label>What are your reuse targets this year (percentage)? *</label><input type="text" data-f="reuseTarget"'+fcMiss(fc.targets.reuseTarget)+' value="'+esc(fc.targets.reuseTarget)+'" placeholder="%" onblur="fcUpTargets(this)"></div>';
+      h+='<div class="fg"><label>What are your waste reduction targets this year (percentage)? *</label><input type="text" data-f="wasteTarget"'+fcMiss(fc.targets.wasteTarget)+' value="'+esc(fc.targets.wasteTarget)+'" placeholder="%" onblur="fcUpTargets(this)"></div>';
+      h+='<div class="fg"><label>Estimate the proportion of materials to be disposed on site in bins (percentage) *</label><input type="text" data-f="disposedPct"'+fcMiss(fc.targets.disposedPct)+' value="'+esc(fc.targets.disposedPct)+'" placeholder="%" onblur="fcUpTargets(this)"></div>';
+      h+='<div class="fg"><label>To what extent do you use circular practices (modular design, finishes and fixes that don&rsquo;t contaminate materials, methods to optimise reuse or recycling)? *</label><select data-f="circPractices"'+fcMiss(fc.targets.circPractices)+' onchange="fcUpTargets(this)"><option value="">Select...</option>'+mkOpts(['Very little <10%','Somewhat 10-40%','As much as possible 41-70%','All the time >71%'],fc.targets.circPractices)+'</select></div>';
       h+='<div id="fc-q-err" style="display:none;background:#FCEBEB;border:1px solid #f5c6c6;border-radius:8px;padding:10px 14px;font-size:13px;color:#A32D2D;margin-top:12px"></div>';
       h+='<div class="abq-nav"><span style="flex:1"></span><button type="button" class="abq-link" onclick="fcBackToLanding()">Cancel</button><button type="button" class="abq-next" onclick="fcQNext()">Next: Waste &amp; reuse forecast &rarr;</button></div>';
       h+='</div></div></div>';
@@ -2500,20 +2501,20 @@ function renderFcForm(){
     h+='</div>';}
     if(all||q===1){h+='<div class="abq-panel on">';
       h+='<h2 class="abq-h">Your details</h2>';
-      h+='<div class="fg"><label id="fc-org-lbl">'+(fcIsTA(fc.profile)?'Department':'Organisation')+' *</label><input type="text" data-f="org" value="'+esc(fc.profile.org)+'" placeholder="Business name or TA dept." onblur="fcUpProfile(this)"></div>';
-      h+='<div class="fg" id="fc-web-wrap"'+(fcIsTA(fc.profile)?' style="display:none"':'')+'><label>Website *</label><input type="url" data-f="website" value="'+esc(fc.profile.website)+'" placeholder="https://www.example.com" onblur="fcUpProfile(this)"></div>';
-      h+='<div class="g2"><div class="fg"><label>Project *</label><input type="text" data-f="project" value="'+esc(fc.profile.project)+'" placeholder="Activation name/ precinct/ project" onblur="fcUpProfile(this)"></div>';
+      h+='<div class="fg"><label id="fc-org-lbl">'+(fcIsTA(fc.profile)?'Department':'Organisation')+' *</label><input type="text" data-f="org"'+fcMiss(fc.profile.org)+' value="'+esc(fc.profile.org)+'" placeholder="Business name or TA dept." onblur="fcUpProfile(this)"></div>';
+      h+='<div class="fg" id="fc-web-wrap"'+(fcIsTA(fc.profile)?' style="display:none"':'')+'><label>Website *</label><input type="url" data-f="website"'+fcMiss(fc.profile.website)+' value="'+esc(fc.profile.website)+'" placeholder="https://www.example.com" onblur="fcUpProfile(this)"></div>';
+      h+='<div class="g2"><div class="fg"><label>Project *</label><input type="text" data-f="project"'+fcMiss(fc.profile.project)+' value="'+esc(fc.profile.project)+'" placeholder="Activation name/ precinct/ project" onblur="fcUpProfile(this)"></div>';
       h+='<div class="fg"><label>Event year *</label><select data-f="eventYear" onchange="fcUpProfile(this)">'+yrs+'</select></div></div>';
-      h+='<div class="g2"><div class="fg"><label>Contact name *</label><input type="text" data-f="contactName" value="'+esc(fc.profile.contactName)+'" placeholder="Full name" onblur="fcUpProfile(this)"></div>';
-      h+='<div class="fg"><label>Contact email *</label><input type="email" data-f="contactEmail" value="'+esc(fc.profile.contactEmail)+'" placeholder="email@company.com" onblur="fcUpProfile(this)"></div></div>';
+      h+='<div class="g2"><div class="fg"><label>Contact name *</label><input type="text" data-f="contactName"'+fcMiss(fc.profile.contactName)+' value="'+esc(fc.profile.contactName)+'" placeholder="Full name" onblur="fcUpProfile(this)"></div>';
+      h+='<div class="fg"><label>Contact email *</label><input type="email" data-f="contactEmail"'+fcMiss(fc.profile.contactEmail)+' value="'+esc(fc.profile.contactEmail)+'" placeholder="email@company.com" onblur="fcUpProfile(this)"></div></div>';
       h+=fcBpHtml(fc.profile);
     h+='</div>';}
     if(all||q===2){h+='<div class="abq-panel on">';
       h+='<h2 class="abq-h">Targets &amp; practices</h2>';
-      h+='<div class="fg"><label>What are your reuse targets this year (percentage)? *</label><input type="text" data-f="reuseTarget" value="'+esc(fc.targets.reuseTarget)+'" placeholder="%" onblur="fcUpTargets(this)"></div>';
-      h+='<div class="fg"><label>What are your waste reduction targets this year (percentage)? *</label><input type="text" data-f="wasteTarget" value="'+esc(fc.targets.wasteTarget)+'" placeholder="%" onblur="fcUpTargets(this)"></div>';
-      h+='<div class="fg"><label>Estimate the proportion of materials to be disposed on site in bins (percentage) *</label><input type="text" data-f="disposedPct" value="'+esc(fc.targets.disposedPct)+'" placeholder="%" onblur="fcUpTargets(this)"></div>';
-      h+='<div class="fg"><label>To what extent do you use circular practices (modular design, finishes and fixes that don&rsquo;t contaminate materials, methods to optimise reuse or recycling)? *</label><select data-f="circPractices" onchange="fcUpTargets(this)"><option value="">Select...</option>'+mkOpts(['Very little <10%','Somewhat 10-40%','As much as possible 41-70%','All the time >71%'],fc.targets.circPractices)+'</select></div>';
+      h+='<div class="fg"><label>What are your reuse targets this year (percentage)? *</label><input type="text" data-f="reuseTarget"'+fcMiss(fc.targets.reuseTarget)+' value="'+esc(fc.targets.reuseTarget)+'" placeholder="%" onblur="fcUpTargets(this)"></div>';
+      h+='<div class="fg"><label>What are your waste reduction targets this year (percentage)? *</label><input type="text" data-f="wasteTarget"'+fcMiss(fc.targets.wasteTarget)+' value="'+esc(fc.targets.wasteTarget)+'" placeholder="%" onblur="fcUpTargets(this)"></div>';
+      h+='<div class="fg"><label>Estimate the proportion of materials to be disposed on site in bins (percentage) *</label><input type="text" data-f="disposedPct"'+fcMiss(fc.targets.disposedPct)+' value="'+esc(fc.targets.disposedPct)+'" placeholder="%" onblur="fcUpTargets(this)"></div>';
+      h+='<div class="fg"><label>To what extent do you use circular practices (modular design, finishes and fixes that don&rsquo;t contaminate materials, methods to optimise reuse or recycling)? *</label><select data-f="circPractices"'+fcMiss(fc.targets.circPractices)+' onchange="fcUpTargets(this)"><option value="">Select...</option>'+mkOpts(['Very little <10%','Somewhat 10-40%','As much as possible 41-70%','All the time >71%'],fc.targets.circPractices)+'</select></div>';
     h+='</div>';}
     h+='<div id="fc-q-err" style="display:none;background:#FCEBEB;border:1px solid #f5c6c6;border-radius:8px;padding:10px 14px;font-size:13px;color:#A32D2D;margin-top:12px"></div>';
     h+='<div class="abq-nav">';
@@ -2536,6 +2537,7 @@ function renderFcForm(){
     ?'Make changes to your forecast if needed prior to bump-out.'
     :'Use the 80/20 rule for your materials &#8212; typically a small number of key materials make up the majority of build and waste volumes.<br>Focus on what is <a href="'+MATERIALS_METHODS_URL+'" target="_blank" rel="noopener">High Volume and High Impact.</a>')+'</p>';
   h+='</div></div>';
+  h+=fcGapBanner();
   h+='<div class="sechd">Waste &amp; reuse forecast</div>';
   h+='<div id="fc-mats">';
   fc.materials.forEach((m,i)=>{h+=fcMatRowHtml(m,i);});
@@ -2610,7 +2612,60 @@ const FC_TAKEBACK_STAT='Recycle on site with AO Take-back program';
 // Forecast material fields 1-5 (all labelled *), plus "Tell us which one" when the take-back status is chosen.
 function fcMatMissing(m){return !String(m.precinctLocation||'').trim()||!String(m.yearBuilt||'').trim()||!String(m.assetName||'').trim()||!m.detail||!String(m.vol||'').trim()||!String(m.vunit||'').trim()||!m.stat||(m.detail==='Other'&&!String(m.detailOther||'').trim())||(m.stat===FC_TAKEBACK_STAT&&!String(m.statTakeBack||'').trim());}
 // Red border on an empty required forecast field, once a Save has failed on this forecast.
-function fcMiss(v){return (S._fcShowErr&&S.fc&&S.fc.draft&&S._fcShowErr===S.fc.draft.id&&!String(v||'').trim())?' style="border-color:#dc2626"':'';}
+function fcMiss(v){return ((S._fcShowErr&&S.fc&&S.fc.draft&&S._fcShowErr===S.fc.draft.id)||fcFlagGaps())&&!String(v||'').trim()?' style="border-color:#dc2626"':'';}
+// Admin-created forecasts (built by TA from a partner materials register — they
+// carry importSource) open with every gap flagged straight away: red for missing
+// required fields, amber for an "Unsure yet" status the importer set on the
+// partner's behalf. Not while admin is still reviewing the draft before Submit.
+function fcFlagGaps(){const d=S.fc&&S.fc.draft;return !!(d&&d.importSource&&!fcImportMode());}
+const FC_MAT_REQ=[['precinctLocation','precinct location'],['assetName','description'],['yearBuilt','year built'],['detail','material'],['vol','volume'],['vunit','unit'],['stat','status']];
+function fcMatGaps(m){
+  const g=FC_MAT_REQ.filter(([k])=>!String(m[k]||'').trim()).map(([,l])=>l);
+  if(m.detail==='Other'&&!String(m.detailOther||'').trim())g.push('material name');
+  if(m.stat===FC_TAKEBACK_STAT&&!String(m.statTakeBack||'').trim())g.push('take-back program');
+  return g;
+}
+function fcMatNeedsAction(m){return fcMatGaps(m).length>0||m.stat==='Unsure yet';}
+function fcActionTags(m){
+  if(!fcFlagGaps())return '';
+  const g=fcMatGaps(m);let h='';
+  if(g.length)h+='<span style="flex-shrink:0;background:#FCEBEB;color:#A32D2D;border:1px solid #f5c6c6;border-radius:20px;padding:2px 9px;font-size:11px;font-weight:700;white-space:nowrap">Action: '+esc(g.join(', '))+'</span>';
+  if(m.stat==='Unsure yet')h+='<span style="flex-shrink:0;background:#FDF0D5;color:#854F0B;border:1px solid #F3D9A4;border-radius:20px;padding:2px 9px;font-size:11px;font-weight:700;white-space:nowrap">Confirm status</span>';
+  return h;
+}
+// Required fields still empty (same rules as Save): details page (profile +
+// targets) and the "Anything else?" questions at the foot of the materials page.
+function fcDetailGaps(fc){
+  const p=fc.profile,t=fc.targets,n=fc.notes,e=v=>!String(v||'').trim();
+  let page=[p.org,p.project,p.role,p.contactName,p.contactEmail,t.reuseTarget,t.wasteTarget,t.disposedPct,t.circPractices].filter(e).length;
+  if(!fcIsTA(p)&&e(p.website))page++;
+  let notes=[n.largeStructures,n.circularHero].filter(e).length;
+  if((n.largeStructures==='Yes'||n.largeStructures==='Unsure yet')&&e(n.hazardousDetail))notes++;
+  return {page,notes};
+}
+// Note shown when the partner opens an admin-created forecast; refreshed as they fill it in.
+function fcGapBanner(){
+  if(!fcFlagGaps())return '<div id="fc-gap-banner"></div>';
+  const fc=S.fc.draft,g=fcDetailGaps(fc),mats=fc.materials||[],nm=mats.filter(fcMatNeedsAction).length;
+  if(!g.page&&!g.notes&&!nm)return '<div id="fc-gap-banner"></div>';
+  const onDetails=S.fc.stage==='details',pl=(n,w)=>n+' '+w+(n===1?'':'s');
+  const bits=[];
+  if(g.page)bits.push('<b>'+pl(g.page,'detail')+'</b> to complete '+(onDetails?'on this page':'on the details page'));
+  if(nm)bits.push('<b>'+nm+' of '+pl(mats.length,'material')+'</b> need'+(nm===1?'s':'')+' action'+(onDetails?' on the next page':''));
+  if(g.notes)bits.push('<b>'+pl(g.notes,'question')+'</b> to answer under &ldquo;Anything else?&rdquo;'+(onDetails?' on the next page':' below the materials'));
+  return '<div id="fc-gap-banner" class="hbox" style="background:#FFF8EC;border-color:#F3D9A4;color:#5C3D06;margin-bottom:12px;line-height:1.6">'
+    +'<strong>Set up for you by Tennis Australia</strong> &mdash; this forecast was created from your materials register. Complete the fields marked in <b style="color:#A32D2D">red</b> and confirm any expected status marked <b style="color:#854F0B">amber</b>, then Save.'
+    +'<div style="margin-top:4px">'+bits.join(' &middot; ')+'</div></div>';
+}
+function fcGapRefresh(){const el=document.getElementById('fc-gap-banner');if(el)el.outerHTML=fcGapBanner();}
+// Clear a red/ amber outline as soon as the field is filled; keep the note's counts current.
+function fcClearMiss(e){
+  const t=e.target;if(!t||!t.closest||!t.closest('.ux-fc'))return;
+  if(String(t.value||'').trim()&&t.style&&t.style.borderColor&&!(t.dataset.f==='stat'&&t.value==='Unsure yet')){t.style.borderColor='';t.style.boxShadow='';}
+}
+document.addEventListener('input',fcClearMiss,true);
+document.addEventListener('change',fcClearMiss,true);
+document.addEventListener('focusout',e=>{if(e.target&&e.target.closest&&e.target.closest('.ux-fc'))setTimeout(fcGapRefresh,0);},true);
 function fcMatRowHtml(m,idx){
   if(document.getElementById('frp-view'))return fcRpRowHtml(m,idx);
   const showOther=m.detail==='Other';
@@ -2646,10 +2701,10 @@ function fcMatRowHtml(m,idx){
       +'<div class="fg" style="flex:1;margin-bottom:0"><label><span class="qn">4</span>Expected volume <span class="req">*</span></label><input type="text" data-mid="'+m.id+'" data-f="vol"'+fcMiss(m.vol)+' value="'+esc(m.vol)+'" placeholder="10/ 20/ 100" onblur="fcUpMat(this)"></div>'
       +'<div class="fg unit-fg" style="width:200px;margin-bottom:0"><label>Unit <span class="req">*</span></label><div class="unit-combo"><select class="unit-sel" tabindex="-1" aria-label="Choose unit" data-mid="'+m.id+'" onchange="fcPickUnit(this)"><option value=""'+(fcUnit?'':' selected')+'></option>'+VOLS.map(v=>'<option'+(!fcUnitOther&&v===fcUnit?' selected':'')+'>'+esc(v)+'</option>').join('')+'<option value="Other"'+(fcUnitOther?' selected':'')+'>Other</option></select><input type="text" class="unit-txt" id="fc-unit-txt-'+m.id+'" data-mid="'+m.id+'" data-f="vunit"'+fcMiss(fcUnit)+' value="'+esc(fcUnit)+'" autocomplete="off" onblur="fcTypeUnit(this)"></div></div>'
       +'</div>'
-      +'<div class="fg" style="margin-top:8px"><label><span class="qn">5</span>Expected status <span class="req">*</span></label><select class="stat-sel" data-tone="'+statTone(m.stat)+'" data-mid="'+m.id+'" data-f="stat"'+fcMiss(m.stat)+' onchange="fcUpMat(this)">'+mkOpts(STATS,m.stat,'Select status...')+'</select></div>'
+      +'<div class="fg" style="margin-top:8px"><label><span class="qn">5</span>Expected status <span class="req">*</span></label><select class="stat-sel" data-tone="'+statTone(m.stat)+'" data-mid="'+m.id+'" data-f="stat"'+((fcFlagGaps()&&m.stat==='Unsure yet')?' style="border-color:#E8A317;box-shadow:0 0 0 2px #FDF0D5"':fcMiss(m.stat))+' onchange="fcUpMat(this)">'+mkOpts(STATS,m.stat,'Select status...')+'</select>'+((fcFlagGaps()&&m.stat==='Unsure yet')?'<div style="font-size:11.5px;color:#854F0B;margin-top:4px">Confirm the expected status &mdash; &ldquo;Unsure yet&rdquo; was set when Tennis Australia created this forecast.</div>':'')+'</div>'
       +(m.stat===FC_TAKEBACK_STAT?'<div class="fg"><label>Tell us which one <span class="req">*</span></label><input type="text" data-mid="'+m.id+'" data-f="statTakeBack"'+fcMiss(m.statTakeBack)+' value="'+esc(m.statTakeBack)+'" placeholder="Name of the take-back program" onblur="fcUpMat(this)"></div>':'')
       +((isUpdate||fcMatIsSaved(m))?'<div class="fc-del-row">'+(fcMatIsSaved(m)?'<button type="button" class="asset-del" onclick="fcConfirmDelMaterial(&#39;'+m.id+'&#39;,this)">Delete material</button>':'')+(isUpdate?'<button type="button" onclick="fcToggleMatCollapse(&#39;'+m.id+'&#39;)" style="margin-left:auto;background:none;border:none;color:#0091D2;font-size:12px;font-weight:700;cursor:pointer;text-decoration:underline">Collapse forecast details</button>':'')+'</div>':''))
-    :('<div class="fg" style="margin-bottom:10px"><div style="display:flex;align-items:center;gap:8px;background:#F7F6F2;border-radius:8px;padding:9px 12px;font-size:12px;color:#555"><span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">1&ndash;5. '+summaryLine+'</span>'+(m.stat?fcStatTag(m.stat):'')+'<button type="button" onclick="fcToggleMatCollapse(&#39;'+m.id+'&#39;)" style="background:none;border:none;color:#0091D2;font-weight:700;cursor:pointer;font-size:12px;flex-shrink:0">Edit</button></div></div>');
+    :('<div class="fg" style="margin-bottom:10px"><div style="display:flex;align-items:center;gap:8px;background:#F7F6F2;border-radius:8px;padding:9px 12px;font-size:12px;color:#555"><span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">1&ndash;5. '+summaryLine+'</span>'+fcActionTags(m)+(m.stat?fcStatTag(m.stat):'')+'<button type="button" onclick="fcToggleMatCollapse(&#39;'+m.id+'&#39;)" style="background:none;border:none;color:#0091D2;font-weight:700;cursor:pointer;font-size:12px;flex-shrink:0">Edit</button></div></div>');
   return'<div class="mat-row" id="fcmr-'+m.id+'">'
     +'<div class="mat-row-hd">'
     +'<span class="mat-row-num">Material '+(idx+1)+'</span>'
@@ -4482,7 +4537,7 @@ function renderAdminFcDashboard(rawForecasts){
     const yr=f.profile&&f.profile.eventYear?f.profile.eventYear:'—';
     h+='<tr>';
     const _bp=f.profile&&(f.profile.bpOrg||f.profile.bpContactEmail);
-    h+='<td><strong>'+esc(f.profile&&f.profile.org?f.profile.org:'Unnamed')+'</strong><br><span style="color:#aaa;font-size:10px">'+esc(f.profile&&f.profile.role?f.profile.role:'')+'</span>'+(_bp?'<div style="font-size:10px;color:#555;margin-top:3px">Build partner: '+esc(f.profile.bpOrg||'-')+'</div>':'')+'</td>';
+    h+='<td><strong>'+esc(f.profile&&f.profile.org?f.profile.org:'Unnamed')+'</strong><br><span style="color:#aaa;font-size:10px">'+esc(f.profile&&f.profile.role?f.profile.role:'')+'</span>'+(f.importSource?' <span style="display:inline-block;background:#E6F6F6;color:#007A7A;border-radius:10px;padding:1px 7px;font-size:9.5px;font-weight:700;vertical-align:1px">Admin import</span>':'')+(_bp?'<div style="font-size:10px;color:#555;margin-top:3px">Build partner: '+esc(f.profile.bpOrg||'-')+'</div>':'')+'</td>';
     h+='<td><div>'+esc(f.profile&&f.profile.contactName?f.profile.contactName:'-')+'</div><div style="color:#888;font-size:10px">'+esc(f.profile&&f.profile.contactEmail?f.profile.contactEmail:'')+'</div>'+(_bp?'<div style="margin-top:3px">'+esc(f.profile.bpContactName||'-')+'</div><div style="color:#888;font-size:10px">'+esc(f.profile.bpContactEmail||'')+'</div>':'')+'</td>';
     h+='<td><span style="font-size:12px;font-weight:700;color:#0091D2">'+esc(yr)+'</span></td>';
     h+='<td><span style="font-family:monospace;font-size:11px;white-space:nowrap;color:#0091D2;font-weight:700">'+code+'</span></td>';
@@ -7868,16 +7923,43 @@ function delAssetMat(aid,mid,btn){
   mtRender(aid);S._unsaved=true;
 }
 
-// Direct links: <site>/#create opens "Create a materials plan", <site>/#forecast opens the Forecast page.
+// Direct links: <site>/#create opens "Create a materials plan", <site>/#forecast opens the Forecast page,
+// <site>/#plan/<Plan ID> and <site>/#forecast/<TA-ID> open Update/ maintain with the code filled in (email links).
 // The hash is cleared once handled, so a later refresh doesn't keep jumping back there.
 const DEEP_LINKS={create:()=>goCreateIntro(),'new-plan':()=>goCreateIntro(),plan:()=>goCreateIntro(),forecast:()=>switchTab('forecast')};
 function openDeepLink(){
+  // <site>/#forecast/AO27-FC-XXXX-XXXX (the link in forecast emails): Update/ maintain, TA-ID filled in.
+  const fm=String(location.hash||'').replace(/^#\/?/,'').trim().match(/^forecast\/(AO27-FC-[A-Z0-9]{4}(?:-[A-Z0-9]{4})?)\/?$/i);
+  if(fm){try{history.replaceState(null,'',location.pathname+location.search);}catch(e){}fcOpenUpdateWithCode(fm[1].toUpperCase());return true;}
+  // <site>/#plan/AO27-XXXX-XXXX (the link in plan emails): Update/ maintain plan, Plan ID filled in.
+  const pm=String(location.hash||'').replace(/^#\/?/,'').trim().match(/^plan\/(AO27-[A-Z0-9]{4}-[A-Z0-9]{4})\/?$/i);
+  if(pm){try{history.replaceState(null,'',location.pathname+location.search);}catch(e){}planOpenUpdateWithCode(pm[1].toUpperCase());return true;}
   const key=String(location.hash||'').replace(/^#\/?/,'').toLowerCase().trim();
   const go=DEEP_LINKS[key];if(!go)return false;
   try{history.replaceState(null,'',location.pathname+location.search);}catch(e){}
   go();return true;
 }
 window.addEventListener('hashchange',openDeepLink);
+function planOpenUpdateWithCode(code){
+  switchTab('update');
+  const inp=document.getElementById('retrieve-input');if(!inp)return;
+  inp.value=code;
+  const msg=document.getElementById('retrieve-msg');
+  if(msg){msg.textContent='Your Plan ID is filled in \u2014 click Load to open your plan.';msg.style.color='#0F6E56';}
+  const btn=inp.nextElementSibling;if(btn&&btn.focus)btn.focus();
+  if(inp.scrollIntoView)inp.scrollIntoView({block:'center'});
+}
+function fcOpenUpdateWithCode(code){
+  switchTab('forecast');
+  const act=document.getElementById('fc-hub-actions');if(act)act.style.display='';
+  fcHubPick('update');
+  const inp=document.getElementById('fc-retrieve-input');if(!inp)return;
+  inp.value=code;
+  const msg=document.getElementById('fc-retrieve-msg');
+  if(msg){msg.textContent='Your TA-ID is filled in \u2014 click Load to open your forecast.';msg.style.color='#0F6E56';}
+  const btn=inp.nextElementSibling;if(btn&&btn.focus)btn.focus();
+  if(act&&act.scrollIntoView)act.scrollIntoView({block:'center'});
+}
 function init(){
   const raw=storageLoadAll();
   S.plans=raw.map(migratePlan);
