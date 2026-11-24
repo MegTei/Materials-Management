@@ -23,7 +23,7 @@
 //   EMAIL_ENABLED                       - "false" turns sending off without a deploy
 //   ALLOWED_ORIGINS                     - optional extra origins (comma-separated); the site URL is always allowed
 
-const DOC_TYPES = { plan: 'Materials Management Plan', forecast: 'Waste & Reuse Forecast' };
+const DOC_TYPES = { plan: 'Materials Management Plan', forecast: 'Forecast' };
 const CODE_FORMATS = {
   plan: /^AO27-[A-Z0-9]{4}-[A-Z0-9]{4}$/,
   forecast: /^AO27-FC-[A-Z0-9]{4}(-[A-Z0-9]{4})?$/
@@ -62,7 +62,9 @@ function log(fields) {
 function buildEmail(type, code, action, name) {
   const docType = DOC_TYPES[type];
   const codeLabel = type === 'plan' ? 'Plan ID' : 'TA-ID';
-  const site = (process.env.SITE_URL || process.env.URL || '').replace(/\/$/, '') + '/';
+  // Forecast emails open the Forecast page directly (the site handles /#forecast);
+  // plan emails go to the home page.
+  const site = (process.env.SITE_URL || process.env.URL || '').replace(/\/$/, '') + '/' + (type === 'forecast' ? '#forecast' : '');
   const greeting = plain(name) || 'there';                      // plain-text part
   const greetingHtml = escapeHtml(String(name == null ? '' : name).trim() || 'there');  // shown as typed, safely
   const subject = `AO27 ${docType} has been ${action}`;
