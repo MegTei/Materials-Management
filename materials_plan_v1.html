@@ -709,6 +709,9 @@ select.stat-sel[data-tone=""]{padding-left:10px!important}
 .mreq-btn{display:inline-flex;align-items:center;gap:7px;background:#fff;color:#0091D2;border:1.5px solid #0091D2;border-radius:99px;padding:9px 20px;font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap;transition:background .15s,color .15s}
 .mreq-btn:hover{background:#0091D2;color:#fff;border-color:#0091D2}
 .mreq-btn.teal{color:#009999;border-color:#009999}
+/* Forecast importer buttons: the forecast green used across the app (Forecasts tab, homepage) */
+.mreq-btn.fc-green,.mreq-btn.fc-green:focus{background:#009999!important;color:#fff!important;border-color:#009999!important}
+.mreq-btn.fc-green:hover{background:#007A7A!important;border-color:#007A7A!important}
 .mreq-btn.teal:hover{background:#009999;color:#fff;border-color:#009999}
 </style>
 <!-- XLSX: no crossorigin attribute — not needed without an integrity hash, and can cause CORS failures in some environments -->
@@ -4036,7 +4039,7 @@ function fcImpListHtml(){
     h+='</div>';
     h+=it.code
       ?'<div style="text-align:right;flex-shrink:0"><div style="font-size:11px;color:#0F6E56;font-weight:700">Created</div><div style="font-family:monospace;font-size:12px;font-weight:700;color:#0091D2">'+esc(it.code)+'</div></div>'
-      :'<div style="display:flex;flex-direction:column;gap:6px;flex-shrink:0"><button class="mreq-btn teal" style="margin:0" onclick="fcImpOpen('+i+')">Review &amp; create &rarr;</button><button type="button" style="background:none;border:none;color:#888;font-size:11.5px;cursor:pointer;text-decoration:underline" onclick="fcImpRemove('+i+')">Remove</button></div>';
+      :'<div style="display:flex;flex-direction:column;gap:6px;flex-shrink:0"><button class="mreq-btn fc-green" style="margin:0" onclick="fcImpOpen('+i+')">Review &amp; create &rarr;</button><button type="button" style="background:none;border:none;color:#888;font-size:11.5px;cursor:pointer;text-decoration:underline" onclick="fcImpRemove('+i+')">Remove</button></div>';
     h+='</div>';
   });
   return h;
@@ -4047,7 +4050,7 @@ function fcImpPanelHtml(){
   h+='<div style="font-size:12.5px;color:#555;line-height:1.6;margin-bottom:10px;max-width:640px">Upload one or more registers (.xlsx) with the Forecast tab&rsquo;s organisation details filled in. Each becomes a draft forecast &mdash; volumes, units and year built are left blank and status is set to &ldquo;Unsure yet&rdquo; for the agency/ builder to complete. Nothing is saved or emailed until you click Submit on a draft.</div>';
   h+='<div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">';
   h+='<input type="file" accept=".xlsx" multiple id="fc-imp-file" style="display:none" onchange="fcImpFiles(this)">';
-  h+='<button class="mreq-btn teal" style="margin:0" onclick="document.getElementById(&#39;fc-imp-file&#39;).click()">&#8593; Upload registers (.xlsx)</button>';
+  h+='<button class="mreq-btn fc-green" style="margin:0" onclick="document.getElementById(&#39;fc-imp-file&#39;).click()">&#8593; Upload registers (.xlsx)</button>';
   h+='<input type="text" id="fc-imp-test" placeholder="Test mode: send emails to (optional)" style="max-width:300px;font-size:12px" autocomplete="off" spellcheck="false">';
   h+='</div><div id="fc-imp-msg" style="margin-top:.5rem;font-size:11.5px;color:#888"></div>';
   h+='<div id="fc-imp-list">'+fcImpListHtml()+'</div>';
