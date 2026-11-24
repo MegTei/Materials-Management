@@ -3184,7 +3184,7 @@ function adminSubTabBar(active,withSignOut){
   };
   const signOut=withSignOut?'<button onclick="adminSignOut()" style="margin-left:auto;font-size:13px;font-weight:600;height:40px;padding:0 14px;color:#5B6B7B;border:none;border-radius:8px;cursor:pointer;background:none">Sign out</button>':'';
   return '<div class="admin-section" style="display:flex;gap:8px;flex-wrap:wrap;padding-top:1rem;padding-bottom:1rem">'
-    +tab('dashboard','Materials plans')+tab('forecasts','Forecasts')+tab('merged','Combined report')+tab('upload','Upload /maintain material plans')+signOut
+    +tab('dashboard','Materials plans')+tab('forecasts','Forecasts')+tab('merged','Combined report')+tab('upload','Admin - material plans/ forecasts')+signOut
     +'</div>';
 }
 function adminSwitchView(v){S.adminView=v;renderAdmin();}
@@ -3268,8 +3268,8 @@ function renderAdminUpload(){
   let h='';
   h+='<div class="admin-hero"><div>';
   h+='<div style="font-size:10px;font-weight:800;letter-spacing:.12em;color:rgba(255,255,255,.55);text-transform:uppercase;margin-bottom:4px">Admin</div>';
-  h+='<h2 style="font-size:20px;font-weight:800;color:#fff;margin-bottom:.4rem;letter-spacing:-.02em">Upload asset records</h2>';
-  h+='<p style="font-size:12px;line-height:1.6;opacity:.8;max-width:520px">Migrate an existing asset list or materials record into a new plan. Mandatory fields are relaxed on upload so incomplete records can be brought in and completed later.</p>';
+  h+='<h2 style="font-size:20px;font-weight:800;color:#fff;margin-bottom:.4rem;letter-spacing:-.02em">Admin &ndash; material plans/ forecasts</h2>';
+  h+='<p style="font-size:12px;line-height:1.6;opacity:.8;max-width:520px">Migrate an existing asset list or materials record into a new plan, or create forecasts from partner materials registers. Mandatory fields are relaxed on upload so incomplete records can be brought in and completed later.</p>';
   h+='</div></div>';
   h+=adminSubTabBar('upload',true);
 
@@ -3294,6 +3294,7 @@ function renderAdminUpload(){
   h+=card('TA','Internal — TA roles','For event organisers and internal TA teams who already track assets in spreadsheets. Their records carry more detail (serial numbers, year built, builder/supplier). Upload here to create a TA plan with that data pre-populated.');
   h+=card('EXT','External — Agencies, builders, partners, contractors','For external partners migrating an existing asset or materials list. Upload here to create an external plan; missing fields can be completed in the plan afterwards.');
 
+  h+=fcImpPanelHtml();
   h+='<div id="admin-rollfwd"><div class="admin-section" style="font-size:12.5px;color:#5B6B7B">Loading bump-out roll-forward…</div></div>';
   document.getElementById('main').innerHTML=h;
   refreshRollForward();
@@ -3403,9 +3404,10 @@ function loadAdminPlansInto(){
       // Cache the loaded set so admin actions (e.g. the bump-out roll-forward)
       // operate on the same authoritative data the dashboard is rendering.
       S._adminPlans=plans;
-      renderAdminDashboard(plans);
+      // the load is async: if admin has moved to another view meanwhile, don't draw over it
+      if((S.adminView||'dashboard')==='dashboard')renderAdminDashboard(plans);
     })
-    .catch(err=>renderAdminError(err));
+    .catch(err=>{if((S.adminView||'dashboard')==='dashboard')renderAdminError(err);});
 }
 
 function renderAdminError(err){
@@ -4015,15 +4017,15 @@ function fcImpReturn(){
   S._fcImpActive=null;S._fcDirty=false;
   S.fc={mode:'landing'};
   switchTab('admin');                    // always opens the plans view…
-  adminSwitchView('forecasts');          // …so move to Forecasts after it
+  adminSwitchView('upload');             // …so move to the admin upload page after it
 }
 function loadAdminForecastsInto(){
   loadAdminForecasts()
     .then(function(forecasts){
       S._adminForecasts=forecasts;
-      renderAdminFcDashboard(forecasts);
+      if(S.adminView==='forecasts')renderAdminFcDashboard(forecasts);
     })
-    .catch(err=>renderAdminFcError(err));
+    .catch(err=>{if(S.adminView==='forecasts')renderAdminFcError(err);});
 }
 function renderAdminFcError(err){
   const main=document.getElementById('main');if(!main)return;
@@ -4351,7 +4353,6 @@ function renderAdminFcDashboard(rawForecasts){
   h+='</div></div>';
   h+='<span class="fc-dash" hidden></span>';
   h+=adminSubTabBar('forecasts',false);
-  h+=fcImpPanelHtml();
 
   // ── Year filter ───────────────────────────────────────────────────────────
   if(years.length){
