@@ -10,6 +10,12 @@
 //   - a global hourly ceiling across the app
 // So this endpoint cannot be used to send email to arbitrary addresses.
 //
+// Forecasts can also name a build partner (profile.bpContactEmail). When email_prepare
+// allows a send for a forecast, the build partner gets their own copy too. Their address
+// is read server-side from the same stored forecast (get_forecast_by_code), so the
+// browser still never supplies a recipient, and the same once-per-code / 24-hour
+// decision covers both. A build partner address equal to the main contact is skipped.
+//
 // Environment (Production context only, marked secret):
 //   SUPABASE_URL, SUPABASE_SECRET_KEY   - project URL and secret key (server-side only)
 //   SENDGRID_API_KEY                    - restricted key with Mail Send permission only
@@ -112,24 +118,51 @@ exports.handler = async function (event) {
       return reply(200, { ok: true, sent: false });
     }
 
-    const mail = buildEmail(type, code, action, target.name);
-    const send = await fetch('https://api.sendgrid.com/v3/mail/send', {
-      method: 'POST',
-      headers: { Authorization: `Bearer ${SENDGRID_API_KEY}`, 'content-type': 'application/json' },
-      body: JSON.stringify({
-        personalizations: [{ to: [{ email: target.email }] }],
-        from: { email: process.env.EMAIL_FROM || DEFAULT_FROM, name: 'AO27 Materials Management' },
-        subject: mail.subject,
-        content: [{ type: 'text/plain', value: mail.text }, { type: 'text/html', value: mail.html }],
-        tracking_settings: { click_tracking: { enable: false, enable_text: false } }
-      })
-    });
+    const sendTo = (email, name) => {
+      const mail = buildEmail(type, code, action, name);
+      return fetch('https://api.sendgrid.com/v3/mail/send', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${SENDGRID_API_KEY}`, 'content-type': 'application/json' },
+        body: JSON.stringify({
+          personalizations: [{ to: [{ email }] }],
+          from: { email: process.env.EMAIL_FROM || DEFAULT_FROM, name: 'AO27 Materials Management' },
+          subject: mail.subject,
+          content: [{ type: 'text/plain', value: mail.text }, { type: 'text/html', value: mail.html }],
+          tracking_settings: { click_tracking: { enable: false, enable_text: false } }
+        })
+      });
+    };
+
+    const send = await sendTo(target.email, target.name);
     if (!send.ok) {
       log({ evt: 'send_failed', status: send.status, type, code, action });
       return reply(502, { error: 'Email could not be sent' });
     }
     log({ evt: 'sent', type, code, action });
-    return reply(200, { ok: true, sent: true });
+
+    // Build partner copy (forecasts only). Never fails the main send.
+    let bpSent = false;
+    if (type === 'forecast') {
+      try {
+        const fr = await fetch(`${SUPABASE_URL.replace(/\/$/, '')}/rest/v1/rpc/get_forecast_by_code`, {
+          method: 'POST',
+          headers: { apikey: SUPABASE_SECRET_KEY, 'content-type': 'application/json' },
+          body: JSON.stringify({ p_code: code })
+        });
+        const fc = fr.ok ? await fr.json() : null;
+        const p = (fc && fc.profile) || {};
+        const bpEmail = String(p.bpContactEmail || '').trim();
+        const okEmail = /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(bpEmail);
+        if (okEmail && bpEmail.toLowerCase() !== String(target.email).trim().toLowerCase()) {
+          const bpSend = await sendTo(bpEmail, p.bpContactName);
+          bpSent = bpSend.ok;
+          log({ evt: bpSend.ok ? 'sent_build_partner' : 'send_failed_build_partner', status: bpSend.status, type, code, action });
+        }
+      } catch (err) {
+        log({ evt: 'build_partner_error', type, code, message: String(err && err.message).slice(0, 200) });
+      }
+    }
+    return reply(200, { ok: true, sent: true, buildPartner: bpSent });
   } catch (err) {
     log({ evt: 'error', message: String(err && err.message).slice(0, 200) });
     return reply(500, { error: 'Email could not be sent' });
