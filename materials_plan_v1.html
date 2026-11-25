@@ -4223,9 +4223,30 @@ function volReport(lines){
     }
   }
   const units=Object.keys(unitLines).sort((a,b)=>unitLines[b]-unitLines[a]||a.localeCompare(b));
-  return{rows:Object.values(rowMap),units:units,unitLines:unitLines,streams:streams,skipped:skipped};
+  // Every line by stream (with or without a volume), and the lines still awaiting a volume
+  // grouped by material — so the dashboard can say what the totals don't cover yet.
+  const allByStream={};FC_STREAMS.forEach(st=>{allByStream[st.k]=0;});
+  const countMap={};
+  for(const m of (lines||[])){
+    const k=fcStream(m.stat);if(k)allByStream[k]++;
+    const key=m.name.toLowerCase();
+    const c=countMap[key]||(countMap[key]={name:m.name,cls:m.cls||'',n:0,offsite:0,takeback:0,waste:0,unsure:0,none:0,withVol:0,orgs:new Set(),srcs:new Set()});
+    if(!c.cls&&m.cls)c.cls=m.cls;
+    c.n++;if(k)c[k]++;else c.none++;c.orgs.add(m.org);c.srcs.add(m.src||'');
+    if(k&&fcVolNum(m.vol)!=null&&fcUnitNorm(m.vunit).unit)c.withVol++;
+  }
+  return{rows:Object.values(rowMap),units:units,unitLines:unitLines,streams:streams,skipped:skipped,total:(lines||[]).length,allByStream:allByStream,counts:Object.values(countMap)};
 }
 function fcVolumeReport(forecasts){return volReport(fcLines(forecasts));}
+// Material volumes report has two views: 'volume' (known volumes, ranked by volume) and
+// 'common' (every material listed, ranked by how many times it appears — includes
+// materials with no volume yet, e.g. forecasts TA created from materials registers).
+function adminVolMode(){return sessionStorage.getItem('adminVolMode')==='common'?'common':'volume';}
+function adminSetVolMode(m){sessionStorage.setItem('adminVolMode',m==='common'?'common':'volume');adminVolRerender();}
+function fcCountRows(rep,filter){
+  const k=['offsite','takeback','waste','unsure'].includes(filter)?filter:'n';
+  return rep.counts.filter(c=>c[k]>0).sort((a,b)=>b[k]-a[k]||b.n-a.n||a.name.localeCompare(b.name));
+}
 // One entry per material type for the report. vols[] holds each sizing type (unit)
 // the material was forecast in: vols[0] is the majority sizing (most lines; ties go
 // to the bigger figure), the rest sit behind the row's expand arrow. Different units
@@ -4293,17 +4314,27 @@ function exportAdminFcVolumesCSV(){
   const rep=volReport(adminVolLines());
   const flt=fcVolFilter();
   const groups=fcRankRows(rep,flt);
-  if(!groups.length){showToast('No volumes to export yet');return;}
+  const mode=adminVolMode();
   const num=v=>v>0?fcFmtVol(v).replace(/,/g,''):'';
-  const rows=[['Rank','Material type','Material class','Source','Sizing','Volume','Unit','Reuse','AO take-back program','Mixed construction waste (AO onsite bins)','Unsure yet','Material lines']];
-  groups.forEach((g,i)=>g.vols.forEach((r,j)=>rows.push([i+1,g.name,g.cls,[...r.srcs].filter(Boolean).sort().join(' + '),j?'Other sizing':'Main sizing',num(r.total),r.unit,num(r.offsite),num(r.takeback),num(r.waste),num(r.unsure),r.lines])));
+  let rows;
+  if(mode==='common'){
+    const crow=fcCountRows(rep,flt);
+    if(!crow.length){showToast('No materials to export yet');return;}
+    const vmain={};fcRankRows(rep,'all').forEach(g=>{vmain[g.name.toLowerCase()]=g.vols[0];});
+    rows=[['Rank','Material type','Material class','Source','Materials listed','Reuse','AO take-back program','Mixed construction waste (AO onsite bins)','Unsure yet','No status','Organisations','With a volume','Known volume','Unit']];
+    crow.forEach((c,i)=>{const v=vmain[c.name.toLowerCase()];rows.push([i+1,c.name,c.cls,[...c.srcs].filter(Boolean).sort().join(' + '),c.n,c.offsite,c.takeback,c.waste,c.unsure,c.none,c.orgs.size,c.withVol,v?num(v.total):'',v?v.unit:'']);});
+  }else{
+    if(!groups.length){showToast('No volumes to export yet');return;}
+    rows=[['Rank','Material type','Material class','Source','Sizing','Volume','Unit','Reuse','AO take-back program','Mixed construction waste (AO onsite bins)','Unsure yet','Material lines']];
+    groups.forEach((g,i)=>g.vols.forEach((r,j)=>rows.push([i+1,g.name,g.cls,[...r.srcs].filter(Boolean).sort().join(' + '),j?'Other sizing':'Main sizing',num(r.total),r.unit,num(r.offsite),num(r.takeback),num(r.waste),num(r.unsure),r.lines])));
+  }
   const csv=rows.map(r=>r.map(v=>'"'+String(v).replace(/"/g,'""')+'"').join(',')).join('\r\n');
   const blob=new Blob(['﻿'+csv],{type:'text/csv;charset=utf-8;'});
   const url=URL.createObjectURL(blob);
   const a=document.createElement('a');
   const view=S.adminView==='forecasts'?'forecast':S.adminView==='merged'?'combined':'plans';
   const yr=sessionStorage.getItem(view==='forecast'?'adminFcYear':view==='combined'?'adminMergedYear':'adminYear')||'all';
-  a.href=url;a.download='ao-'+view+'-material-volumes-'+(yr==='all'?'all-years':yr.toLowerCase())+'.csv';a.click();
+  a.href=url;a.download='ao-'+view+'-material-'+(mode==='common'?'counts':'volumes')+'-'+(yr==='all'?'all-years':yr.toLowerCase())+'.csv';a.click();
   URL.revokeObjectURL(url);
 }
 // Forecast dashboard wrapper: forecast lines + "Top materials" (share of material lines).
@@ -4324,13 +4355,20 @@ function adminVolumesHtml(lines,top){
   // ── Section 1: what Ops has to handle ──
   h+='<div class="admin-section">';
   h+='<div class="sechd sechd-first">Bump out forecast</div>';
+  if(rep.skipped.length){
+    const cov=rep.total-rep.skipped.length;
+    h+='<div class="hbox" style="background:#FFF8EC;border-color:#F3D9A4;color:#5C3D06;margin-bottom:12px;line-height:1.6">'
+      +'Volumes below cover <b>'+cov+' of '+rep.total+'</b> materials. <b>'+rep.skipped.length+'</b> have no volume yet (e.g. forecasts TA created from materials registers, awaiting the agency/ builder). Switch the material volumes report to &ldquo;Most common&rdquo; to include them; they move into these totals as volumes are added.</div>';
+  }
   h+='<div class="fc-grid">';
   const card=(k,title,sub)=>{
     const st=rep.streams[k],c=S_(k);
     let x='<div style="border:1px solid #E1E7ED;border-top:4px solid '+c.col+';border-radius:12px;padding:16px 16px 12px;background:#fff">';
     x+='<div style="font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.07em;color:'+c.col+'">'+title+'</div>';
     x+='<div style="font-size:11px;color:#5B6B7B;margin:2px 0 10px">'+sub+'</div>';
-    if(!st.lines){x+='<div style="color:#aaa;font-size:12px;padding:6px 0 8px">Nothing forecast for this stream yet.</div></div>';return x;}
+    const nAll=rep.allByStream[k]||0;
+    if(nAll>st.lines)x+='<div style="font-size:11.5px;color:#0C1B47;margin:-4px 0 10px"><b>'+nAll+'</b> material'+(nAll===1?'':'s')+' &middot; <span style="color:#854F0B">'+(nAll-st.lines)+' awaiting a volume</span></div>';
+    if(!st.lines){x+='<div style="color:#aaa;font-size:12px;padding:6px 0 8px">'+(nAll?'No volumes entered for this stream yet.':'Nothing forecast for this stream yet.')+'</div></div>';return x;}
     const mats=Object.values(st.mats).sort((a,b)=>rep.units.indexOf(a.unit)-rep.units.indexOf(b.unit)||b.vol-a.vol);
     x+='<div style="font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:#8A97A2;margin-bottom:2px">Biggest materials</div>';
     mats.slice(0,5).forEach(mt=>{x+='<div class="insight-row"><span style="flex:1;color:#333;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="'+esc(mt.name)+'">'+esc(mt.name)+'</span><span style="font-weight:700;color:#0C1B47;white-space:nowrap">'+fcFmtVol(mt.vol)+' <span style="font-weight:500;color:#5B6B7B">'+esc(mt.unit)+'</span></span></div>';});
@@ -4348,7 +4386,7 @@ function adminVolumesHtml(lines,top){
     const topMats=(top&&top.rows)||[],matTot=(top&&top.total)||0;
     let x='<div style="border:1px solid #E1E7ED;border-top:4px solid #0091D2;border-radius:12px;padding:16px 16px 12px;background:#fff">';
     x+='<div style="font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.07em;color:#0072A8">'+esc((top&&top.title)||'Top materials')+'</div>';
-    x+='<div style="font-size:11px;color:#5B6B7B;margin:2px 0 10px">Percentage of total volumes</div>';
+    x+='<div style="font-size:11px;color:#5B6B7B;margin:2px 0 10px">Share of materials listed (by count, not volume)</div>';
     if(topMats.length){topMats.forEach((t,i)=>{
       const pp=matTot?Math.round(t[1]/matTot*100):0;
       x+='<div class="insight-row"><span style="color:#aaa;font-size:10px;width:14px;flex-shrink:0">'+(i+1)+'</span><span style="flex:1;color:#333;font-weight:'+(i===0?700:400)+';overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="'+esc(t[0])+'">'+esc(t[0])+'</span><span style="color:#888;font-size:11px;margin-right:6px">'+pp+'%</span><div class="insight-bar-wrap" style="width:44px"><div class="insight-bar" style="background:#0091D2;width:'+pp+'%"></div></div></div>';
@@ -4364,17 +4402,41 @@ function adminVolumesHtml(lines,top){
   const cardsHtml=h;h='';
 
   // ── Section 2: material volumes report (filter by pathway) ──
-  const flt=fcVolFilter();
+  const flt=fcVolFilter(),mode=adminVolMode();
   const groups=fcRankRows(rep,flt);
   h+='<div class="admin-section">';
   h+='<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:12px">';
   h+='<div class="sechd sechd-first" style="margin:0;flex:1;min-width:180px">Material volumes report</div>';
+  const seg=(m,l)=>'<button onclick="adminSetVolMode(&#39;'+m+'&#39;)" style="font-size:12px;font-weight:700;padding:5px 12px;border:none;cursor:pointer;background:'+(mode===m?'#0C1B47':'#fff')+';color:'+(mode===m?'#fff':'#555')+'">'+l+'</button>';
+  h+='<span style="display:inline-flex;border:1.5px solid #0C1B47;border-radius:20px;overflow:hidden;margin-right:6px">'+seg('volume','Known volume')+seg('common','Most common')+'</span>';
   const chip=(k,l)=>'<button onclick="adminFcSetFilter(&#39;'+k+'&#39;)" style="font-size:12px;font-weight:700;padding:5px 12px;border-radius:20px;cursor:pointer;border:1.5px solid '+(flt===k?'#0091D2':'#d0cdc7')+';background:'+(flt===k?'#0091D2':'#fff')+';color:'+(flt===k?'#fff':'#555')+'">'+l+'</button>';
   h+='<span style="font-size:11px;font-weight:700;color:#888;text-transform:uppercase;letter-spacing:.06em">Filter</span>'+chip('all','All')+chip('offsite','Reuse')+chip('takeback','Take-back')+chip('waste','Waste')+chip('unsure','Unsure');
   h+='<button onclick="exportAdminFcVolumesCSV()" style="font-size:12px;font-weight:700;padding:6px 14px;border:1px solid #0091D2;color:#0091D2;background:#EEF5FF;border-radius:7px;cursor:pointer">Export report (CSV)</button>';
   h+='</div>';
+  if(mode==='common'){
+    // Most common: every material listed, by count, with its known volume where there is one.
+    const crow=fcCountRows(rep,flt);
+    if(!crow.length){h+='<div style="color:#aaa;font-size:12px;padding:8px 0">'+(flt==='all'?'No materials listed yet.':'No materials on this pathway yet.')+'</div></div>';return{cards:cardsHtml,report:h};}
+    const vmain={};fcRankRows(rep,'all').forEach(g=>{vmain[g.name.toLowerCase()]=g.vols[0];});
+    const cc=(c,k)=>{const col=k==='offsite'?'#1F8A4C':S_(k).col;return'<td style="'+(c[k]>0?'font-weight:700;color:'+col:'color:#c5ccd3')+'">'+(c[k]>0?c[k]:'&ndash;')+'</td>';};
+    h+='<p style="font-size:11.5px;color:#5B6B7B;margin:-4px 0 10px">Ranked by number of times each material is listed, including materials with no volume yet. Pathway columns are material counts.</p>';
+    h+='<div style="overflow-x:auto"><table class="admin-table" style="min-width:620px">';
+    h+='<thead><tr><th style="width:28px">#</th><th>Material type</th><th>Materials</th><th>Reuse</th><th style="white-space:nowrap">Take-back</th><th>Waste</th><th>Unsure</th><th style="white-space:nowrap">Known volume</th></tr></thead><tbody>';
+    crow.forEach((c,i)=>{
+      const v=vmain[c.name.toLowerCase()];
+      h+='<tr><td style="color:#8A97A2">'+(i+1)+'</td><td><strong style="color:#0C1B47">'+esc(c.name)+'</strong>';
+      if(merged)h+=' <span style="display:inline-block;font-size:10px;font-weight:700;padding:1px 7px;border-radius:99px;vertical-align:middle;'+(c.srcs.size>1?'background:#EDE9FB;color:#5B3FB8':c.srcs.has('Forecasts')?'background:#D9F2F2;color:#007A7A':'background:#E8F4FC;color:#005F8C')+'">'+esc([...c.srcs].filter(Boolean).sort().join(' + '))+'</span>';
+      h+='<br><span style="color:#8A97A2;font-size:10px">'+(c.cls?esc(c.cls)+' &middot; ':'')+c.orgs.size+' organisation'+(c.orgs.size===1?'':'s')+'</span></td>';
+      h+='<td><strong style="font-size:13px;color:#0C1B47">'+c.n+'</strong></td>'+cc(c,'offsite')+cc(c,'takeback')+cc(c,'waste')+cc(c,'unsure');
+      h+='<td style="white-space:nowrap">'+(v?'<strong style="color:#0C1B47">'+fcFmtVol(v.total)+'</strong> <span style="color:#5B6B7B;font-size:11px">'+esc(v.unit)+'</span><br><span style="color:#8A97A2;font-size:10px">'+c.withVol+' of '+c.n+' with a volume</span>':'<span style="color:#c5ccd3">&ndash;</span>')+'</td></tr>';
+    });
+    h+='</tbody></table></div>';
+    if(merged)h+='<p style="font-size:11px;color:#8A97A2;margin-top:10px;line-height:1.5">Plans are grouped by material category and forecasts by material details, so the same material can sit under two names.</p>';
+    h+='</div>';
+    return{cards:cardsHtml,report:h};
+  }
   if(!groups.length){
-    h+='<div style="color:#aaa;font-size:12px;padding:8px 0">'+(flt==='all'?'No material volumes to report yet.':'No materials forecast for this pathway yet.')+'</div></div>';
+    h+='<div style="color:#aaa;font-size:12px;padding:8px 0">'+(flt==='all'?'No material volumes to report yet.':'No volumes for this pathway yet.')+(rep.skipped.length?' Switch to &ldquo;Most common&rdquo; to see materials without a volume.':'')+'</div></div>';
     return{cards:cardsHtml,report:h};
   }
   h+='<div style="overflow-x:auto"><table class="admin-table" style="min-width:620px">';
@@ -4494,10 +4556,14 @@ function renderAdminFcDashboard(rawForecasts){
   const actCts={};for(const m of allMats){const o=fcMatOutcome(m);if(o)actCts[o]=(actCts[o]||0)+1;}
 
   // Circularity by organisation (leaders)
+  // One row per forecast: where an organisation has several (e.g. one agency, three
+  // activations) the project is added so the rows can be told apart.
+  const orgN={};filtered.forEach(f=>{const o=(f.profile&&f.profile.org)||'Unknown';orgN[o]=(orgN[o]||0)+1;});
   const fcCirc=filtered.map(f=>{
     const mats=(f.materials||[]).map(m=>({stat:m.stat}));
     const pp=circStats(mats,'stat').pct;
-    return{name:f.profile&&f.profile.org?f.profile.org:'Unknown',pct:pp};
+    const org=(f.profile&&f.profile.org)||'Unknown',proj=String((f.profile&&f.profile.project)||'').trim();
+    return{name:orgN[org]>1&&proj?org+' – '+proj:org,pct:pp};
   }).filter(x=>x.pct!==null).sort((a,b)=>b.pct-a.pct);
 
   const svgBar='<svg viewBox="0 0 24 24" style="width:18px;height:18px;stroke:#0091D2;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/><line x1="2" y1="20" x2="22" y2="20"/></svg>';
@@ -4540,7 +4606,7 @@ function renderAdminFcDashboard(rawForecasts){
   h+='<div class="admin-section">';
   h+='<div class="sechd sechd-first">Submitted forecasts ('+filtered.length+')</div>';
   h+='<div style="overflow-x:auto;margin-bottom:1.5rem"><table class="admin-table">';
-  h+='<thead><tr><th>Business</th><th>Contact</th><th>Year</th><th>TA-ID</th><th>Materials</th><th>Take-back</th><th>Waste</th><th>Circularity</th><th>Last saved</th></tr></thead>';
+  h+='<thead><tr><th>Business</th><th>Contact</th><th>Activation</th><th>TA-ID</th><th>Materials</th><th>Take-back</th><th>Waste</th><th>Circularity</th><th>Last saved</th></tr></thead>';
   h+='<tbody>';
   for(const f of filtered){
     const frep=fcVolumeReport([f]);
@@ -4551,12 +4617,12 @@ function renderAdminFcDashboard(rawForecasts){
     const statBg=_noSc?'#f1f1f1':sc.pct>=80?'#EEF9F4':sc.pct>=50?'#FFF8EE':'#FCEBEB';
     const statCol=_noSc?'#9ca3af':sc.pct>=80?'#0F6E56':sc.pct>=50?'#854F0B':'#A32D2D';
     const code=fcCode(f.id);
-    const yr=f.profile&&f.profile.eventYear?f.profile.eventYear:'—';
+    const act=f.profile&&String(f.profile.project||'').trim()?f.profile.project:'—';
     h+='<tr>';
     const _bp=f.profile&&(f.profile.bpOrg||f.profile.bpContactEmail);
     h+='<td><strong>'+esc(f.profile&&f.profile.org?f.profile.org:'Unnamed')+'</strong><br><span style="color:#aaa;font-size:10px">'+esc(f.profile&&f.profile.role?f.profile.role:'')+'</span>'+(f.importSource?' <span style="display:inline-block;background:#E6F6F6;color:#007A7A;border-radius:10px;padding:1px 7px;font-size:9.5px;font-weight:700;vertical-align:1px">Admin import</span>':'')+(_bp?'<div style="font-size:10px;color:#555;margin-top:3px">Build partner: '+esc(f.profile.bpOrg||'-')+'</div>':'')+'</td>';
     h+='<td><div>'+esc(f.profile&&f.profile.contactName?f.profile.contactName:'-')+'</div><div style="color:#888;font-size:10px">'+esc(f.profile&&f.profile.contactEmail?f.profile.contactEmail:'')+'</div>'+(_bp?'<div style="margin-top:3px">'+esc(f.profile.bpContactName||'-')+'</div><div style="color:#888;font-size:10px">'+esc(f.profile.bpContactEmail||'')+'</div>':'')+'</td>';
-    h+='<td><span style="font-size:12px;font-weight:700;color:#0091D2">'+esc(yr)+'</span></td>';
+    h+='<td style="font-size:12px;font-weight:700;color:#0C1B47">'+esc(act)+'</td>';
     h+='<td><span style="font-family:monospace;font-size:11px;white-space:nowrap;color:#0091D2;font-weight:700">'+code+'</span></td>';
     h+='<td>'+(f.materials||[]).length+' materials</td>';
     h+='<td style="white-space:nowrap;font-size:11px;font-weight:700;color:#1F8A4C">'+fvol('takeback')+'</td>';
@@ -4644,14 +4710,14 @@ function renderAdminMerged(){
 function exportAdminFcCSV(){
   loadAdminForecasts().then(forecasts=>{
     if(!forecasts.length){showToast('No forecasts to export');return;}
-    const rows=[['Organisation','Website','Project','Role','Contact name','Contact email','Build partner','Build partner contact','Build partner email','Event year','TA-ID','Precinct location','Precinct application','Asset name','Year built','Material','Material name/ supplier','Expected volume','Unit','Expected status','Expected take-back program','Actual material status (Bump-out)','Receiving org (Donate)','Take-back program name']];
+    const rows=[['Organisation','Website','Activation','Role','Contact name','Contact email','Build partner','Build partner contact','Build partner email','TA-ID','Precinct location','Precinct application','Asset name','Year built','Material','Material name/ supplier','Expected volume','Unit','Expected status','Expected take-back program','Actual material status (Bump-out)','Receiving org (Donate)','Take-back program name']];
     for(const f of forecasts){
       const code=fcCode(f.id);
       for(const m of (f.materials||[])){
         rows.push([
           f.profile.org||'',f.profile.website||'',f.profile.project||'',f.profile.role||'',f.profile.contactName||'',f.profile.contactEmail||'',
           f.profile.bpOrg||'',f.profile.bpContactName||'',f.profile.bpContactEmail||'',
-          f.profile.eventYear||'',code,
+          code,
           m.precinctLocation||'',m.precinctApp||'',m.assetName||'',m.yearBuilt||'',m.detail==='Other'?(m.detailOther||'Other'):(m.detail||''),m.materialName||'',m.vol||'',m.vunit||'',m.stat||'',m.statTakeBack||'',fcMatOutcome(m),
           m.receivingOrg||'',m.takeBackProgram||(m.actual&&(m.actual.takeBackProgram||m.actual.takeBackNote))||''
         ]);
