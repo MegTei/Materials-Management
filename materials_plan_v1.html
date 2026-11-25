@@ -3894,7 +3894,9 @@ function fcImpMaterials(reg,precinctLocation){
     const key=[x.material,x.finish,x.location,x.element].join('|').toLowerCase();
     if(seen.has(key))continue;seen.add(key);
     const placeholder=/no door-specific fire report/i.test(x.material);
-    const base=placeholder?(x.type||'Doors'):(x.type&&!x.material.toLowerCase().includes(x.type.toLowerCase())?x.type+': '+x.material:x.material);
+    // Made Experiences' register puts "Material type" where others have the drawing ref: for that
+    // workbook (Summary tab) the type stands in for the supplier, so it isn't repeated in front.
+    const base=placeholder?(x.type||'Doors'):(x.typeIsSupplier?x.material:(x.type&&!x.material.toLowerCase().includes(x.type.toLowerCase())?x.type+': '+x.material:x.material));
     // Long technical descriptions (Made's master list) name other materials too
     // ("…protected with plasterboard"), so their Material Type column decides first.
     const acm=/\b(acm|acp)\b/i.test(x.finish)?' ACM':'';
@@ -3978,6 +3980,9 @@ function fcImpWorkbook(wb,file){
         const g=c.filter(({s})=>/groblox/i.test(s.type)===gro);if(g.length)c=g;}
       if(!c.length)return null;used.add(c[0].i);return c[0].s;
     };
+    // Made only: "Material type" is used as the supplier (Meg, 25 Nov), so tabs with materials
+    // listed but no locations still import — and the type shows in "Material name/ supplier".
+    regs.forEach(x=>x.reg.rows.forEach(r=>{if(r.type){if(!r.supplier)r.supplier=r.type;r.typeIsSupplier=true;}}));
     // tabs with a real (filled) register pick first, so the master copies get what's left
     const order=regs.slice().sort((x,y)=>(y.reg.rows.some(r=>r.location)?1:0)-(x.reg.rows.some(r=>r.location)?1:0));
     for(const x of order){
